@@ -1,0 +1,161 @@
+import { ActivityItem, KPICard } from '@/types';
+import { BusinessType } from '@/types';
+
+// ─── KPI Cards per Business Type ──────────────────────────────────────────────
+
+export const kpiData: Record<BusinessType, KPICard[]> = {
+  academy: [
+    { id: 'kpi-academy-1', label: 'Total Students', value: '284', change: 12, changeType: 'positive', icon: 'Users', color: '#7C3AED' },
+    { id: 'kpi-academy-2', label: 'Active Courses', value: '18', change: 3, changeType: 'positive', icon: 'BookOpen', color: '#2563EB' },
+    { id: 'kpi-academy-3', label: 'Fees Collected', value: '₹4,82,500', change: 8.4, changeType: 'positive', icon: 'IndianRupee', color: '#10B981' },
+    { id: 'kpi-academy-4', label: 'Pending Fees', value: '₹38,200', change: -5.2, changeType: 'negative', icon: 'AlertCircle', color: '#EF4444' },
+  ],
+  hotel: [
+    { id: 'kpi-hotel-1', label: 'Total Rooms', value: '48', change: 0, changeType: 'neutral', icon: 'DoorOpen', color: '#0891B2' },
+    { id: 'kpi-hotel-2', label: 'Occupied', value: '36', change: 4, changeType: 'positive', icon: 'BedDouble', color: '#2563EB' },
+    { id: 'kpi-hotel-3', label: 'Available', value: '12', change: -4, changeType: 'negative', icon: 'BedSingle', color: '#F59E0B' },
+    { id: 'kpi-hotel-4', label: "Today's Revenue", value: '₹28,400', change: 14.2, changeType: 'positive', icon: 'IndianRupee', color: '#10B981' },
+  ],
+  restaurant: [
+    { id: 'kpi-rest-1', label: "Today's Orders", value: '142', change: 18.5, changeType: 'positive', icon: 'ShoppingBag', color: '#EA580C' },
+    { id: 'kpi-rest-2', label: 'Active Tables', value: '14/20', change: 2, changeType: 'positive', icon: 'LayoutGrid', color: '#2563EB' },
+    { id: 'kpi-rest-3', label: "Today's Revenue", value: '₹32,750', change: 9.1, changeType: 'positive', icon: 'IndianRupee', color: '#10B981' },
+    { id: 'kpi-rest-4', label: 'Pending Orders', value: '8', change: -3, changeType: 'negative', icon: 'Clock', color: '#EF4444' },
+  ],
+  clinic: [
+    { id: 'kpi-clinic-1', label: "Today's Appointments", value: '24', change: 6, changeType: 'positive', icon: 'Calendar', color: '#10B981' },
+    { id: 'kpi-clinic-2', label: 'Total Patients', value: '1,248', change: 32, changeType: 'positive', icon: 'Users', color: '#2563EB' },
+    { id: 'kpi-clinic-3', label: 'Monthly Revenue', value: '₹1,84,000', change: 11.3, changeType: 'positive', icon: 'IndianRupee', color: '#7C3AED' },
+    { id: 'kpi-clinic-4', label: 'Pending Follow-ups', value: '17', change: 5, changeType: 'negative', icon: 'AlertCircle', color: '#EF4444' },
+  ],
+  'service-center': [
+    { id: 'kpi-svc-1', label: 'Open Tickets', value: '34', change: 8, changeType: 'negative', icon: 'Ticket', color: '#F59E0B' },
+    { id: 'kpi-svc-2', label: 'Assigned Technicians', value: '8/12', change: 0, changeType: 'neutral', icon: 'Wrench', color: '#2563EB' },
+    { id: 'kpi-svc-3', label: 'Completed Today', value: '19', change: 26.7, changeType: 'positive', icon: 'CheckCircle', color: '#10B981' },
+    { id: 'kpi-svc-4', label: "Today's Revenue", value: '₹14,800', change: 7.4, changeType: 'positive', icon: 'IndianRupee', color: '#7C3AED' },
+  ],
+  gym: [
+    { id: 'kpi-gym-1', label: 'Active Members', value: '386', change: 22, changeType: 'positive', icon: 'Users', color: '#EF4444' },
+    { id: 'kpi-gym-2', label: 'Classes Today', value: '12', change: 2, changeType: 'positive', icon: 'Dumbbell', color: '#2563EB' },
+    { id: 'kpi-gym-3', label: 'Monthly Revenue', value: '₹2,12,000', change: 8.9, changeType: 'positive', icon: 'IndianRupee', color: '#10B981' },
+    { id: 'kpi-gym-4', label: 'Expiring This Week', value: '23', change: 15, changeType: 'negative', icon: 'AlertCircle', color: '#F59E0B' },
+  ],
+  salon: [
+    { id: 'kpi-salon-1', label: "Today's Appointments", value: '28', change: 8, changeType: 'positive', icon: 'Calendar', color: '#EC4899' },
+    { id: 'kpi-salon-2', label: 'Active Stylists', value: '6/8', change: 0, changeType: 'neutral', icon: 'Scissors', color: '#2563EB' },
+    { id: 'kpi-salon-3', label: "Today's Revenue", value: '₹18,600', change: 12.4, changeType: 'positive', icon: 'IndianRupee', color: '#10B981' },
+    { id: 'kpi-salon-4', label: 'Pending Bookings', value: '11', change: -4, changeType: 'negative', icon: 'Clock', color: '#EF4444' },
+  ],
+  custom: [
+    { id: 'kpi-custom-1', label: 'Total Customers', value: '512', change: 14, changeType: 'positive', icon: 'Users', color: '#38BDF8' },
+    { id: 'kpi-custom-2', label: 'Active Staff', value: '18', change: 2, changeType: 'positive', icon: 'UserCheck', color: '#2563EB' },
+    { id: 'kpi-custom-3', label: 'Monthly Revenue', value: '₹3,24,000', change: 6.8, changeType: 'positive', icon: 'IndianRupee', color: '#10B981' },
+    { id: 'kpi-custom-4', label: 'Pending Bills', value: '24', change: 8, changeType: 'negative', icon: 'FileWarning', color: '#EF4444' },
+  ],
+};
+
+// ─── Recent Activity per Business Type ───────────────────────────────────────
+
+export const activityData: Record<BusinessType, ActivityItem[]> = {
+  academy: [
+    { id: 'act-ac-1', action: 'Enrolled', entity: 'Student', entityName: 'Priya Sharma', time: '10 min ago', status: 'completed', amount: '₹12,000' },
+    { id: 'act-ac-2', action: 'Fee Paid', entity: 'Student', entityName: 'Rohan Mehta', time: '32 min ago', status: 'completed', amount: '₹8,500' },
+    { id: 'act-ac-3', action: 'Fee Pending', entity: 'Student', entityName: 'Ankit Verma', time: '1 hr ago', status: 'pending', amount: '₹15,000' },
+    { id: 'act-ac-4', action: 'Course Created', entity: 'Course', entityName: 'Advanced React JS', time: '2 hrs ago', status: 'active' },
+    { id: 'act-ac-5', action: 'Enrolled', entity: 'Student', entityName: 'Neha Patel', time: '3 hrs ago', status: 'completed', amount: '₹9,000' },
+    { id: 'act-ac-6', action: 'Receipt Printed', entity: 'Student', entityName: 'Vikram Singh', time: '4 hrs ago', status: 'completed', amount: '₹11,500' },
+    { id: 'act-ac-7', action: 'Dropped Out', entity: 'Student', entityName: 'Sanjay Kumar', time: 'Yesterday', status: 'cancelled' },
+    { id: 'act-ac-8', action: 'Fee Paid', entity: 'Student', entityName: 'Meera Joshi', time: 'Yesterday', status: 'completed', amount: '₹7,200' },
+  ],
+  hotel: [
+    { id: 'act-ht-1', action: 'Check-in', entity: 'Guest', entityName: 'Arjun Kapoor', time: '15 min ago', status: 'completed', amount: '₹4,200' },
+    { id: 'act-ht-2', action: 'Booking', entity: 'Room', entityName: 'Room 204 – Deluxe', time: '45 min ago', status: 'active', amount: '₹6,500' },
+    { id: 'act-ht-3', action: 'Check-out', entity: 'Guest', entityName: 'Sunita Reddy', time: '1 hr ago', status: 'completed', amount: '₹12,800' },
+    { id: 'act-ht-4', action: 'Maintenance', entity: 'Room', entityName: 'Room 118', time: '2 hrs ago', status: 'pending' },
+    { id: 'act-ht-5', action: 'Check-in', entity: 'Guest', entityName: 'Rahul Gupta', time: '3 hrs ago', status: 'completed', amount: '₹3,800' },
+    { id: 'act-ht-6', action: 'Booking Cancelled', entity: 'Booking', entityName: 'BKG-00492', time: '4 hrs ago', status: 'cancelled' },
+    { id: 'act-ht-7', action: 'Room Service', entity: 'Room', entityName: 'Room 312', time: 'Yesterday', status: 'completed', amount: '₹850' },
+    { id: 'act-ht-8', action: 'Late Checkout', entity: 'Guest', entityName: 'Pooja Nair', time: 'Yesterday', status: 'pending', amount: '₹500' },
+  ],
+  restaurant: [
+    { id: 'act-rs-1', action: 'Order Placed', entity: 'Table', entityName: 'Table 7', time: '5 min ago', status: 'active', amount: '₹1,240' },
+    { id: 'act-rs-2', action: 'Bill Generated', entity: 'Table', entityName: 'Table 3', time: '18 min ago', status: 'completed', amount: '₹2,180' },
+    { id: 'act-rs-3', action: 'Order Placed', entity: 'Table', entityName: 'Table 12', time: '22 min ago', status: 'pending', amount: '₹890' },
+    { id: 'act-rs-4', action: 'Order Cancelled', entity: 'Table', entityName: 'Table 5', time: '40 min ago', status: 'cancelled', amount: '₹340' },
+    { id: 'act-rs-5', action: 'Bill Generated', entity: 'Table', entityName: 'Table 9', time: '1 hr ago', status: 'completed', amount: '₹3,450' },
+    { id: 'act-rs-6', action: 'Menu Updated', entity: 'Item', entityName: 'Paneer Butter Masala', time: '2 hrs ago', status: 'active' },
+    { id: 'act-rs-7', action: 'Order Placed', entity: 'Takeaway', entityName: 'ORD-1842', time: '2 hrs ago', status: 'completed', amount: '₹720' },
+    { id: 'act-rs-8', action: 'Table Reserved', entity: 'Table', entityName: 'Table 18', time: '3 hrs ago', status: 'active', amount: '₹200' },
+  ],
+  clinic: [
+    { id: 'act-cl-1', action: 'Appointment', entity: 'Patient', entityName: 'Kavita Sharma', time: '8 min ago', status: 'active' },
+    { id: 'act-cl-2', action: 'Bill Paid', entity: 'Patient', entityName: 'Mohan Das', time: '35 min ago', status: 'completed', amount: '₹1,800' },
+    { id: 'act-cl-3', action: 'Follow-up Due', entity: 'Patient', entityName: 'Leela Rao', time: '1 hr ago', status: 'pending' },
+    { id: 'act-cl-4', action: 'New Patient', entity: 'Patient', entityName: 'Deepak Jain', time: '2 hrs ago', status: 'completed' },
+    { id: 'act-cl-5', action: 'Prescription', entity: 'Patient', entityName: 'Geeta Mishra', time: '2.5 hrs ago', status: 'completed', amount: '₹450' },
+    { id: 'act-cl-6', action: 'Appointment Cancelled', entity: 'Patient', entityName: 'Suresh Pillai', time: '3 hrs ago', status: 'cancelled' },
+    { id: 'act-cl-7', action: 'Bill Paid', entity: 'Patient', entityName: 'Anjali Bose', time: '4 hrs ago', status: 'completed', amount: '₹2,200' },
+    { id: 'act-cl-8', action: 'Follow-up Due', entity: 'Patient', entityName: 'Ravi Kumar', time: 'Yesterday', status: 'pending' },
+  ],
+  'service-center': [
+    { id: 'act-sv-1', action: 'Ticket Opened', entity: 'Device', entityName: 'Samsung Galaxy S24', time: '12 min ago', status: 'active', amount: '₹2,400' },
+    { id: 'act-sv-2', action: 'Repair Completed', entity: 'Device', entityName: 'HP Laptop 15', time: '1 hr ago', status: 'completed', amount: '₹4,800' },
+    { id: 'act-sv-3', action: 'Awaiting Parts', entity: 'Device', entityName: 'OnePlus 11R', time: '2 hrs ago', status: 'pending', amount: '₹1,200' },
+    { id: 'act-sv-4', action: 'Invoice Sent', entity: 'Customer', entityName: 'Ashok Malhotra', time: '2.5 hrs ago', status: 'completed', amount: '₹6,500' },
+    { id: 'act-sv-5', action: 'Ticket Opened', entity: 'Device', entityName: 'Apple iPhone 15', time: '3 hrs ago', status: 'active', amount: '₹3,200' },
+    { id: 'act-sv-6', action: 'Ticket Cancelled', entity: 'Device', entityName: 'Dell Monitor', time: '4 hrs ago', status: 'cancelled' },
+    { id: 'act-sv-7', action: 'Technician Assigned', entity: 'Ticket', entityName: 'TKT-00891', time: 'Yesterday', status: 'active' },
+    { id: 'act-sv-8', action: 'Repair Completed', entity: 'Device', entityName: 'Lenovo IdeaPad', time: 'Yesterday', status: 'completed', amount: '₹3,600' },
+  ],
+  gym: [
+    { id: 'act-gm-1', action: 'New Membership', entity: 'Member', entityName: 'Karan Oberoi', time: '20 min ago', status: 'completed', amount: '₹2,999' },
+    { id: 'act-gm-2', action: 'Renewal', entity: 'Member', entityName: 'Priti Shah', time: '1 hr ago', status: 'completed', amount: '₹1,999' },
+    { id: 'act-gm-3', action: 'Expiring Soon', entity: 'Member', entityName: 'Vijay Rawat', time: '2 hrs ago', status: 'pending' },
+    { id: 'act-gm-4', action: 'Class Booked', entity: 'Class', entityName: 'Zumba – 6PM', time: '2 hrs ago', status: 'active' },
+    { id: 'act-gm-5', action: 'Membership Lapsed', entity: 'Member', entityName: 'Suman Yadav', time: '3 hrs ago', status: 'cancelled' },
+    { id: 'act-gm-6', action: 'Renewal', entity: 'Member', entityName: 'Amit Tiwari', time: '4 hrs ago', status: 'completed', amount: '₹3,499' },
+    { id: 'act-gm-7', action: 'Trainer Assigned', entity: 'Member', entityName: 'Rekha Desai', time: 'Yesterday', status: 'active' },
+    { id: 'act-gm-8', action: 'Class Cancelled', entity: 'Class', entityName: 'Yoga – 7AM', time: 'Yesterday', status: 'cancelled' },
+  ],
+  salon: [
+    { id: 'act-sl-1', action: 'Appointment', entity: 'Client', entityName: 'Pooja Mehta', time: '10 min ago', status: 'active', amount: '₹850' },
+    { id: 'act-sl-2', action: 'Service Done', entity: 'Client', entityName: 'Ritu Sharma', time: '45 min ago', status: 'completed', amount: '₹1,200' },
+    { id: 'act-sl-3', action: 'No-show', entity: 'Client', entityName: 'Sneha Gupta', time: '1 hr ago', status: 'cancelled' },
+    { id: 'act-sl-4', action: 'Appointment', entity: 'Client', entityName: 'Mansi Patel', time: '2 hrs ago', status: 'active', amount: '₹650' },
+    { id: 'act-sl-5', action: 'Bill Paid', entity: 'Client', entityName: 'Divya Nair', time: '2.5 hrs ago', status: 'completed', amount: '₹2,400' },
+    { id: 'act-sl-6', action: 'Appointment Rescheduled', entity: 'Client', entityName: 'Alka Singh', time: '3 hrs ago', status: 'pending' },
+    { id: 'act-sl-7', action: 'Service Done', entity: 'Client', entityName: 'Nisha Verma', time: '4 hrs ago', status: 'completed', amount: '₹980' },
+    { id: 'act-sl-8', action: 'Product Sold', entity: 'Product', entityName: 'Kerastase Shampoo', time: 'Yesterday', status: 'completed', amount: '₹1,800' },
+  ],
+  custom: [
+    { id: 'act-cu-1', action: 'New Customer', entity: 'Customer', entityName: 'Rajesh Industries', time: '15 min ago', status: 'active' },
+    { id: 'act-cu-2', action: 'Invoice Paid', entity: 'Invoice', entityName: 'INV-2024-0891', time: '1 hr ago', status: 'completed', amount: '₹45,000' },
+    { id: 'act-cu-3', action: 'Invoice Overdue', entity: 'Invoice', entityName: 'INV-2024-0876', time: '2 hrs ago', status: 'pending', amount: '₹28,000' },
+    { id: 'act-cu-4', action: 'Staff Added', entity: 'Staff', entityName: 'Vinod Kumar', time: '3 hrs ago', status: 'active' },
+    { id: 'act-cu-5', action: 'Invoice Sent', entity: 'Invoice', entityName: 'INV-2024-0893', time: '4 hrs ago', status: 'active', amount: '₹62,000' },
+    { id: 'act-cu-6', action: 'Invoice Cancelled', entity: 'Invoice', entityName: 'INV-2024-0855', time: 'Yesterday', status: 'cancelled', amount: '₹15,000' },
+    { id: 'act-cu-7', action: 'Customer Updated', entity: 'Customer', entityName: 'Sharma & Co.', time: 'Yesterday', status: 'completed' },
+    { id: 'act-cu-8', action: 'Invoice Paid', entity: 'Invoice', entityName: 'INV-2024-0868', time: 'Yesterday', status: 'completed', amount: '₹38,500' },
+  ],
+};
+
+// ─── Revenue Chart Data ───────────────────────────────────────────────────────
+
+export const revenueChartData = [
+  { month: 'Dec', academy: 38000, hotel: 92000, restaurant: 68000, clinic: 72000, 'service-center': 44000, gym: 58000, salon: 32000, custom: 185000 },
+  { month: 'Jan', academy: 42000, hotel: 88000, restaurant: 74000, clinic: 80000, 'service-center': 38000, gym: 62000, salon: 28000, custom: 210000 },
+  { month: 'Feb', academy: 48000, hotel: 96000, restaurant: 71000, clinic: 76000, 'service-center': 52000, gym: 55000, salon: 35000, custom: 195000 },
+  { month: 'Mar', academy: 52000, hotel: 112000, restaurant: 85000, clinic: 88000, 'service-center': 48000, gym: 70000, salon: 42000, custom: 240000 },
+  { month: 'Apr', academy: 46000, hotel: 104000, restaurant: 79000, clinic: 82000, 'service-center': 56000, gym: 64000, salon: 38000, custom: 220000 },
+  { month: 'May', academy: 58000, hotel: 118000, restaurant: 92000, clinic: 96000, 'service-center': 62000, gym: 78000, salon: 48000, custom: 268000 },
+];
+
+export const weeklyActivityData = [
+  { day: 'Mon', count: 24 },
+  { day: 'Tue', count: 38 },
+  { day: 'Wed', count: 32 },
+  { day: 'Thu', count: 45 },
+  { day: 'Fri', count: 52 },
+  { day: 'Sat', count: 41 },
+  { day: 'Sun', count: 18 },
+];
