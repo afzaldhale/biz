@@ -5,9 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
-import { BusinessType, PlanId } from '@/types';
-import { saveBusinessProfile } from '@/services/businessService';
-import { setCurrentSession } from '@/services/authService';
+import { useAuth } from '@/context/AuthContext';
 
 interface LoginFormValues {
   email: string;
@@ -15,25 +13,22 @@ interface LoginFormValues {
   rememberMe: boolean;
 }
 
-// Demo credentials for mock login
-const DEMO_ACCOUNTS = [
-  { role: 'Academy Owner', email: 'priya@starsinstitute.in', password: 'Stars@2024', businessType: 'academy', plan: 'advance' },
-  { role: 'Hotel Manager', email: 'rajesh@grandpalace.in', password: 'Palace@2024', businessType: 'hotel', plan: 'premium' },
-  { role: 'Restaurant Owner', email: 'anita@spicegarden.in', password: 'Spice@2024', businessType: 'restaurant', plan: 'medium' },
-  { role: 'Clinic Admin', email: 'dr.sharma@healthfirst.in', password: 'Health@2024', businessType: 'clinic', plan: 'advance' },
-] satisfies { role: string; email: string; password: string; businessType: BusinessType; plan: PlanId }[];
-
 interface LoginFormProps {
   onSwitchToSignup: () => void;
 }
 
 export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
   const router = useRouter();
+  const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm<LoginFormValues>({
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
     defaultValues: { rememberMe: false },
   });
 
@@ -41,55 +36,15 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
     setIsLoading(true);
     setAuthError('');
 
-    // Mock authentication — replace with real API call
-    await new Promise((r) => setTimeout(r, 1000));
-
-    const matched = DEMO_ACCOUNTS.find(
-      (acc) => acc.email.toLowerCase() === data.email.toLowerCase() && acc.password === data.password
-    );
-
-    if (matched) {
-      const now = new Date().toISOString();
-      const userId = `user-${matched.businessType}`;
-
-      setCurrentSession({
-        id: userId,
-        ownerName: matched.role,
-        businessName: 'Demo Business',
-        email: matched.email,
-        phone: '+91 98765 43210',
-        plan: matched.plan,
-        businessType: matched.businessType,
-        recordsUsed: 42,
-        createdAt: now,
-      });
-      await saveBusinessProfile({
-        businessId: userId,
-        ownerId: userId,
-        ownerName: matched.role,
-        businessName: 'Demo Business',
-        businessType: matched.businessType,
-        selectedPlan: matched.plan,
-        planLimit: matched.plan === 'medium' ? 150 : 500,
-        currentUsage: 42,
-        email: matched.email,
-        phone: '+91 98765 43210',
-        createdAt: now,
-        updatedAt: now,
-      });
-
+    try {
+      await login(data.email, data.password);
       toast.success('Welcome back! Redirecting to your dashboard...');
       router.push('/dashboard-page');
-    } else {
-      setAuthError('Invalid credentials — use the demo accounts below to sign in');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to sign in right now';
+      setAuthError(message);
       setIsLoading(false);
     }
-  };
-
-  const fillCredentials = (email: string, password: string) => {
-    setValue('email', email);
-    setValue('password', password);
-    setAuthError('');
   };
 
   return (
@@ -107,7 +62,6 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
       )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-        {/* Email */}
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Email Address</label>
           <input
@@ -124,7 +78,6 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
           {errors.email && <p className="text-xs text-danger mt-1.5">{errors.email.message}</p>}
         </div>
 
-        {/* Password */}
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Password</label>
           <div className="relative">
@@ -151,7 +104,6 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
           {errors.password && <p className="text-xs text-danger mt-1.5">{errors.password.message}</p>}
         </div>
 
-        {/* Remember me + Forgot */}
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -166,7 +118,6 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
           </button>
         </div>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={isLoading}
@@ -182,29 +133,6 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
           )}
         </button>
       </form>
-
-      {/* Demo accounts */}
-      <div className="mt-6 glass-card rounded-xl border border-border/60 overflow-hidden">
-        <div className="px-4 py-2.5 bg-muted/20 border-b border-border/40">
-          <p className="text-xs font-600 text-muted-foreground uppercase tracking-wider">Demo Accounts — Click to autofill</p>
-        </div>
-        <div className="divide-y divide-border/30">
-          {DEMO_ACCOUNTS.map((acc) => (
-            <button
-              key={`demo-${acc.email}`}
-              type="button"
-              onClick={() => fillCredentials(acc.email, acc.password)}
-              className="w-full flex items-center justify-between px-4 py-2.5 hover:bg-muted/20 transition-colors text-left"
-            >
-              <div>
-                <div className="text-xs font-600 text-foreground">{acc.role}</div>
-                <div className="text-2xs text-muted-foreground font-mono">{acc.email}</div>
-              </div>
-              <span className="text-2xs badge-info px-2 py-0.5 rounded-full capitalize">{acc.businessType}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
       <p className="text-sm text-muted-foreground text-center mt-6">
         Don't have an account?{' '}

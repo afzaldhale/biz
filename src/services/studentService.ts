@@ -1,45 +1,60 @@
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  updateDoc,
+} from 'firebase/firestore';
 import { StudentRecord } from '@/types';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { canAddRecord } from '@/utils/planLimits';
-import { readCachedStorage, writeCachedStorage } from './storageCache';
 
-const STUDENTS_PREFIX = 'bizmanage_students';
-
-function getStorageKey(businessId: string) {
-  return `${STUDENTS_PREFIX}:${businessId}`;
+function ensureFirebaseConfigured() {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+  }
 }
 
-function readStudents(businessId: string): StudentRecord[] {
-  return readCachedStorage<StudentRecord[]>(getStorageKey(businessId), []);
+function getFirestoreDb() {
+  ensureFirebaseConfigured();
+  return db!;
 }
 
 export async function addStudent(businessId: string, student: StudentRecord) {
   await canAddRecord(businessId, 'students');
-  const students = readStudents(businessId);
-  const created = {
+  const firestore = getFirestoreDb();
+
+  const docRef = await addDoc(collection(firestore, `businesses/${businessId}/students`), {
     ...student,
     createdAt: student.createdAt ?? new Date().toISOString(),
-  };
+  });
 
-  writeCachedStorage(getStorageKey(businessId), [created, ...students]);
-  return created.id;
+  return docRef.id;
 }
 
 export async function updateStudent(businessId: string, studentId: string, student: StudentRecord) {
-  const students = readStudents(businessId).map((item) =>
-    item.id === studentId ? { ...item, ...student } : item,
-  );
-  writeCachedStorage(getStorageKey(businessId), students);
+  await updateDoc(doc(getFirestoreDb(), `businesses/${businessId}/students`, studentId), {
+    ...student,
+  });
 }
 
 export async function deleteStudent(businessId: string, studentId: string) {
-  const students = readStudents(businessId).filter((item) => item.id !== studentId);
-  writeCachedStorage(getStorageKey(businessId), students);
+  await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/students`, studentId));
 }
 
 export async function getStudents(businessId: string): Promise<StudentRecord[]> {
-  return readStudents(businessId);
+  const snapshot = await getDocs(collection(getFirestoreDb(), `businesses/${businessId}/students`));
+  return snapshot.docs.map((studentDoc) => ({
+    id: studentDoc.id,
+    ...(studentDoc.data() as Omit<StudentRecord, 'id'>),
+  }));
 }
 
 export async function getStudentById(businessId: string, studentId: string) {
-  return readStudents(businessId).find((student) => student.id === studentId) ?? null;
+  const studentDoc = await getDoc(doc(getFirestoreDb(), `businesses/${businessId}/students`, studentId));
+  return studentDoc.exists()
+    ? ({ id: studentDoc.id, ...(studentDoc.data() as Omit<StudentRecord, 'id'>) } as StudentRecord)
+    : null;
 }

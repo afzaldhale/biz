@@ -1,14 +1,9 @@
 "use client";
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
-import {
-  SessionUser,
-  getCurrentSessionUser,
-  signupWithEmail,
-  loginWithEmail,
-  logoutUser,
-} from '@/services/authService';
-import { subscribeToStorageKey } from '@/services/storageCache';
+import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth, isFirebaseConfigured } from '@/lib/firebase';
+import { SessionUser, signupWithEmail, loginWithEmail, logoutUser } from '@/services/authService';
 
 interface AuthContextType {
   user: SessionUser | null;
@@ -20,25 +15,24 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-const AUTH_KEY = 'bizmanage_auth';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<SessionUser | null>(() => getCurrentSessionUser());
+  const [user, setUser] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
 
-  const syncUser = useCallback(() => {
-    setUser(getCurrentSessionUser());
-    setAuthLoading(false);
-  }, []);
-
   useEffect(() => {
-    syncUser();
-    return subscribeToStorageKey(AUTH_KEY, syncUser);
-  }, [syncUser]);
+    if (!isFirebaseConfigured || !auth) {
+      setUser(null);
+      setAuthLoading(false);
+      return;
+    }
 
-  const handleLogout = useCallback<typeof logoutUser>(async () => {
-    await logoutUser();
-    setUser(null);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const contextValue = useMemo<AuthContextType>(
@@ -48,9 +42,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       loading: authLoading,
       signup: signupWithEmail,
       login: loginWithEmail,
-      logout: handleLogout,
+      logout: logoutUser,
     }),
-    [authLoading, handleLogout, user],
+    [authLoading, user],
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

@@ -3,7 +3,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { BusinessProfile } from '@/types';
 import { getBusinessProfile } from '@/services/businessService';
-import { subscribeToStorageKey } from '@/services/storageCache';
 import { useAuth } from './AuthContext';
 
 interface BusinessContextType {
@@ -17,7 +16,6 @@ interface BusinessContextType {
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
-const BUSINESSES_KEY = 'bizmanage_businesses';
 
 export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
@@ -40,14 +38,6 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     refreshBusiness();
   }, [refreshBusiness]);
-
-  useEffect(() => {
-    if (!user) {
-      return;
-    }
-
-    return subscribeToStorageKey(BUSINESSES_KEY, refreshBusiness);
-  }, [refreshBusiness, user]);
 
   const contextValue = useMemo<BusinessContextType>(
     () => ({

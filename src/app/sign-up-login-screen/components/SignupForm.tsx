@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { BusinessType, PlanId } from '@/types';
-import { saveBusinessProfile } from '@/services/businessService';
-import { setCurrentSession } from '@/services/authService';
+import { useAuth } from '@/context/AuthContext';
+import { getPlanById } from '@/data/plans';
 
 interface SignupFormValues {
   ownerName: string;
@@ -46,11 +46,17 @@ interface SignupFormProps {
 
 export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
   const router = useRouter();
+  const { signup } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { register, handleSubmit, watch, formState: { errors } } = useForm<SignupFormValues>({
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm<SignupFormValues>({
     defaultValues: { plan: 'advance', businessType: 'academy' },
   });
 
@@ -59,39 +65,26 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
   const onSubmit = async (data: SignupFormValues) => {
     setIsLoading(true);
 
-    // Mock signup — replace with backend API call
-    await new Promise((r) => setTimeout(r, 1200));
+    try {
+      const plan = getPlanById(data.plan);
+      await signup({
+        email: data.email,
+        password: data.password,
+        ownerName: data.ownerName,
+        businessName: data.businessName,
+        phone: data.phone,
+        businessType: data.businessType,
+        selectedPlan: data.plan,
+        planLimit: plan?.recordLimit ?? null,
+      });
 
-    const now = new Date().toISOString();
-    const user = {
-      id: `user-${Date.now()}`,
-      ownerName: data.ownerName,
-      businessName: data.businessName,
-      email: data.email,
-      phone: data.phone,
-      plan: data.plan,
-      businessType: data.businessType,
-      recordsUsed: 0,
-      createdAt: now,
-    };
-
-    setCurrentSession(user);
-    await saveBusinessProfile({
-      businessId: user.id,
-      ownerId: user.id,
-      ownerName: data.ownerName,
-      businessName: data.businessName,
-      businessType: data.businessType,
-      selectedPlan: data.plan,
-      planLimit: data.plan === 'basic' ? 50 : data.plan === 'medium' ? 150 : 500,
-      currentUsage: 0,
-      email: data.email,
-      phone: data.phone,
-      createdAt: now,
-      updatedAt: now,
-    });
-    toast.success(`Welcome to BizManage, ${data.ownerName}! Your dashboard is ready.`);
-    router.push('/dashboard-page');
+      toast.success(`Welcome to BizManage, ${data.ownerName}! Your dashboard is ready.`);
+      router.push('/dashboard-page');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to create account right now';
+      toast.error(message);
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -102,7 +95,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Owner Name */}
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Owner / Manager Name</label>
           <input
@@ -114,7 +106,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           {errors.ownerName && <p className="text-xs text-danger mt-1">{errors.ownerName.message}</p>}
         </div>
 
-        {/* Business Name */}
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Business Name</label>
           <input
@@ -126,7 +117,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           {errors.businessName && <p className="text-xs text-danger mt-1">{errors.businessName.message}</p>}
         </div>
 
-        {/* Email + Phone row */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">Email</label>
@@ -156,7 +146,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           </div>
         </div>
 
-        {/* Password + Confirm row */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-600 text-foreground mb-1.5">Password</label>
@@ -197,7 +186,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           </div>
         </div>
 
-        {/* Select Plan */}
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Select Plan</label>
           <p className="text-xs text-muted-foreground mb-2">All plans include a 14-day free trial</p>
@@ -217,7 +205,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           {errors.plan && <p className="text-xs text-danger mt-1">{errors.plan.message}</p>}
         </div>
 
-        {/* Select Business Type */}
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Business Type</label>
           <p className="text-xs text-muted-foreground mb-2">Your dashboard will be configured for this industry</p>
@@ -237,7 +224,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           {errors.businessType && <p className="text-xs text-danger mt-1">{errors.businessType.message}</p>}
         </div>
 
-        {/* Terms */}
         <p className="text-xs text-muted-foreground">
           By signing up, you agree to our{' '}
           <a href="#" className="text-primary hover:text-accent transition-colors">Terms of Service</a>
@@ -245,7 +231,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
           <a href="#" className="text-primary hover:text-accent transition-colors">Privacy Policy</a>.
         </p>
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={isLoading}

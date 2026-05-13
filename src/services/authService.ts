@@ -1,22 +1,15 @@
-import { readCachedStorage, removeCachedStorage, writeCachedStorage } from './storageCache';
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  type User,
+  type UserCredential,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { BusinessType, PlanId } from '@/types';
 
-export interface SessionUser {
-  uid: string;
-  email: string | null;
-  displayName?: string | null;
-}
-
-export interface StoredAuthSession {
-  id: string;
-  ownerName: string;
-  businessName: string;
-  email: string;
-  phone: string;
-  plan: string;
-  businessType: string;
-  recordsUsed: number;
-  createdAt: string;
-}
+export type SessionUser = User;
 
 interface SignupPayload {
   email: string;
@@ -24,120 +17,75 @@ interface SignupPayload {
   ownerName: string;
   businessName: string;
   phone: string;
-  businessType: string;
-  selectedPlan: string;
-  planLimit: number;
+  businessType: BusinessType;
+  selectedPlan: PlanId;
+  planLimit: number | null;
 }
 
-interface StoredUserProfile {
-  userId: string;
-  businessId: string;
-  name: string;
-  email: string;
-  role: string;
-  createdAt: string;
+function ensureFirebaseConfigured() {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+  }
 }
 
-const AUTH_KEY = 'bizmanage_auth';
-const USERS_KEY = 'bizmanage_users';
-const PASSWORDS_KEY = 'bizmanage_passwords';
-
-function readRecord<T>(key: string): Record<string, T> {
-  return readCachedStorage<Record<string, T>>(key, {});
+function getFirebaseAuth() {
+  ensureFirebaseConfigured();
+  return auth!;
 }
 
-function writeRecord<T>(key: string, value: Record<string, T>) {
-  writeCachedStorage(key, value);
+function getFirebaseDb() {
+  ensureFirebaseConfigured();
+  return db!;
 }
 
-export function setCurrentSession(auth: StoredAuthSession) {
-  writeCachedStorage(AUTH_KEY, auth);
-}
-
-export function getCurrentSessionAuth() {
-  return readCachedStorage<StoredAuthSession | null>(AUTH_KEY, null);
-}
-
-export async function signupWithEmail(payload: SignupPayload): Promise<{ user: SessionUser }> {
-  const userId = `user-${Date.now()}`;
+export async function signupWithEmail(payload: SignupPayload): Promise<UserCredential> {
+  const firebaseAuth = getFirebaseAuth();
+  const firestore = getFirebaseDb();
+  const userCredential = await createUserWithEmailAndPassword(firebaseAuth, payload.email, payload.password);
+  const user = userCredential.user;
   const now = new Date().toISOString();
 
-  const users = readRecord<StoredUserProfile>(USERS_KEY);
-  users[userId] = {
-    userId,
-    businessId: userId,
+  await setDoc(doc(firestore, 'users', user.uid), {
+    userId: user.uid,
+    businessId: user.uid,
     name: payload.ownerName,
     email: payload.email,
     role: 'owner',
     createdAt: now,
-  };
-  writeRecord(USERS_KEY, users);
-
-  const passwords = readRecord<string>(PASSWORDS_KEY);
-  passwords[payload.email.toLowerCase()] = payload.password;
-  writeRecord(PASSWORDS_KEY, passwords);
-
-  setCurrentSession({
-    id: userId,
-    ownerName: payload.ownerName,
-    businessName: payload.businessName,
-    email: payload.email,
-    phone: payload.phone,
-    plan: payload.selectedPlan,
-    businessType: payload.businessType,
-    recordsUsed: 0,
-    createdAt: now,
   });
 
-  return {
-    user: {
-      uid: userId,
-      email: payload.email,
-      displayName: payload.ownerName,
-    },
-  };
+  await setDoc(doc(firestore, 'businesses', user.uid), {
+    businessId: user.uid,
+    ownerId: user.uid,
+    ownerName: payload.ownerName,
+    businessName: payload.businessName,
+    businessType: payload.businessType,
+    selectedPlan: payload.selectedPlan,
+    planLimit: payload.planLimit,
+    currentUsage: 0,
+    email: payload.email,
+    phone: payload.phone,
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+  });
+
+  return userCredential;
 }
 
-export async function loginWithEmail(email: string, password: string): Promise<{ user: SessionUser }> {
-  const passwords = readRecord<string>(PASSWORDS_KEY);
-  const savedPassword = passwords[email.toLowerCase()];
-
-  if (savedPassword && savedPassword !== password) {
-    throw new Error('Invalid email or password');
-  }
-
-  const auth = getCurrentSessionAuth();
-  if (!auth) {
-    throw new Error('No local session found');
-  }
-
-  return {
-    user: {
-      uid: auth.id,
-      email: auth.email,
-      displayName: auth.ownerName,
-    },
-  };
+export async function loginWithEmail(email: string, password: string) {
+  return signInWithEmailAndPassword(getFirebaseAuth(), email, password);
 }
 
 export async function logoutUser() {
-  removeCachedStorage(AUTH_KEY);
+  return signOut(getFirebaseAuth());
 }
 
 export async function getUserProfile(userId: string) {
-  const users = readRecord<StoredUserProfile>(USERS_KEY);
-  return users[userId] ?? null;
+  const userDoc = await getDoc(doc(getFirebaseDb(), 'users', userId));
+  return userDoc.exists() ? userDoc.data() : null;
 }
 
 export function getCurrentSessionUser(): SessionUser | null {
-  const auth = getCurrentSessionAuth();
-  if (!auth) {
-    return null;
-  }
-
-  return {
-    uid: auth.id,
-    email: auth.email,
-    displayName: auth.ownerName,
-  };
+  return auth?.currentUser ?? null;
 }

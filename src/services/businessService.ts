@@ -1,41 +1,31 @@
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { BusinessProfile } from '@/types';
-import { readCachedStorage, writeCachedStorage } from './storageCache';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
 
-const BUSINESSES_KEY = 'bizmanage_businesses';
+function ensureFirebaseConfigured() {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+  }
+}
 
-function readBusinesses(): Record<string, BusinessProfile> {
-  return readCachedStorage<Record<string, BusinessProfile>>(BUSINESSES_KEY, {});
+function getFirestoreDb() {
+  ensureFirebaseConfigured();
+  return db!;
 }
 
 export async function getBusinessProfile(businessId: string) {
-  const businesses = readBusinesses();
-  return businesses[businessId] ?? null;
+  const businessDoc = await getDoc(doc(getFirestoreDb(), 'businesses', businessId));
+  return businessDoc.exists() ? (businessDoc.data() as BusinessProfile) : null;
 }
 
 export async function saveBusinessProfile(profile: BusinessProfile) {
-  const businesses = readBusinesses();
-  const nextBusinesses = {
-    ...businesses,
-    [profile.businessId]: profile,
-  };
-
-  writeCachedStorage(BUSINESSES_KEY, nextBusinesses);
+  await setDoc(doc(getFirestoreDb(), 'businesses', profile.businessId), profile, { merge: true });
   return profile;
 }
 
 export async function updateBusinessUsage(businessId: string, usage: number) {
-  const businesses = readBusinesses();
-  const current = businesses[businessId];
-
-  if (!current) {
-    return;
-  }
-
-  businesses[businessId] = {
-    ...current,
+  await updateDoc(doc(getFirestoreDb(), 'businesses', businessId), {
     currentUsage: usage,
     updatedAt: new Date().toISOString(),
-  };
-
-  writeCachedStorage(BUSINESSES_KEY, businesses);
+  });
 }

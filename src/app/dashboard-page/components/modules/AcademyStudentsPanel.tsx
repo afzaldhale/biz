@@ -64,54 +64,6 @@ interface StudentFormModalProps {
   submitting: boolean;
 }
 
-const demoStudents: StudentRecord[] = [
-  {
-    id: 'demo-student-1',
-    admissionId: 'ADM-2401',
-    studentName: 'Aarav Singh',
-    courseName: 'Full Stack Web Development',
-    phone: '+91 98765 22110',
-    email: 'aarav.singh@example.com',
-    parentName: 'Rakesh Singh',
-    status: 'active',
-    admissionDate: '2026-04-15',
-    feeAmount: 32000,
-    paidAmount: 18000,
-    notes: 'Weekend batch. Needs placement guidance.',
-    createdAt: '2026-04-15T10:00:00.000Z',
-  },
-  {
-    id: 'demo-student-2',
-    admissionId: 'ADM-2402',
-    studentName: 'Diya Patel',
-    courseName: 'UI/UX Design Masterclass',
-    phone: '+91 99887 44123',
-    email: 'diya.patel@example.com',
-    parentName: 'Minal Patel',
-    status: 'pending',
-    admissionDate: '2026-05-02',
-    feeAmount: 24000,
-    paidAmount: 10000,
-    notes: 'Pending second installment on 20 May.',
-    createdAt: '2026-05-02T09:30:00.000Z',
-  },
-  {
-    id: 'demo-student-3',
-    admissionId: 'ADM-2403',
-    studentName: 'Kabir Mehta',
-    courseName: 'Advanced Commerce Tuition',
-    phone: '+91 90123 55540',
-    email: 'kabir.mehta@example.com',
-    parentName: 'Nitin Mehta',
-    status: 'completed',
-    admissionDate: '2026-02-08',
-    feeAmount: 18000,
-    paidAmount: 18000,
-    notes: 'Course completed with distinction.',
-    createdAt: '2026-02-08T08:45:00.000Z',
-  },
-];
-
 const rowsPerPageOptions = [10, 20];
 
 const emptyForm: StudentFormValues = {
@@ -468,7 +420,6 @@ export default function AcademyStudentsPanel({
 }: AcademyStudentsPanelProps) {
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isDemoMode, setIsDemoMode] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | StudentRecord['status']>('all');
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -493,24 +444,18 @@ export default function AcademyStudentsPanel({
           return;
         }
 
-        if (data.length === 0) {
-          setStudents(demoStudents);
-          setIsDemoMode(true);
-        } else {
-          setStudents(
-            data.map((student: StudentRecord, index: number) =>
-              normalizeStudentRecord(student, `student-${index + 1}`),
-            ),
-          );
-          setIsDemoMode(false);
-        }
+        setStudents(
+          data.map((student: StudentRecord, index: number) =>
+            normalizeStudentRecord(student, `student-${index + 1}`),
+          ),
+        );
       } catch {
         if (!mounted) {
           return;
         }
 
-        setStudents(demoStudents);
-        setIsDemoMode(true);
+        setStudents([]);
+        toast.error('Unable to load students from Firebase right now.');
       } finally {
         if (mounted) {
           setLoading(false);
@@ -654,13 +599,11 @@ export default function AcademyStudentsPanel({
       };
 
       try {
-        if (!isDemoMode) {
-          if (editingStudentId) {
-            await updateStudent(user.id, editingStudentId, nextRecord);
-          } else {
-            const newId = await addStudent(user.id, nextRecord);
-            nextRecord.id = newId;
-          }
+        if (editingStudentId) {
+          await updateStudent(user.id, editingStudentId, nextRecord);
+        } else {
+          const newId = await addStudent(user.id, nextRecord);
+          nextRecord.id = newId;
         }
 
         setStudents((current) => {
@@ -683,7 +626,7 @@ export default function AcademyStudentsPanel({
         setSubmitting(false);
       }
     },
-    [closeForm, editingStudentId, formValues, isDemoMode, students, user.id],
+    [closeForm, editingStudentId, formValues, students, user.id],
   );
 
   const handleDelete = useCallback(
@@ -694,9 +637,7 @@ export default function AcademyStudentsPanel({
       }
 
       try {
-        if (!isDemoMode) {
-          await deleteStudent(user.id, student.id);
-        }
+        await deleteStudent(user.id, student.id);
 
         setStudents((current) => current.filter((item) => item.id !== student.id));
         toast.success('Student removed successfully.');
@@ -704,7 +645,7 @@ export default function AcademyStudentsPanel({
         toast.error('Unable to delete this student right now.');
       }
     },
-    [isDemoMode, user.id],
+    [user.id],
   );
 
   const handlePrintReceipt = useCallback(
@@ -784,11 +725,6 @@ export default function AcademyStudentsPanel({
           <p className="text-sm text-muted-foreground mt-1">
             Manage admissions, track fee collection, and print student receipts from one workspace.
           </p>
-          {isDemoMode && (
-            <p className="text-xs badge-warning px-3 py-1.5 rounded-full inline-flex mt-3">
-              Demo mode enabled because live student records could not be loaded.
-            </p>
-          )}
         </div>
 
         <div className="flex flex-wrap gap-2">

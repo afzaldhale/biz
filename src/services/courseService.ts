@@ -1,4 +1,13 @@
-import { readCachedStorage, writeCachedStorage } from './storageCache';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  updateDoc,
+} from 'firebase/firestore';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
 
 interface CourseRecord {
   id: string;
@@ -6,40 +15,39 @@ interface CourseRecord {
   [key: string]: unknown;
 }
 
-const COURSES_PREFIX = 'bizmanage_courses';
-
-function getStorageKey(businessId: string) {
-  return `${COURSES_PREFIX}:${businessId}`;
+function ensureFirebaseConfigured() {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+  }
 }
 
-function readCourses(businessId: string): CourseRecord[] {
-  return readCachedStorage<CourseRecord[]>(getStorageKey(businessId), []);
+function getFirestoreDb() {
+  ensureFirebaseConfigured();
+  return db!;
 }
 
 export async function addCourse(businessId: string, course: CourseRecord) {
-  const created = { ...course, createdAt: course.createdAt ?? new Date().toISOString() };
-  writeCachedStorage(getStorageKey(businessId), [created, ...readCourses(businessId)]);
-  return created.id;
+  const docRef = await addDoc(collection(getFirestoreDb(), `businesses/${businessId}/courses`), {
+    ...course,
+    createdAt: course.createdAt ?? new Date().toISOString(),
+  });
+  return docRef.id;
 }
 
 export async function updateCourse(businessId: string, courseId: string, course: CourseRecord) {
-  writeCachedStorage(
-    getStorageKey(businessId),
-    readCourses(businessId).map((item) => (item.id === courseId ? { ...item, ...course } : item)),
-  );
+  await updateDoc(doc(getFirestoreDb(), `businesses/${businessId}/courses`, courseId), course);
 }
 
 export async function deleteCourse(businessId: string, courseId: string) {
-  writeCachedStorage(
-    getStorageKey(businessId),
-    readCourses(businessId).filter((item) => item.id !== courseId),
-  );
+  await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/courses`, courseId));
 }
 
 export async function getCourses(businessId: string) {
-  return readCourses(businessId);
+  const snapshot = await getDocs(collection(getFirestoreDb(), `businesses/${businessId}/courses`));
+  return snapshot.docs.map((courseDoc) => ({ id: courseDoc.id, ...courseDoc.data() }));
 }
 
 export async function getCourseById(businessId: string, courseId: string) {
-  return readCourses(businessId).find((course) => course.id === courseId) ?? null;
+  const courseDoc = await getDoc(doc(getFirestoreDb(), `businesses/${businessId}/courses`, courseId));
+  return courseDoc.exists() ? { id: courseDoc.id, ...courseDoc.data() } : null;
 }

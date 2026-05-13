@@ -1,4 +1,5 @@
-import { readCachedStorage, writeCachedStorage } from './storageCache';
+import { addDoc, collection, doc, getDoc, getDocs } from 'firebase/firestore';
+import { db, isFirebaseConfigured } from '@/lib/firebase';
 
 interface FeeRecord {
   id: string;
@@ -6,26 +7,31 @@ interface FeeRecord {
   [key: string]: unknown;
 }
 
-const FEES_PREFIX = 'bizmanage_fees';
-
-function getStorageKey(businessId: string) {
-  return `${FEES_PREFIX}:${businessId}`;
+function ensureFirebaseConfigured() {
+  if (!isFirebaseConfigured) {
+    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+  }
 }
 
-function readFees(businessId: string): FeeRecord[] {
-  return readCachedStorage<FeeRecord[]>(getStorageKey(businessId), []);
+function getFirestoreDb() {
+  ensureFirebaseConfigured();
+  return db!;
 }
 
 export async function addFee(businessId: string, fee: FeeRecord) {
-  const created = { ...fee, createdAt: fee.createdAt ?? new Date().toISOString() };
-  writeCachedStorage(getStorageKey(businessId), [created, ...readFees(businessId)]);
-  return created.id;
+  const docRef = await addDoc(collection(getFirestoreDb(), `businesses/${businessId}/fees`), {
+    ...fee,
+    createdAt: fee.createdAt ?? new Date().toISOString(),
+  });
+  return docRef.id;
 }
 
 export async function getFees(businessId: string) {
-  return readFees(businessId);
+  const snapshot = await getDocs(collection(getFirestoreDb(), `businesses/${businessId}/fees`));
+  return snapshot.docs.map((feeDoc) => ({ id: feeDoc.id, ...feeDoc.data() }));
 }
 
 export async function getFeeById(businessId: string, feeId: string) {
-  return readFees(businessId).find((fee) => fee.id === feeId) ?? null;
+  const feeDoc = await getDoc(doc(getFirestoreDb(), `businesses/${businessId}/fees`, feeId));
+  return feeDoc.exists() ? { id: feeDoc.id, ...feeDoc.data() } : null;
 }
