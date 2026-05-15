@@ -12,11 +12,47 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const router = useRouter();
-  const { user, authLoading } = useAuth();
-  const { business, userProfile, businessLoading, hasBusinessAccess } = useBusiness();
+  const { user, authLoading, refreshUser } = useAuth();
+  const { business, userProfile, businessLoading, hasBusinessAccess, refreshBusiness } = useBusiness();
+  const [routeChecking, setRouteChecking] = React.useState(true);
 
   useEffect(() => {
-    if (authLoading || businessLoading) {
+    if (authLoading) {
+      return;
+    }
+
+    let active = true;
+
+    const checkProtection = async () => {
+      setRouteChecking(true);
+
+      try {
+        if (!user) {
+          return;
+        }
+
+        const refreshedUser = await refreshUser();
+        if (!refreshedUser) {
+          return;
+        }
+
+        await refreshBusiness();
+      } finally {
+        if (active) {
+          setRouteChecking(false);
+        }
+      }
+    };
+
+    void checkProtection();
+
+    return () => {
+      active = false;
+    };
+  }, [authLoading, refreshUser, refreshBusiness, user]);
+
+  useEffect(() => {
+    if (authLoading || businessLoading || routeChecking) {
       return;
     }
 
@@ -32,10 +68,11 @@ export default function ProtectedRoute({ children, fallback }: ProtectedRoutePro
 
     if (!userProfile?.businessId || !business || business.status !== 'active') {
       router.replace('/sign-up-login-screen');
+      return;
     }
-  }, [authLoading, business, businessLoading, router, user, userProfile]);
+  }, [authLoading, businessLoading, routeChecking, router, user, userProfile, business]);
 
-  if (authLoading || businessLoading || !hasBusinessAccess) {
+  if (authLoading || businessLoading || routeChecking || !hasBusinessAccess) {
     return <>{fallback}</>;
   }
 

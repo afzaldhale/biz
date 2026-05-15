@@ -3,6 +3,7 @@ import {
   sendEmailVerification,
   signInWithEmailAndPassword,
   signOut,
+  updateProfile,
   type User,
   type UserCredential,
 } from 'firebase/auth';
@@ -34,10 +35,44 @@ function getFirebaseAuth() {
   return auth!;
 }
 
+export async function refreshCurrentUserVerificationStatus() {
+  const user = getFirebaseAuth().currentUser;
+
+  if (!user) {
+    return null;
+  }
+
+  await user.reload();
+  await user.getIdToken(true);
+
+  return {
+    user: getFirebaseAuth().currentUser,
+    emailVerified: getFirebaseAuth().currentUser?.emailVerified ?? false,
+  };
+}
+
+export async function waitForVerifiedUser() {
+  const refreshed = await refreshCurrentUserVerificationStatus();
+
+  if (!refreshed?.user) {
+    throw new Error('No authenticated user found.');
+  }
+
+  if (!refreshed.emailVerified) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function signupWithEmailVerification(payload: SignupPayload): Promise<UserCredential> {
   const firebaseAuth = getFirebaseAuth();
   const userCredential = await createUserWithEmailAndPassword(firebaseAuth, payload.email, payload.password);
   const user = userCredential.user;
+
+  await updateProfile(user, {
+    displayName: payload.ownerName,
+  });
 
   await createBusinessForUser({
     uid: user.uid,
@@ -56,21 +91,13 @@ export async function signupWithEmailVerification(payload: SignupPayload): Promi
 }
 
 export async function reloadCurrentUser() {
-  const user = getFirebaseAuth().currentUser;
-
-  if (!user) {
-    return null;
-  }
-
-  await user.reload();
-  await user.getIdToken(true);
-
-  return getFirebaseAuth().currentUser;
+  const refreshed = await refreshCurrentUserVerificationStatus();
+  return refreshed?.user ?? null;
 }
 
 export async function loginUser(email: string, password: string) {
   const credential = await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
-  await reloadCurrentUser();
+  await refreshCurrentUserVerificationStatus();
   return credential;
 }
 

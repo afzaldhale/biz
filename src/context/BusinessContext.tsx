@@ -4,6 +4,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { BusinessProfile, UserProfile } from '@/types';
 import { getBusinessById, getUserProfile } from '@/services/businessService';
 import { useAuth } from './AuthContext';
+import type { SessionUser } from '@/services/authService';
 
 interface BusinessContextType {
   business: BusinessProfile | null;
@@ -25,8 +26,10 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [businessLoading, setBusinessLoading] = useState(true);
 
-  const refreshBusiness = useCallback(async () => {
-    if (!user || !user.emailVerified) {
+  const refreshBusiness = useCallback(async (firebaseUser?: SessionUser | null) => {
+    const activeUser = firebaseUser ?? user;
+
+    if (!activeUser) {
       setBusiness(null);
       setUserProfile(null);
       setBusinessLoading(false);
@@ -36,7 +39,7 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
     setBusinessLoading(true);
 
     try {
-      const profile = await getUserProfile(user.uid);
+      const profile = await getUserProfile(activeUser.uid);
 
       if (!profile?.businessId) {
         setUserProfile(profile);

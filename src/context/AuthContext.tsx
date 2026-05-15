@@ -21,6 +21,9 @@ interface AuthContextType {
   logout: typeof logoutUser;
   resendVerification: typeof resendVerificationEmail;
   reloadUser: typeof reloadCurrentUser;
+  refreshUser: () => Promise<SessionUser | null>;
+  refreshAuthState: () => Promise<SessionUser | null>;
+  isEmailVerified: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -28,6 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
     if (!isFirebaseConfigured || !auth) {
@@ -44,18 +48,36 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => unsubscribe();
   }, []);
 
+  const refreshUser = React.useCallback(async () => {
+    setIsRefreshing(true);
+    try {
+      const refreshedUser = await reloadCurrentUser();
+      setUser(refreshedUser);
+      return refreshedUser;
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  const refreshAuthState = React.useCallback(async () => {
+    return await refreshUser();
+  }, [refreshUser]);
+
   const contextValue = useMemo<AuthContextType>(
     () => ({
       user,
       authLoading,
-      loading: authLoading,
+      loading: authLoading || isRefreshing,
       signup: signupWithEmailVerification,
       login: loginUser,
       logout: logoutUser,
       resendVerification: resendVerificationEmail,
       reloadUser: reloadCurrentUser,
+      refreshUser,
+      refreshAuthState,
+      isEmailVerified: Boolean(user?.emailVerified),
     }),
-    [authLoading, user],
+    [authLoading, isRefreshing, user, refreshUser, refreshAuthState],
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

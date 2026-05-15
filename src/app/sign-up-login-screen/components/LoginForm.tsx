@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
+import { useBusiness } from '@/context/BusinessContext';
 
 interface LoginFormValues {
   email: string;
@@ -20,6 +21,7 @@ interface LoginFormProps {
 export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
   const router = useRouter();
   const { login, reloadUser } = useAuth();
+  const { refreshBusiness } = useBusiness();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState('');
@@ -42,12 +44,14 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
 
       if (!refreshedUser?.emailVerified) {
         toast.info('Please verify your email before accessing the dashboard.');
-        router.push('/verify-email');
+        router.replace('/verify-email');
         return;
       }
 
+      await refreshBusiness();
       toast.success('Welcome back! Redirecting to your dashboard...');
-      router.push('/dashboard');
+      router.replace('/dashboard');
+      router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to sign in right now';
       setAuthError(message);
