@@ -1,6 +1,6 @@
 'use client';
 
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AuthUser } from '@/types';
 import { Menu, Search, Bell, ChevronDown, LogOut, Settings, User, HelpCircle } from 'lucide-react';
 import { getIndustryById } from '@/data/industries';
@@ -9,9 +9,10 @@ interface TopbarProps {
   user: AuthUser;
   onMenuToggle: () => void;
   onLogout: () => void | Promise<void>;
+  onNavChange: (navId: string) => void;
 }
 
-function DashboardTopbar({ user, onMenuToggle, onLogout }: TopbarProps) {
+function DashboardTopbar({ user, onMenuToggle, onLogout, onNavChange }: TopbarProps) {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const industry = useMemo(() => getIndustryById(user.businessType), [user.businessType]);
 
@@ -22,6 +23,8 @@ function DashboardTopbar({ user, onMenuToggle, onLogout }: TopbarProps) {
     return 'Good evening';
   }, []);
 
+  const menuRef = useRef<HTMLDivElement>(null);
+
   const handleToggleUserMenu = useCallback(() => {
     setUserMenuOpen((current) => !current);
   }, []);
@@ -29,6 +32,36 @@ function DashboardTopbar({ user, onMenuToggle, onLogout }: TopbarProps) {
   const handleCloseUserMenu = useCallback(() => {
     setUserMenuOpen(false);
   }, []);
+
+  const handleUserMenuAction = useCallback(
+    (navId: string) => {
+      onNavChange(navId);
+      handleCloseUserMenu();
+    },
+    [handleCloseUserMenu, onNavChange],
+  );
+
+  useEffect(() => {
+    const listener = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        handleCloseUserMenu();
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        handleCloseUserMenu();
+      }
+    };
+
+    document.addEventListener('mousedown', listener);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', listener);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [handleCloseUserMenu]);
 
   return (
     <header className="h-14 bg-white border-b border-border flex items-center justify-between px-4 md:px-6 flex-shrink-0 sticky top-0 z-20">
@@ -90,21 +123,21 @@ function DashboardTopbar({ user, onMenuToggle, onLogout }: TopbarProps) {
           </button>
 
           {userMenuOpen && (
-            <div className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-border rounded-xl shadow-card overflow-hidden z-50 animate-fade-in">
+            <div ref={menuRef} className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-border rounded-xl shadow-card overflow-hidden z-50 animate-fade-in">
               <div className="px-4 py-3 border-b border-border">
                 <div className="text-sm font-600 text-foreground">{user.ownerName}</div>
                 <div className="text-xs text-muted-foreground truncate">{user.email}</div>
               </div>
               <div className="py-1">
                 {[
-                  { id: 'um-profile', icon: User, label: 'My Profile' },
-                  { id: 'um-settings', icon: Settings, label: 'Settings' },
-                  { id: 'um-help', icon: HelpCircle, label: 'Help & Support' },
+                  { id: 'nav-profile', icon: User, label: 'My Profile' },
+                  { id: 'nav-settings', icon: Settings, label: 'Settings' },
+                  { id: 'nav-help', icon: HelpCircle, label: 'Help & Support' },
                 ].map((item) => (
                   <button
                     key={item.id}
                     className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-                    onClick={handleCloseUserMenu}
+                    onClick={() => handleUserMenuAction(item.id)}
                   >
                     <item.icon size={15} />
                     {item.label}

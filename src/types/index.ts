@@ -47,6 +47,12 @@ export interface BusinessProfile {
   currentUsage?: number;
   email: string;
   phone: string;
+  address?: string;
+  logoUrl?: string;
+  receiptFooterNote?: string;
+  invoicePrefix?: string;
+  currency?: string;
+  timezone?: string;
   createdAt: string;
   updatedAt: string;
 }

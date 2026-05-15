@@ -5,7 +5,6 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
-import { weeklyActivityData } from '@/data/mockData';
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
   if (active && payload && payload.length) {
@@ -19,8 +18,26 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   return null;
 };
 
-export default function WeeklyActivityChart() {
-  const maxVal = Math.max(...weeklyActivityData.map((d) => d.count));
+interface WeeklyActivityChartProps {
+  data: Array<{ day: string; count: number }>;
+}
+
+export default function WeeklyActivityChart({ data }: WeeklyActivityChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="glass-card rounded-2xl p-5 border border-border/60 h-full flex flex-col justify-center items-center text-center gap-3">
+        <div>
+          <h3 className="text-base font-700 text-foreground">Weekly Activity</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">No activity yet</p>
+        </div>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Recent activity will appear here as your team logs operations and updates.
+        </p>
+      </div>
+    );
+  }
+
+  const maxVal = Math.max(...data.map((d) => d.count));
 
   return (
     <div className="glass-card rounded-2xl p-5 border border-border/60 h-full">
@@ -30,7 +47,7 @@ export default function WeeklyActivityChart() {
       </div>
 
       <ResponsiveContainer width="100%" height={200}>
-        <BarChart data={weeklyActivityData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barSize={24}>
+        <BarChart data={data} margin={{ top: 4, right: 4, left: -24, bottom: 0 }} barSize={24}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis
             dataKey="day"
@@ -45,7 +62,7 @@ export default function WeeklyActivityChart() {
           />
           <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
           <Bar dataKey="count" radius={[6, 6, 0, 0]}>
-            {weeklyActivityData.map((entry, index) => (
+            {data.map((entry) => (
               <Cell
                 key={`bar-cell-${entry.day}`}
                 fill={entry.count === maxVal ? 'var(--primary)' : 'var(--muted)'}

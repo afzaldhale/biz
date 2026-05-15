@@ -94,6 +94,11 @@ export async function saveBusinessProfile(profile: BusinessProfile) {
   return profile;
 }
 
+export async function saveUserProfile(profile: UserProfile) {
+  await setDoc(doc(getFirestoreDb(), 'users', profile.uid), profile, { merge: true });
+  return profile;
+}
+
 export async function updateBusinessUsage(businessId: string, usage: number) {
   await updateDoc(doc(getFirestoreDb(), 'businesses', businessId), {
     currentUsage: usage,

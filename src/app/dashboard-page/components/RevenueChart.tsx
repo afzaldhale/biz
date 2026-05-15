@@ -5,11 +5,11 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer
 } from 'recharts';
-import { revenueChartData } from '@/data/mockData';
 import { BusinessType } from '@/types';
 
 interface RevenueChartProps {
   businessType: BusinessType;
+  data: Array<{ month: string; revenue: number }>;
 }
 
 const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
@@ -26,11 +26,24 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
   return null;
 };
 
-export default function RevenueChart({ businessType }: RevenueChartProps) {
-  const data = revenueChartData.map((d) => ({
-    month: d.month,
-    revenue: d[businessType as keyof typeof d] as number,
-  }));
+export default function RevenueChart({ businessType, data }: RevenueChartProps) {
+  if (!data || data.length === 0) {
+    return (
+      <div className="glass-card rounded-2xl p-5 border border-border/60 h-full flex flex-col justify-center items-center text-center gap-3">
+        <div>
+          <h3 className="text-base font-700 text-foreground">Revenue Trend</h3>
+          <p className="text-xs text-muted-foreground mt-0.5">No revenue data available</p>
+        </div>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Add billing records or payments to display your business revenue trend.
+        </p>
+      </div>
+    );
+  }
+
+  const firstRevenue = data[0]?.revenue ?? 0;
+  const lastRevenue = data[data.length - 1]?.revenue ?? 0;
+  const percentageChange = firstRevenue ? ((lastRevenue - firstRevenue) / Math.max(firstRevenue, 1)) * 100 : 0;
 
   return (
     <div className="glass-card rounded-2xl p-5 border border-border/60 h-full">
@@ -40,7 +53,7 @@ export default function RevenueChart({ businessType }: RevenueChartProps) {
           <p className="text-xs text-muted-foreground mt-0.5">Last 6 months</p>
         </div>
         <span className="text-xs badge-success px-2.5 py-1 rounded-full font-600">
-          +{((data[5].revenue - data[0].revenue) / data[0].revenue * 100).toFixed(1)}% overall
+          {percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(1)}% overall
         </span>
       </div>
 
