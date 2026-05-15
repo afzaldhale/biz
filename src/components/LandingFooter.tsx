@@ -10,25 +10,25 @@ export default function LandingFooter() {
       { label: 'Features', href: '#features' },
       { label: 'Pricing', href: '#pricing' },
       { label: 'Industries', href: '#industries' },
-      { label: 'Changelog', href: '#' },
+      { label: 'Changelog', href: '/changelog' },
     ],
     Company: [
-      { label: 'About Us', href: '#' },
-      { label: 'Blog', href: '#' },
-      { label: 'Careers', href: '#' },
+      { label: 'About Us', href: '/about' },
+      { label: 'Blog', href: '/blog' },
+      { label: 'Careers', href: '/careers' },
       { label: 'Contact', href: '#contact' },
     ],
     Support: [
-      { label: 'Help Center', href: '#' },
-      { label: 'Documentation', href: '#' },
-      { label: 'API Reference', href: '#' },
-      { label: 'Status', href: '#' },
+      { label: 'Help Center', href: '/help-center' },
+      { label: 'Documentation', href: '/documentation' },
+      { label: 'API Reference', href: '/api-reference' },
+      { label: 'Status', href: '/status' },
     ],
     Legal: [
-      { label: 'Privacy Policy', href: '#' },
-      { label: 'Terms of Service', href: '#' },
-      { label: 'Refund Policy', href: '#' },
-      { label: 'Cookie Policy', href: '#' },
+      { label: 'Privacy Policy', href: '/privacy-policy' },
+      { label: 'Terms of Service', href: '/terms-of-service' },
+      { label: 'Billing Policy', href: '/billing-policy' },
+      { label: 'Cookie Policy', href: '/cookie-policy' },
     ],
   };
 
@@ -50,8 +50,8 @@ export default function LandingFooter() {
               By Vtechnex
             </a>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-xs">
-              One powerful platform for every business type. Academy, Hotel, Restaurant, Clinic -
-              manage it all from a single dashboard.
+              One powerful platform for every business type. Academy, Hotel, Restaurant, Clinic,
+              Gym, and more, managed from one dashboard.
             </p>
             <div className="mt-6 flex items-center gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs badge-success px-2.5 py-1 rounded-full font-medium">
@@ -69,12 +69,12 @@ export default function LandingFooter() {
               <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={`footer-link-${section}-${link.label}`}>
-                    <a
+                    <Link
                       href={link.href}
                       className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                     >
                       {link.label}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -84,7 +84,7 @@ export default function LandingFooter() {
 
         <div className="mt-12 pt-6 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">
-            © {currentYear} BizManage. All rights reserved. Made with love in India.
+            Copyright {currentYear} BizManage. All rights reserved. Made in India.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
             <a
@@ -96,7 +96,7 @@ export default function LandingFooter() {
               Vtechnex
             </a>
             <p className="text-xs text-muted-foreground">
-              GST-compliant · INR billing · Indian support team
+              GST-compliant | INR billing | Indian support team
             </p>
           </div>
         </div>

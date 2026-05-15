@@ -3,15 +3,24 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '@/lib/firebase';
-import { SessionUser, signupWithEmail, loginWithEmail, logoutUser } from '@/services/authService';
+import {
+  SessionUser,
+  signupWithEmailVerification,
+  loginUser,
+  logoutUser,
+  resendVerificationEmail,
+  reloadCurrentUser,
+} from '@/services/authService';
 
 interface AuthContextType {
   user: SessionUser | null;
   authLoading: boolean;
   loading: boolean;
-  signup: typeof signupWithEmail;
-  login: typeof loginWithEmail;
+  signup: typeof signupWithEmailVerification;
+  login: typeof loginUser;
   logout: typeof logoutUser;
+  resendVerification: typeof resendVerificationEmail;
+  reloadUser: typeof reloadCurrentUser;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -40,9 +49,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       user,
       authLoading,
       loading: authLoading,
-      signup: signupWithEmail,
-      login: loginWithEmail,
+      signup: signupWithEmailVerification,
+      login: loginUser,
       logout: logoutUser,
+      resendVerification: resendVerificationEmail,
+      reloadUser: reloadCurrentUser,
     }),
     [authLoading, user],
   );

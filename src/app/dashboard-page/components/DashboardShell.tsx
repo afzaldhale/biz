@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AuthUser, BusinessType, PlanId } from '@/types';
 import { useAuth } from '@/context/AuthContext';
@@ -9,7 +9,7 @@ import DashboardSidebar from './DashboardSidebar';
 import DashboardTopbar from './DashboardTopbar';
 import DashboardContent from './DashboardContent';
 
-function DashboardShellSkeleton() {
+export function DashboardShellSkeleton() {
   return (
     <div className="min-h-screen bg-muted/30 flex">
       <aside className="hidden lg:flex fixed top-0 left-0 h-full w-60 bg-white border-r border-border flex-col">
@@ -58,8 +58,8 @@ function DashboardShellSkeleton() {
 
 export default function DashboardShell() {
   const router = useRouter();
-  const { user: authUser, authLoading, logout } = useAuth();
-  const { business, businessLoading } = useBusiness();
+  const { user: authUser, logout } = useAuth();
+  const { business } = useBusiness();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState('nav-dashboard');
@@ -82,8 +82,6 @@ export default function DashboardShell() {
     };
   }, [authUser, business]);
 
-  const dashboardLoading = authLoading || (Boolean(authUser) && businessLoading);
-
   const handleLogout = useCallback(async () => {
     await logout();
     router.push('/sign-up-login-screen');
@@ -105,17 +103,7 @@ export default function DashboardShell() {
     setActiveNav(navId);
   }, []);
 
-  useEffect(() => {
-    if (!authLoading && !authUser) {
-      router.push('/sign-up-login-screen');
-    }
-  }, [authLoading, authUser, router]);
-
-  if (!authLoading && !authUser) {
-    return <DashboardShellSkeleton />;
-  }
-
-  if (dashboardLoading || !user) {
+  if (!authUser || !business || !user) {
     return <DashboardShellSkeleton />;
   }
 

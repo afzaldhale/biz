@@ -77,6 +77,10 @@ const AcademyStudentsPanel = dynamic(() => import('./modules/AcademyStudentsPane
   loading: () => <ModuleSkeleton />,
 });
 
+const GymMembersPanel = dynamic(() => import('./modules/GymMembersPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
 interface OverviewContentProps {
   activities: ActivityItem[];
   businessType: BusinessType;
@@ -195,6 +199,13 @@ export default function DashboardContent({
       return 'academy-students';
     }
 
+    if (
+      user.businessType === 'gym' &&
+      ['nav-members', 'nav-memberships', 'nav-billing'].includes(activeNav)
+    ) {
+      return 'gym-members';
+    }
+
     if (activeNav !== 'nav-dashboard') {
       return 'module-placeholder';
     }
@@ -233,6 +244,15 @@ export default function DashboardContent({
 
   if (selectedView === 'academy-students') {
     return <AcademyStudentsPanel user={user} onNavigate={onNavChange} />;
+  }
+
+  if (selectedView === 'gym-members') {
+    return (
+      <GymMembersPanel
+        user={user}
+        initialView={activeNav === 'nav-billing' ? 'payments' : 'members'}
+      />
+    );
   }
 
   if (selectedView === 'module-placeholder') {

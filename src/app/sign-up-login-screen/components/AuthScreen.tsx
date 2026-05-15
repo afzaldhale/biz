@@ -20,7 +20,6 @@ export default function AuthScreen() {
   const perks = [
     { id: 'perk-1', icon: Zap, text: '8 industry types supported' },
     { id: 'perk-2', icon: Shield, text: 'GST-compliant billing' },
-    { id: 'perk-3', icon: CheckCircle, text: '14-day free trial' },
   ];
 
   const industryIcons = [

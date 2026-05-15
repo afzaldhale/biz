@@ -6,7 +6,7 @@ import { ChevronDown } from 'lucide-react';
 const faqs = [
   { id: 'faq-1', question: 'Can I switch my business type after signing up?', answer: 'Yes — you can change your business type from the Settings page. Your account data is preserved, but the dashboard modules will update to match the new business type.' },
   { id: 'faq-2', question: 'What counts as a "record" for plan limits?', answer: 'A record is one primary entity in your business — one student, one patient, one booking, one service ticket. Supporting data (fees, appointments, bills) attached to a record do not count separately.' },
-  { id: 'faq-3', question: 'Is there a free trial?', answer: 'Yes — all plans include a 14-day free trial with full access. No credit card required to start. You\'re only billed after the trial ends if you choose to continue.' },
+  { id: 'faq-3', question: 'Is there a free trial?', answer: 'No, we do not offer a free trial. Please contact us for a demo or more information.' },
   { id: 'faq-4', question: 'Can I add staff members to my account?', answer: 'Yes — depending on your plan, you can add 1 (Basic), 3 (Medium), 5 (Advance), 10 (Premium), or 25 (Pro) staff accounts. Each staff member can be assigned specific module access.' },
   { id: 'faq-5', question: 'Do you support multi-branch businesses?', answer: 'Multi-branch support is available on the Pro and Custom plans. Each branch gets its own dashboard with separate records, while the owner can view consolidated reports across all branches.' },
   { id: 'faq-6', question: 'How does billing work? Is it monthly or annual?', answer: 'Plans are billed monthly in INR. Annual billing is available at a 20% discount. All billing is GST-inclusive and you receive a proper GST invoice each month.' },

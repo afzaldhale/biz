@@ -14,16 +14,9 @@ export default function ContactSection() {
               Ready to Transform Your Business?
             </h2>
             <p className="text-lg text-indigo-100 max-w-2xl mx-auto mb-8">
-              Join 5,000+ businesses across India already using BizManage. Start your 14-day free trial — no credit card required.
+              Join 5,000+ businesses across India already using BizManage.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/sign-up-login-screen"
-                className="bg-white text-primary font-700 px-8 py-4 rounded-xl text-base flex items-center gap-2 hover:bg-indigo-50 transition-colors group"
-              >
-                Start Free Trial
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
               <a
                 href="tel:+918888888888"
                 className="border border-white/40 text-white font-600 px-8 py-4 rounded-xl text-base flex items-center gap-2 hover:bg-white/10 transition-colors"

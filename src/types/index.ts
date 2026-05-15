@@ -37,17 +37,30 @@ export interface AuthUser {
 
 export interface BusinessProfile {
   businessId: string;
-  ownerId?: string;
-  ownerName?: string;
-  businessName?: string;
-  businessType?: BusinessType;
-  selectedPlan?: PlanId;
-  planLimit?: number;
+  ownerId: string;
+  status: 'pending_verification' | 'active' | 'suspended';
+  ownerName: string;
+  businessName: string;
+  businessType: BusinessType;
+  selectedPlan: PlanId;
+  planLimit?: number | null;
   currentUsage?: number;
-  email?: string;
-  phone?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  email: string;
+  phone: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserProfile {
+  uid: string;
+  businessId: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+  role: 'owner';
+  emailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface KPICard {
@@ -95,6 +108,40 @@ export interface StudentRecord {
   admissionDate: string;
   feeAmount: number;
   paidAmount: number;
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface GymMemberRecord {
+  id: string;
+  memberId: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  membershipPlan: string;
+  trainerName?: string;
+  joiningDate: string;
+  renewalDate: string;
+  feeAmount: number;
+  paidAmount: number;
+  status: 'active' | 'paused' | 'expired';
+  emergencyContact?: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GymPaymentRecord {
+  id: string;
+  memberDocId: string;
+  memberId: string;
+  memberName: string;
+  membershipPlan: string;
+  invoiceId: string;
+  paymentDate: string;
+  billingPeriod: string;
+  amount: number;
+  paymentMethod: 'cash' | 'upi' | 'card' | 'bank-transfer';
   notes?: string;
   createdAt?: string;
 }

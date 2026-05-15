@@ -1,16 +1,79 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Users can only read/write their own user profile
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    function signedIn() {
+      return request.auth != null;
     }
-    // Businesses: only owner can access their business
+
+    function isEmailVerified() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+
+    function userDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userExists() {
+      return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function userBusinessId() {
+      return userDoc().data.businessId;
+    }
+
+    function isBusinessMember(businessId) {
+      return isEmailVerified()
+        && userExists()
+        && userBusinessId() == businessId;
+    }
+
+    match /users/{userId} {
+      allow create: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == userId
+        && request.resource.data.role == 'owner'
+        && request.resource.data.emailVerified == false;
+
+      allow read: if signedIn()
+        && request.auth.uid == userId;
+
+      allow update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.businessId == resource.data.businessId
+        && request.resource.data.role == resource.data.role
+        && (
+          request.resource.data.emailVerified == resource.data.emailVerified
+          || (
+            request.resource.data.emailVerified == true
+            && resource.data.emailVerified == false
+            && request.auth.token.email_verified == true
+          )
+        );
+
+      allow delete: if false;
+    }
+
     match /businesses/{businessId} {
-      allow read, write: if request.auth != null && request.auth.uid == businessId;
-      // Subcollections (students, courses, fees, etc.)
-      match /{subCollection=**}/{docId} {
-        allow read, write: if request.auth != null && request.auth.uid == businessId;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.businessId == businessId
+        && request.resource.data.status == 'pending_verification';
+
+      allow read: if isBusinessMember(businessId);
+
+      allow update: if isBusinessMember(businessId)
+        && request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.businessId == resource.data.businessId;
+
+      allow delete: if false;
+
+      match /{subCollection}/{docId} {
+        allow read, write: if isBusinessMember(businessId);
+      }
+
+      match /{subCollection}/{docId}/{nested=**} {
+        allow read, write: if isBusinessMember(businessId);
       }
     }
   }

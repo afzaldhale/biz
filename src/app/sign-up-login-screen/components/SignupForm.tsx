@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2, ChevronDown } from 'lucide-react';
@@ -78,8 +79,8 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
         planLimit: plan?.recordLimit ?? null,
       });
 
-      toast.success(`Welcome to BizManage, ${data.ownerName}! Your dashboard is ready.`);
-      router.push('/dashboard-page');
+      toast.success(`Account created for ${data.ownerName}. We've sent your verification email.`);
+      router.push('/verify-email');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to create account right now';
       toast.error(message);
@@ -91,7 +92,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
     <div className="animate-slide-up">
       <div className="mb-6">
         <h1 className="text-2xl font-700 text-foreground mb-1">Create your account</h1>
-        <p className="text-sm text-muted-foreground">14-day free trial · No credit card required</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -188,7 +188,6 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
 
         <div>
           <label className="block text-sm font-600 text-foreground mb-1.5">Select Plan</label>
-          <p className="text-xs text-muted-foreground mb-2">All plans include a 14-day free trial</p>
           <div className="relative">
             <select
               className={`w-full bg-input border rounded-xl px-4 py-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-ring transition-all ${errors.plan ? 'border-danger/60' : 'border-border focus:border-primary/60'}`}
@@ -226,9 +225,13 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
 
         <p className="text-xs text-muted-foreground">
           By signing up, you agree to our{' '}
-          <a href="#" className="text-primary hover:text-accent transition-colors">Terms of Service</a>
+          <Link href="/terms-of-service" className="text-primary hover:text-accent transition-colors">
+            Terms of Service
+          </Link>
           {' '}and{' '}
-          <a href="#" className="text-primary hover:text-accent transition-colors">Privacy Policy</a>.
+          <Link href="/privacy-policy" className="text-primary hover:text-accent transition-colors">
+            Privacy Policy
+          </Link>.
         </p>
 
         <button
@@ -242,7 +245,7 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
               Creating your account...
             </>
           ) : (
-            'Create Account & Go to Dashboard'
+            'Create Account & Send Verification Email'
           )}
         </button>
       </form>

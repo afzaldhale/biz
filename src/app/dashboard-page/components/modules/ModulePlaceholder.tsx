@@ -16,7 +16,7 @@ const moduleHints: Record<BusinessType, string> = {
   restaurant: 'Orders, tables, kitchen, and billing can land here with role-based actions and service state tracking.',
   clinic: 'Patients, appointments, prescriptions, and billing can be expanded here with health-focused forms and history views.',
   'service-center': 'Tickets, technicians, customers, and invoices can connect here with repair status timelines and device records.',
-  gym: 'Members, classes, trainers, and memberships can be surfaced here with attendance and renewal actions.',
+  gym: 'Members and fee history are live now. Classes, trainers, and attendance can plug into this same workspace next.',
   salon: 'Appointments, stylists, services, and products can fit here with beauty-service scheduling and checkout flows.',
   custom: 'This area is ready for your business-specific module structure and can be tailored section by section.',
 };

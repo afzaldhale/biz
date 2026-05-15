@@ -59,13 +59,6 @@ export default function HeroSection() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
-            <Link
-              href="/sign-up-login-screen"
-              className="btn-primary px-8 py-4 rounded-xl text-base font-600 flex items-center gap-2 group"
-            >
-              Start Free Trial
-              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
             <a
               href="#features"
               className="btn-outline px-8 py-4 rounded-xl text-base font-500"
