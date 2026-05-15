@@ -2,9 +2,11 @@ import {
   collection,
   doc,
   getDoc,
+  runTransaction,
   setDoc,
   updateDoc,
   writeBatch,
+  increment,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { BusinessProfile, BusinessType, PlanId, UserProfile } from '@/types';
@@ -96,6 +98,48 @@ export async function updateBusinessUsage(businessId: string, usage: number) {
   await updateDoc(doc(getFirestoreDb(), 'businesses', businessId), {
     currentUsage: usage,
     updatedAt: new Date().toISOString(),
+  });
+}
+
+export async function safeIncrementBusinessUsage(businessId: string, delta = 1) {
+  await runTransaction(getFirestoreDb(), async (transaction) => {
+    const businessRef = doc(getFirestoreDb(), 'businesses', businessId);
+    const snapshot = await transaction.get(businessRef);
+    if (!snapshot.exists()) {
+      throw new Error('Business profile not found for usage update.');
+    }
+
+    const businessProfile = snapshot.data() as BusinessProfile;
+    const currentUsage = typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
+    const planLimit = typeof businessProfile.planLimit === 'number' ? businessProfile.planLimit : null;
+
+    if (businessProfile.selectedPlan !== 'custom' && planLimit !== null && currentUsage + delta > planLimit) {
+      throw new Error('You have reached your plan limit. Please upgrade to add more records.');
+    }
+
+    transaction.update(businessRef, {
+      currentUsage: currentUsage + delta,
+      updatedAt: new Date().toISOString(),
+    });
+  });
+}
+
+export async function decrementBusinessUsage(businessId: string, delta = 1) {
+  await runTransaction(getFirestoreDb(), async (transaction) => {
+    const businessRef = doc(getFirestoreDb(), 'businesses', businessId);
+    const snapshot = await transaction.get(businessRef);
+    if (!snapshot.exists()) {
+      throw new Error('Business profile not found for usage update.');
+    }
+
+    const businessProfile = snapshot.data() as BusinessProfile;
+    const currentUsage = typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
+    const nextUsage = Math.max(0, currentUsage - delta);
+
+    transaction.update(businessRef, {
+      currentUsage: nextUsage,
+      updatedAt: new Date().toISOString(),
+    });
   });
 }
 

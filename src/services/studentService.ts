@@ -5,11 +5,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
+  query,
   updateDoc,
 } from 'firebase/firestore';
 import { StudentRecord } from '@/types';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { canAddRecord } from '@/utils/planLimits';
+import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -31,6 +34,7 @@ export async function addStudent(businessId: string, student: StudentRecord) {
     createdAt: student.createdAt ?? new Date().toISOString(),
   });
 
+  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 
@@ -42,10 +46,15 @@ export async function updateStudent(businessId: string, studentId: string, stude
 
 export async function deleteStudent(businessId: string, studentId: string) {
   await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/students`, studentId));
+  await decrementBusinessUsage(businessId);
 }
 
 export async function getStudents(businessId: string): Promise<StudentRecord[]> {
-  const snapshot = await getDocs(collection(getFirestoreDb(), `businesses/${businessId}/students`));
+  const studentsQuery = query(
+    collection(getFirestoreDb(), `businesses/${businessId}/students`),
+    orderBy('createdAt', 'desc'),
+  );
+  const snapshot = await getDocs(studentsQuery);
   return snapshot.docs.map((studentDoc) => ({
     id: studentDoc.id,
     ...(studentDoc.data() as Omit<StudentRecord, 'id'>),

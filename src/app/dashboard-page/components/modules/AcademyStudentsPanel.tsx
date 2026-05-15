@@ -663,40 +663,50 @@ export default function AcademyStudentsPanel({
           <head>
             <title>Receipt ${student.admissionId}</title>
             <style>
-              body { font-family: Arial, sans-serif; padding: 32px; color: #0f172a; }
-              .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-              .brand { font-size: 24px; font-weight: 700; color: #4338ca; }
-              .card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; }
+              body { font-family: Arial, sans-serif; margin: 0; color: #0f172a; }
+              .print-area { padding: 32px; width: 100%; max-width: 900px; margin: 0 auto; }
+              .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
+              .brand { font-size: 24px; font-weight: 700; color: #4338ca; margin-bottom: 8px; }
+              .card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; background: #fff; }
               .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
-              .label { font-size: 12px; text-transform: uppercase; color: #64748b; margin-bottom: 4px; }
-              .value { font-size: 15px; font-weight: 600; }
+              .label { font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.04em; }
+              .value { font-size: 14px; font-weight: 600; color: #0f172a; }
               .summary { margin-top: 24px; padding: 18px; border-radius: 12px; background: #eef2ff; }
+              .summary div { margin-bottom: 10px; }
+              .summary div:last-child { margin-bottom: 0; }
+              @media print {
+                body { color: #000; }
+                .print-area { box-shadow: none; }
+                .no-print, button { display: none !important; }
+              }
             </style>
           </head>
           <body>
-            <div class="header">
-              <div>
-                <div class="brand">${user.businessName}</div>
-                <div>Academy Fee Receipt</div>
+            <div class="print-area">
+              <div class="header">
+                <div>
+                  <div class="brand">${user.businessName}</div>
+                  <div>Academy Fee Receipt</div>
+                </div>
+                <div>
+                  <div><strong>Receipt:</strong> ${student.admissionId}</div>
+                  <div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</div>
+                </div>
               </div>
-              <div>
-                <div><strong>Receipt:</strong> ${student.admissionId}</div>
-                <div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</div>
-              </div>
-            </div>
-            <div class="card">
-              <div class="grid">
-                <div><div class="label">Student Name</div><div class="value">${student.studentName}</div></div>
-                <div><div class="label">Parent Name</div><div class="value">${student.parentName}</div></div>
-                <div><div class="label">Course</div><div class="value">${student.courseName}</div></div>
-                <div><div class="label">Phone</div><div class="value">${student.phone}</div></div>
-                <div><div class="label">Email</div><div class="value">${student.email}</div></div>
-                <div><div class="label">Admission Date</div><div class="value">${student.admissionDate}</div></div>
-              </div>
-              <div class="summary">
-                <div><strong>Total Fee:</strong> ${formatCurrency(student.feeAmount)}</div>
-                <div><strong>Paid:</strong> ${formatCurrency(student.paidAmount)}</div>
-                <div><strong>Balance:</strong> ${formatCurrency(balance)}</div>
+              <div class="card">
+                <div class="grid">
+                  <div><div class="label">Student Name</div><div class="value">${student.studentName}</div></div>
+                  <div><div class="label">Parent Name</div><div class="value">${student.parentName}</div></div>
+                  <div><div class="label">Course</div><div class="value">${student.courseName}</div></div>
+                  <div><div class="label">Phone</div><div class="value">${student.phone}</div></div>
+                  <div><div class="label">Email</div><div class="value">${student.email}</div></div>
+                  <div><div class="label">Admission Date</div><div class="value">${student.admissionDate}</div></div>
+                </div>
+                <div class="summary">
+                  <div><strong>Total Fee:</strong> ${formatCurrency(student.feeAmount)}</div>
+                  <div><strong>Paid:</strong> ${formatCurrency(student.paidAmount)}</div>
+                  <div><strong>Balance:</strong> ${formatCurrency(balance)}</div>
+                </div>
               </div>
             </div>
           </body>

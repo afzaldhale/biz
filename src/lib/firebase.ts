@@ -19,6 +19,10 @@ const app = isFirebaseConfigured
     ? getApp()
     : initializeApp(firebaseConfig)
   : null;
+
+if (!isFirebaseConfigured && process.env.NODE_ENV === 'development') {
+  console.warn('Firebase is not configured. Set NEXT_PUBLIC_FIREBASE_* environment variables in your .env file.');
+}
 const auth = app ? getAuth(app) : null;
 const db = app ? getFirestore(app) : null;
 const storage = app ? getStorage(app) : null;

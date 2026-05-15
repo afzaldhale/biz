@@ -10,6 +10,7 @@ import {
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymMemberRecord } from '@/types';
 import { canAddRecord } from '@/utils/planLimits';
+import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -33,6 +34,7 @@ export async function addGymMember(businessId: string, member: GymMemberRecord) 
     updatedAt: now,
   });
 
+  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 
@@ -49,6 +51,7 @@ export async function updateGymMember(
 
 export async function deleteGymMember(businessId: string, memberId: string) {
   await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId));
+  await decrementBusinessUsage(businessId);
 }
 
 export async function getGymMembers(businessId: string): Promise<GymMemberRecord[]> {

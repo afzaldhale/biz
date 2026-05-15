@@ -5,11 +5,14 @@ import {
   doc,
   getDoc,
   getDocs,
+  orderBy,
   query,
   where,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymPaymentRecord } from '@/types';
+import { canAddRecord } from '@/utils/planLimits';
+import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -23,20 +26,27 @@ function getFirestoreDb() {
 }
 
 export async function addGymPayment(businessId: string, payment: GymPaymentRecord) {
+  await canAddRecord(businessId, 'gymPayments');
   const docRef = await addDoc(collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`), {
     ...payment,
     createdAt: payment.createdAt ?? new Date().toISOString(),
   });
 
+  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 
 export async function deleteGymPayment(businessId: string, paymentId: string) {
   await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymPayments`, paymentId));
+  await decrementBusinessUsage(businessId);
 }
 
 export async function getGymPayments(businessId: string): Promise<GymPaymentRecord[]> {
-  const snapshot = await getDocs(collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`));
+  const paymentsQuery = query(
+    collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`),
+    orderBy('createdAt', 'desc'),
+  );
+  const snapshot = await getDocs(paymentsQuery);
   return snapshot.docs.map((paymentDoc) => ({
     id: paymentDoc.id,
     ...(paymentDoc.data() as Omit<GymPaymentRecord, 'id'>),

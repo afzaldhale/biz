@@ -8,6 +8,7 @@ import { useBusiness } from '@/context/BusinessContext';
 import DashboardSidebar from './DashboardSidebar';
 import DashboardTopbar from './DashboardTopbar';
 import DashboardContent from './DashboardContent';
+import ErrorBoundary from '@/components/ErrorBoundary';
 
 export function DashboardShellSkeleton() {
   return (
@@ -65,20 +66,20 @@ export default function DashboardShell() {
   const [activeNav, setActiveNav] = useState('nav-dashboard');
 
   const user = useMemo<AuthUser | null>(() => {
-    if (!authUser) {
+    if (!authUser || !business) {
       return null;
     }
 
     return {
-      id: authUser.uid,
-      ownerName: business?.ownerName ?? authUser.displayName ?? 'Owner',
-      businessName: business?.businessName ?? 'BizManage Business',
-      email: business?.email ?? authUser.email ?? '',
-      phone: business?.phone ?? '',
-      plan: (business?.selectedPlan ?? 'advance') as PlanId,
-      businessType: (business?.businessType ?? 'academy') as BusinessType,
-      recordsUsed: business?.currentUsage ?? 0,
-      createdAt: business?.createdAt ?? new Date().toISOString(),
+      id: business.businessId,
+      ownerName: business.ownerName,
+      businessName: business.businessName,
+      email: business.email,
+      phone: business.phone,
+      plan: (business.selectedPlan ?? 'advance') as PlanId,
+      businessType: (business.businessType ?? 'academy') as BusinessType,
+      recordsUsed: business.currentUsage ?? 0,
+      createdAt: business.createdAt ?? new Date().toISOString(),
     };
   }, [authUser, business]);
 
@@ -137,11 +138,13 @@ export default function DashboardShell() {
           onLogout={handleLogout}
         />
         <main className="flex-1 overflow-auto p-4 md:p-6 xl:p-8">
-          <DashboardContent
-            user={user}
-            activeNav={activeNav}
-            onNavChange={handleNavChange}
-          />
+          <ErrorBoundary>
+            <DashboardContent
+              user={user}
+              activeNav={activeNav}
+              onNavChange={handleNavChange}
+            />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

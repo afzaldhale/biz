@@ -227,4 +227,76 @@
     color: #475569;
     border: 1px solid rgba(100, 116, 139, 0.2);
   }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .print-only {
+    display: none !important;
+  }
+}
+
+@media print {
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    background: transparent !important;
+    color: #000 !important;
+  }
+
+  .no-print,
+  button,
+  input,
+  select,
+  textarea,
+  .sidebar-active,
+  .btn-primary,
+  .btn-outline,
+  .badge-success,
+  .badge-warning,
+  .badge-danger,
+  .badge-info,
+  .badge-neutral {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  .glass-card,
+  .glass-card-light,
+  .gradient-hero,
+  .gradient-primary,
+  .gradient-accent,
+  .gradient-text {
+    background: transparent !important;
+    box-shadow: none !important;
+    border-color: #000 !important;
+  }
+
+  .print-area {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  .page-break {
+    page-break-after: always;
+  }
 }

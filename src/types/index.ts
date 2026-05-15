@@ -145,3 +145,37 @@ export interface GymPaymentRecord {
   notes?: string;
   createdAt?: string;
 }
+
+export interface CourseRecord {
+  id: string;
+  title: string;
+  instructor: string;
+  category: string;
+  duration: string;
+  fee: number;
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface FeeRecord {
+  id: string;
+  title: string;
+  description: string;
+  studentName: string;
+  amount: number;
+  dueDate: string;
+  status: 'pending' | 'paid' | 'overdue';
+  notes?: string;
+  createdAt?: string;
+}
+
+export interface GenericBusinessRecord {
+  id: string;
+  title: string;
+  reference?: string;
+  amount?: number;
+  date?: string;
+  status?: string;
+  notes?: string;
+  createdAt?: string;
+}

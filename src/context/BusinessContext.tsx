@@ -14,6 +14,8 @@ interface BusinessContextType {
   planLimit: number | null;
   currentUsage: number;
   businessLoading: boolean;
+  businessError: string | null;
+  businessReady: boolean;
   hasBusinessAccess: boolean;
   refreshBusiness: () => Promise<void>;
 }
@@ -25,9 +27,13 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [businessLoading, setBusinessLoading] = useState(true);
+  const [businessError, setBusinessError] = useState<string | null>(null);
 
   const refreshBusiness = useCallback(async (firebaseUser?: SessionUser | null) => {
     const activeUser = firebaseUser ?? user;
+
+    setBusinessError(null);
+    setBusinessLoading(true);
 
     if (!activeUser) {
       setBusiness(null);
@@ -35,8 +41,6 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       setBusinessLoading(false);
       return;
     }
-
-    setBusinessLoading(true);
 
     try {
       const profile = await getUserProfile(activeUser.uid);
@@ -50,9 +54,10 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       const businessProfile = await getBusinessById(profile.businessId);
       setUserProfile(profile);
       setBusiness(businessProfile);
-    } catch {
+    } catch (error) {
       setUserProfile(null);
       setBusiness(null);
+      setBusinessError(error instanceof Error ? error.message : 'Unable to load business profile.');
     } finally {
       setBusinessLoading(false);
     }
@@ -70,6 +75,8 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       business.status === 'active',
   );
 
+  const businessReady = !businessLoading && Boolean(business);
+
   const contextValue = useMemo<BusinessContextType>(
     () => ({
       business,
@@ -79,10 +86,12 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       planLimit: typeof business?.planLimit === 'number' ? business.planLimit : null,
       currentUsage: typeof business?.currentUsage === 'number' ? business.currentUsage : 0,
       businessLoading,
+      businessError,
+      businessReady,
       hasBusinessAccess,
       refreshBusiness,
     }),
-    [business, userProfile, businessLoading, hasBusinessAccess, refreshBusiness],
+    [business, businessError, businessLoading, businessReady, hasBusinessAccess, refreshBusiness, userProfile],
   );
 
   return <BusinessContext.Provider value={contextValue}>{children}</BusinessContext.Provider>;

@@ -77,6 +77,21 @@ const AcademyStudentsPanel = dynamic(() => import('./modules/AcademyStudentsPane
   loading: () => <ModuleSkeleton />,
 });
 
+const AcademyCoursesPanel = dynamic(() => import('./modules/AcademyCoursesPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
+const AcademyFeesPanel = dynamic(() => import('./modules/AcademyFeesPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
+const GenericBusinessModulePanel = dynamic(
+  () => import('./modules/GenericBusinessModulePanel'),
+  {
+    loading: () => <ModuleSkeleton />,
+  },
+);
+
 const GymMembersPanel = dynamic(() => import('./modules/GymMembersPanel'), {
   loading: () => <ModuleSkeleton />,
 });
@@ -195,8 +210,16 @@ export default function DashboardContent({
   );
 
   const selectedView = useMemo(() => {
-    if (user.businessType === 'academy' && activeNav === 'nav-students') {
-      return 'academy-students';
+    if (user.businessType === 'academy') {
+      if (activeNav === 'nav-students') {
+        return 'academy-students';
+      }
+      if (activeNav === 'nav-courses') {
+        return 'academy-courses';
+      }
+      if (activeNav === 'nav-fees') {
+        return 'academy-fees';
+      }
     }
 
     if (
@@ -207,7 +230,7 @@ export default function DashboardContent({
     }
 
     if (activeNav !== 'nav-dashboard') {
-      return 'module-placeholder';
+      return 'generic-module';
     }
 
     return 'dashboard-overview';
@@ -255,12 +278,12 @@ export default function DashboardContent({
     );
   }
 
-  if (selectedView === 'module-placeholder') {
+  if (selectedView === 'generic-module') {
     return (
-      <ModulePlaceholder
-        title={navLabelMap.get(activeNav) ?? 'Module'}
-        businessType={user.businessType}
-        onBackToDashboard={() => onNavChange('nav-dashboard')}
+      <GenericBusinessModulePanel
+        user={user}
+        activeNav={activeNav}
+        moduleTitle={navLabelMap.get(activeNav) ?? 'Module'}
       />
     );
   }
