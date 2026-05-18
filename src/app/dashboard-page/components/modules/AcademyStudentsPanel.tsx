@@ -1,13 +1,7 @@
 'use client';
 
-import React, {
-  memo,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { toast } from 'sonner';
 import {
   Search,
@@ -51,20 +45,22 @@ interface StudentTableProps {
   onEdit: (student: StudentRecord) => void;
   onPrint: (student: StudentRecord) => void;
   students: StudentRecord[];
+  hasMoreStudents: boolean;
+  loadMoreStudents: () => void;
 }
 
 interface StudentFormModalProps {
   formValues: StudentFormValues;
   editingStudentId: string | null;
   onChange: (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => void;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   submitting: boolean;
 }
 
-const rowsPerPageOptions = [10, 20];
+const rowsPerPageOptions = [25, 50];
 
 const emptyForm: StudentFormValues = {
   studentName: '',
@@ -107,7 +103,10 @@ function buildAdmissionId(students: StudentRecord[]) {
   return `ADM-${String(students.length + 2401).padStart(4, '0')}`;
 }
 
-function normalizeStudentRecord(student: Partial<StudentRecord>, fallbackId: string): StudentRecord {
+function normalizeStudentRecord(
+  student: Partial<StudentRecord>,
+  fallbackId: string
+): StudentRecord {
   return {
     id: student.id ?? fallbackId,
     admissionId: student.admissionId ?? fallbackId.toUpperCase(),
@@ -132,18 +131,32 @@ const StudentsTable = memo(function StudentsTable({
   onEdit,
   onPrint,
   students,
+  hasMoreStudents,
+  loadMoreStudents,
 }: StudentTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[980px]">
         <thead className="bg-muted/40">
           <tr>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Student</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Course</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Contact</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Status</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Fees</th>
-            <th className="text-right px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Actions</th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Student
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Course
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Contact
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Status
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Fees
+            </th>
+            <th className="text-right px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/70">
@@ -169,7 +182,9 @@ const StudentsTable = memo(function StudentsTable({
                     </td>
                     <td className="px-5 py-4">
                       <p className="text-sm font-600 text-foreground">{student.courseName}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Joined {student.admissionDate}</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Joined {student.admissionDate}
+                      </p>
                     </td>
                     <td className="px-5 py-4">
                       <p className="text-sm text-foreground">{student.phone}</p>
@@ -189,7 +204,9 @@ const StudentsTable = memo(function StudentsTable({
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-700 text-foreground">{formatCurrency(student.paidAmount)}</p>
+                      <p className="text-sm font-700 text-foreground">
+                        {formatCurrency(student.paidAmount)}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Balance {formatCurrency(balance)}
                       </p>
@@ -242,6 +259,17 @@ const StudentsTable = memo(function StudentsTable({
           Page {currentPage}
         </div>
       )}
+      {!loading && hasMoreStudents && (
+        <div className="px-5 py-4 border-t border-border bg-white/80 text-right">
+          <button
+            type="button"
+            onClick={loadMoreStudents}
+            className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          >
+            Load more students
+          </button>
+        </div>
+      )}
     </div>
   );
 });
@@ -280,7 +308,9 @@ const StudentFormModal = memo(function StudentFormModal({
           <form onSubmit={onSubmit} className="p-6 space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Student Name</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Student Name
+                </label>
                 <input
                   required
                   name="studentName"
@@ -310,7 +340,9 @@ const StudentFormModal = memo(function StudentFormModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Admission Date</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Admission Date
+                </label>
                 <input
                   required
                   type="date"
@@ -366,7 +398,9 @@ const StudentFormModal = memo(function StudentFormModal({
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Enrollment Status</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Enrollment Status
+                </label>
                 <select
                   name="status"
                   value={formValues.status}
@@ -414,16 +448,17 @@ const StudentFormModal = memo(function StudentFormModal({
   );
 });
 
-export default function AcademyStudentsPanel({
-  user,
-  onNavigate,
-}: AcademyStudentsPanelProps) {
+export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStudentsPanelProps) {
   const [students, setStudents] = useState<StudentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | StudentRecord['status']>('all');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const [lastStudentDoc, setLastStudentDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(
+    null
+  );
+  const [hasMoreStudents, setHasMoreStudents] = useState(false);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formValues, setFormValues] = useState<StudentFormValues>(emptyForm);
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
@@ -437,18 +472,22 @@ export default function AcademyStudentsPanel({
 
     async function loadStudents() {
       setLoading(true);
+      setLastStudentDoc(null);
+      setHasMoreStudents(false);
 
       try {
-        const data = await getStudents(user.id);
+        const paginated = await getStudents(user.id, { pageSize: rowsPerPage });
         if (!mounted) {
           return;
         }
 
         setStudents(
-          data.map((student: StudentRecord, index: number) =>
-            normalizeStudentRecord(student, `student-${index + 1}`),
-          ),
+          paginated.data.map((student: StudentRecord, index: number) =>
+            normalizeStudentRecord(student, `student-${index + 1}`)
+          )
         );
+        setLastStudentDoc(paginated.lastDoc);
+        setHasMoreStudents(paginated.hasMore);
       } catch {
         if (!mounted) {
           return;
@@ -468,7 +507,34 @@ export default function AcademyStudentsPanel({
     return () => {
       mounted = false;
     };
-  }, [user.id]);
+  }, [user.id, rowsPerPage]);
+
+  const loadMoreStudents = useCallback(async () => {
+    if (!hasMoreStudents || !lastStudentDoc) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const paginated = await getStudents(user.id, {
+        pageSize: rowsPerPage,
+        lastDoc: lastStudentDoc,
+      });
+
+      setStudents((current) => [
+        ...current,
+        ...paginated.data.map((student: StudentRecord, index: number) =>
+          normalizeStudentRecord(student, `student-${current.length + index + 1}`)
+        ),
+      ]);
+      setLastStudentDoc(paginated.lastDoc);
+      setHasMoreStudents(paginated.hasMore);
+    } catch {
+      toast.error('Unable to load more students. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }, [hasMoreStudents, lastStudentDoc, rowsPerPage, user.id]);
 
   const filteredStudents = useMemo(() => {
     const query = deferredSearchTerm.trim().toLowerCase();
@@ -507,7 +573,7 @@ export default function AcademyStudentsPanel({
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredStudents.length / rowsPerPage)),
-    [filteredStudents.length, rowsPerPage],
+    [filteredStudents.length, rowsPerPage]
   );
 
   const paginatedStudents = useMemo(() => {
@@ -562,7 +628,7 @@ export default function AcademyStudentsPanel({
         [name]: value,
       }));
     },
-    [],
+    []
   );
 
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -609,7 +675,7 @@ export default function AcademyStudentsPanel({
         setStudents((current) => {
           if (editingStudentId) {
             return current.map((student) =>
-              student.id === editingStudentId ? nextRecord : student,
+              student.id === editingStudentId ? nextRecord : student
             );
           }
 
@@ -617,7 +683,7 @@ export default function AcademyStudentsPanel({
         });
 
         toast.success(
-          editingStudentId ? 'Student details updated successfully.' : 'Student added successfully.',
+          editingStudentId ? 'Student details updated successfully.' : 'Student added successfully.'
         );
         closeForm();
       } catch {
@@ -626,7 +692,7 @@ export default function AcademyStudentsPanel({
         setSubmitting(false);
       }
     },
-    [closeForm, editingStudentId, formValues, students, user.id],
+    [closeForm, editingStudentId, formValues, students, user.id]
   );
 
   const handleDelete = useCallback(
@@ -645,7 +711,7 @@ export default function AcademyStudentsPanel({
         toast.error('Unable to delete this student right now.');
       }
     },
-    [user.id],
+    [user.id]
   );
 
   const handlePrintReceipt = useCallback(
@@ -716,21 +782,20 @@ export default function AcademyStudentsPanel({
       receiptWindow.focus();
       receiptWindow.print();
     },
-    [user.businessName],
+    [user.businessName]
   );
 
-  const handleRowsPerPageChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      setRowsPerPage(Number(event.target.value));
-    },
-    [],
-  );
+  const handleRowsPerPageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(event.target.value));
+  }, []);
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">Academy Management</p>
+          <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">
+            Academy Management
+          </p>
           <h1 className="text-2xl font-700 text-foreground mt-1">Students</h1>
           <p className="text-sm text-muted-foreground mt-1">
             Manage admissions, track fee collection, and print student receipts from one workspace.
@@ -760,7 +825,9 @@ export default function AcademyStudentsPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Total Students</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Total Students
+              </p>
               <p className="text-2xl font-700 text-foreground mt-2">{studentStats.totalStudents}</p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary">
@@ -771,8 +838,12 @@ export default function AcademyStudentsPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Active Enrollments</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{studentStats.activeStudents}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Active Enrollments
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {studentStats.activeStudents}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600">
               <GraduationCap size={20} />
@@ -782,8 +853,12 @@ export default function AcademyStudentsPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Fees Collected</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{formatCurrency(studentStats.totalCollected)}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Fees Collected
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {formatCurrency(studentStats.totalCollected)}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
               <IndianRupee size={20} />
@@ -793,8 +868,12 @@ export default function AcademyStudentsPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Pending Balance</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{formatCurrency(studentStats.pendingFees)}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Pending Balance
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {formatCurrency(studentStats.pendingFees)}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
               <ReceiptText size={20} />
@@ -806,7 +885,10 @@ export default function AcademyStudentsPanel({
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               value={searchInput}
@@ -819,7 +901,9 @@ export default function AcademyStudentsPanel({
           <div className="flex flex-col gap-2 sm:flex-row">
             <select
               value={statusFilter}
-              onChange={(event) => setStatusFilter(event.target.value as 'all' | StudentRecord['status'])}
+              onChange={(event) =>
+                setStatusFilter(event.target.value as 'all' | StudentRecord['status'])
+              }
               className="bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="all">All statuses</option>
@@ -850,8 +934,12 @@ export default function AcademyStudentsPanel({
 
         {!loading && filteredStudents.length === 0 ? (
           <div className="px-5 py-16 text-center">
-            <p className="text-sm font-600 text-foreground">No students match the current filters.</p>
-            <p className="text-xs text-muted-foreground mt-1">Try a different search or add a new student.</p>
+            <p className="text-sm font-600 text-foreground">
+              No students match the current filters.
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Try a different search or add a new student.
+            </p>
           </div>
         ) : (
           <StudentsTable
@@ -861,6 +949,8 @@ export default function AcademyStudentsPanel({
             onEdit={openEditForm}
             onPrint={handlePrintReceipt}
             students={paginatedStudents}
+            hasMoreStudents={hasMoreStudents}
+            loadMoreStudents={loadMoreStudents}
           />
         )}
 
@@ -868,7 +958,8 @@ export default function AcademyStudentsPanel({
           <div className="px-5 py-4 border-t border-border bg-white/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-xs text-muted-foreground">
               Showing {(currentPage - 1) * rowsPerPage + 1}-
-              {Math.min(currentPage * rowsPerPage, filteredStudents.length)} of {filteredStudents.length} students
+              {Math.min(currentPage * rowsPerPage, filteredStudents.length)} of{' '}
+              {filteredStudents.length} students
             </p>
             <div className="flex items-center gap-2 self-end md:self-auto">
               <button

@@ -12,22 +12,27 @@ interface PlanUsageCardProps {
   usagePct: number;
 }
 
-export default function PlanUsageCard({ plan, recordsUsed, recordLimit, usagePct }: PlanUsageCardProps) {
+export default function PlanUsageCard({
+  plan,
+  recordsUsed,
+  recordLimit,
+  usagePct,
+}: PlanUsageCardProps) {
   const isNearLimit = usagePct >= 80;
   const isAtLimit = usagePct >= 100;
 
-  const barColor = isAtLimit
-    ? 'var(--danger)'
-    : isNearLimit
-    ? 'var(--warning)'
-    : 'var(--primary)';
+  const barColor = isAtLimit ? 'var(--danger)' : isNearLimit ? 'var(--warning)' : 'var(--primary)';
 
   return (
-    <div className={`glass-card rounded-2xl border p-5 ${isNearLimit ? 'border-warning/40' : 'border-border'}`}>
+    <div
+      className={`glass-card rounded-2xl border p-5 ${isNearLimit ? 'border-warning/40' : 'border-border'}`}
+    >
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-base font-700 text-foreground">Plan Usage</h3>
-          <p className="text-xs text-muted-foreground mt-0.5 capitalize">{plan?.name ?? 'Basic'} Plan</p>
+          <p className="text-xs text-muted-foreground mt-0.5 capitalize">
+            {plan?.name ?? 'Basic'} Plan
+          </p>
         </div>
         <div
           className="w-9 h-9 rounded-xl flex items-center justify-center"
@@ -54,7 +59,9 @@ export default function PlanUsageCard({ plan, recordsUsed, recordLimit, usagePct
         <div className="flex items-center justify-between mt-1">
           <span className="text-2xs text-muted-foreground">{usagePct}% used</span>
           {recordLimit && (
-            <span className="text-2xs text-muted-foreground">{Math.max(0, recordLimit - recordsUsed)} remaining</span>
+            <span className="text-2xs text-muted-foreground">
+              {Math.max(0, recordLimit - recordsUsed)} remaining
+            </span>
           )}
         </div>
       </div>
@@ -80,7 +87,11 @@ export default function PlanUsageCard({ plan, recordsUsed, recordLimit, usagePct
           }`}
         >
           <ArrowUpRight size={13} />
-          {isAtLimit ? 'Upgrade Now — Limit Reached' : isNearLimit ? 'Upgrade Before Limit' : 'Upgrade Plan'}
+          {isAtLimit
+            ? 'Upgrade Now — Limit Reached'
+            : isNearLimit
+              ? 'Upgrade Before Limit'
+              : 'Upgrade Plan'}
         </button>
       )}
     </div>

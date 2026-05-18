@@ -1,10 +1,22 @@
-import { collection, doc, getDocs, orderBy, query, setDoc, Timestamp, writeBatch, limit } from 'firebase/firestore';
+import {
+  collection,
+  doc,
+  getDocs,
+  orderBy,
+  query,
+  setDoc,
+  Timestamp,
+  writeBatch,
+  limit,
+} from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { ActivityItem } from '@/types';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
-    throw new Error('Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* environment variables.');
+    throw new Error(
+      'Firebase is not configured. Please set NEXT_PUBLIC_FIREBASE_* environment variables.'
+    );
   }
 }
 
@@ -19,7 +31,10 @@ function formatTime(value: unknown) {
   return date.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
-export async function getRecentActivities(businessId: string, limitCount = 5): Promise<ActivityItem[]> {
+export async function getRecentActivities(
+  businessId: string,
+  limitCount = 5
+): Promise<ActivityItem[]> {
   const firestore = getFirestoreDb();
   const activitiesRef = collection(firestore, 'businesses', businessId, 'activities');
   const activitiesQuery = query(activitiesRef, orderBy('createdAt', 'desc'), limit(limitCount));
@@ -35,17 +50,23 @@ export async function getRecentActivities(businessId: string, limitCount = 5): P
       time: formatTime(data.createdAt ?? data.updatedAt ?? new Date().toISOString()),
       status: String(data.status ?? 'completed') as ActivityItem['status'],
       amount: data.amount != null ? `₹${Number(data.amount).toLocaleString('en-IN')}` : undefined,
-      createdAt: typeof data.createdAt === 'string' ? data.createdAt : data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString(),
+      createdAt:
+        typeof data.createdAt === 'string'
+          ? data.createdAt
+          : (data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString()),
     };
   });
 }
 
-export async function createSupportTicket(businessId: string, payload: {
-  subject: string;
-  category: string;
-  message: string;
-  createdBy: string;
-}) {
+export async function createSupportTicket(
+  businessId: string,
+  payload: {
+    subject: string;
+    category: string;
+    message: string;
+    createdBy: string;
+  }
+) {
   const firestore = getFirestoreDb();
   const ticketRef = doc(collection(firestore, 'businesses', businessId, 'supportTickets'));
   const activityRef = doc(collection(firestore, 'businesses', businessId, 'activities'));

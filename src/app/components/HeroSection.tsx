@@ -41,7 +41,8 @@ export default function HeroSection() {
           </h1>
 
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-10">
-            BizManage adapts to your industry — Academy, Hotel, Restaurant, Clinic, or any other business. One login, one platform, complete control.
+            BizManage adapts to your industry — Academy, Hotel, Restaurant, Clinic, or any other
+            business. One login, one platform, complete control.
           </p>
 
           {/* Feature badges */}
@@ -59,10 +60,7 @@ export default function HeroSection() {
 
           {/* CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">
-            <a
-              href="#features"
-              className="btn-outline px-8 py-4 rounded-xl text-base font-500"
-            >
+            <a href="#features" className="btn-outline px-8 py-4 rounded-xl text-base font-500">
               See All Features
             </a>
           </div>
@@ -121,9 +119,14 @@ export default function HeroSection() {
                       { label: 'Active Courses', value: '18', color: 'bg-accent/10' },
                       { label: 'Pending Fees', value: '₹38K', color: 'bg-danger/10' },
                     ]?.map((card) => (
-                      <div key={`prev-card-${card?.label}`} className={`${card?.color} rounded-lg p-3 border border-border/60`}>
+                      <div
+                        key={`prev-card-${card?.label}`}
+                        className={`${card?.color} rounded-lg p-3 border border-border/60`}
+                      >
                         <div className="text-2xs text-muted-foreground mb-1">{card?.label}</div>
-                        <div className="text-base font-700 text-foreground font-tabular">{card?.value}</div>
+                        <div className="text-base font-700 text-foreground font-tabular">
+                          {card?.value}
+                        </div>
                       </div>
                     ))}
                   </div>

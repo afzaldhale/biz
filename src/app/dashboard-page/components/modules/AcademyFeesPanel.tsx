@@ -87,16 +87,19 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
-        .includes(query),
+        .includes(query)
     );
   }, [fees, deferredSearchTerm]);
 
-  const totals = useMemo(() => ({
-    invoices: fees.length,
-    totalAmount: fees.reduce((sum, fee) => sum + (fee.amount ?? 0), 0),
-    overdue: fees.filter((fee) => fee.status === 'overdue').length,
-    collected: fees.filter((fee) => fee.status === 'paid').length,
-  }), [fees]);
+  const totals = useMemo(
+    () => ({
+      invoices: fees.length,
+      totalAmount: fees.reduce((sum, fee) => sum + (fee.amount ?? 0), 0),
+      overdue: fees.filter((fee) => fee.status === 'overdue').length,
+      collected: fees.filter((fee) => fee.status === 'paid').length,
+    }),
+    [fees]
+  );
 
   const totalPages = Math.max(1, Math.ceil(filteredFees.length / rowsPerPage));
   const paginatedFees = useMemo(() => {
@@ -148,7 +151,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         [name]: name === 'amount' ? Number(value) : value,
       }));
     },
-    [],
+    []
   );
 
   const handleSubmit = useCallback(
@@ -170,7 +173,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
       try {
         if (editingFeeId) {
           await updateFee(user.id, editingFeeId, nextFee);
-          setFees((current) => current.map((fee) => (fee.id === editingFeeId ? { id: editingFeeId, ...nextFee } : fee)));
+          setFees((current) =>
+            current.map((fee) => (fee.id === editingFeeId ? { id: editingFeeId, ...nextFee } : fee))
+          );
           toast.success('Fee record updated successfully.');
         } else {
           const newId = await addFee(user.id, nextFee);
@@ -184,7 +189,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         setSubmitting(false);
       }
     },
-    [closeForm, formValues, user.id],
+    [closeForm, formValues, user.id]
   );
 
   const handleDelete = useCallback(
@@ -200,7 +205,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         toast.error('Unable to delete fee record right now.');
       }
     },
-    [user.id],
+    [user.id]
   );
 
   return (
@@ -215,10 +220,18 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => onNavigate('nav-students')} className="btn-outline px-4 py-2.5 rounded-xl text-sm">
+          <button
+            type="button"
+            onClick={() => onNavigate('nav-students')}
+            className="btn-outline px-4 py-2.5 rounded-xl text-sm"
+          >
             Back to Students
           </button>
-          <button type="button" onClick={() => openForm()} className="btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm">
+          <button
+            type="button"
+            onClick={() => openForm()}
+            className="btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
+          >
             <Plus size={16} /> Add Fee
           </button>
         </div>
@@ -230,7 +243,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
           <p className="text-2xl font-700 text-foreground mt-2">{totals.invoices}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Collected</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Collected
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{totals.collected}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
@@ -238,15 +253,22 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
           <p className="text-2xl font-700 text-foreground mt-2">{totals.overdue}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Total Fee</p>
-          <p className="text-2xl font-700 text-foreground mt-2">{formatCurrency(totals.totalAmount)}</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Total Fee
+          </p>
+          <p className="text-2xl font-700 text-foreground mt-2">
+            {formatCurrency(totals.totalAmount)}
+          </p>
         </div>
       </div>
 
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               value={searchInput}
@@ -276,7 +298,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         ) : filteredFees.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <p className="text-sm font-600 text-foreground">No fee records found.</p>
-            <p className="text-xs text-muted-foreground mt-1">Create your first invoice to track student payments.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Create your first invoice to track student payments.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -295,15 +319,31 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                 {paginatedFees.map((fee) => (
                   <tr key={fee.id}>
                     <td className="px-5 py-4 font-600 text-foreground">{fee.title}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{fee.studentName || 'Student'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(fee.amount)}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{new Date(fee.dueDate).toLocaleDateString('en-IN')}</td>
-                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">{fee.status}</td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {fee.studentName || 'Student'}
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatCurrency(fee.amount)}
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {new Date(fee.dueDate).toLocaleDateString('en-IN')}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">
+                      {fee.status}
+                    </td>
                     <td className="px-5 py-4 space-x-2">
-                      <button type="button" onClick={() => openForm(fee)} className="btn-outline px-3 py-2 rounded-xl text-xs">
+                      <button
+                        type="button"
+                        onClick={() => openForm(fee)}
+                        className="btn-outline px-3 py-2 rounded-xl text-xs"
+                      >
                         <Pencil size={14} />
                       </button>
-                      <button type="button" onClick={() => handleDelete(fee.id)} className="btn-outline px-3 py-2 rounded-xl text-xs text-red-600 border-red-200 hover:bg-red-50">
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(fee.id)}
+                        className="btn-outline px-3 py-2 rounded-xl text-xs text-red-600 border-red-200 hover:bg-red-50"
+                      >
                         <Trash2 size={14} />
                       </button>
                     </td>
@@ -317,14 +357,28 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         {!loading && filteredFees.length > 0 && (
           <div className="px-5 py-4 border-t border-border bg-white/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-xs text-muted-foreground">
-              Showing {(currentPage - 1) * rowsPerPage + 1}-{Math.min(currentPage * rowsPerPage, filteredFees.length)} of {filteredFees.length} fee records
+              Showing {(currentPage - 1) * rowsPerPage + 1}-
+              {Math.min(currentPage * rowsPerPage, filteredFees.length)} of {filteredFees.length}{' '}
+              fee records
             </p>
             <div className="flex items-center gap-2 self-end md:self-auto">
-              <button type="button" onClick={() => setCurrentPage((page) => Math.max(1, page - 1))} disabled={currentPage === 1} className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
+                disabled={currentPage === 1}
+                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 <ChevronLeft size={14} /> Prev
               </button>
-              <span className="text-xs font-600 text-foreground px-3 py-2 rounded-lg bg-muted">{currentPage} / {totalPages}</span>
-              <button type="button" onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))} disabled={currentPage === totalPages} className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed">
+              <span className="text-xs font-600 text-foreground px-3 py-2 rounded-lg bg-muted">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
+                disabled={currentPage === totalPages}
+                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
                 Next <ChevronRight size={14} />
               </button>
             </div>
@@ -337,38 +391,87 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
           <div className="mx-auto max-w-3xl rounded-3xl bg-white p-6 md:p-8 shadow-xl">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <p className="text-sm text-muted-foreground">{editingFeeId ? 'Edit fee record' : 'New Fee Record'}</p>
-                <h2 className="text-2xl font-700 text-foreground mt-1">{editingFeeId ? 'Update invoice' : 'Create invoice'}</h2>
+                <p className="text-sm text-muted-foreground">
+                  {editingFeeId ? 'Edit fee record' : 'New Fee Record'}
+                </p>
+                <h2 className="text-2xl font-700 text-foreground mt-1">
+                  {editingFeeId ? 'Update invoice' : 'Create invoice'}
+                </h2>
               </div>
-              <button type="button" onClick={closeForm} className="text-muted-foreground hover:text-foreground">
+              <button
+                type="button"
+                onClick={closeForm}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <ChevronLeft size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Invoice Title</label>
-                <input name="title" required value={formValues.title} onChange={handleChange} className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Invoice Title
+                </label>
+                <input
+                  name="title"
+                  required
+                  value={formValues.title}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Student Name</label>
-                <input name="studentName" value={formValues.studentName} onChange={handleChange} className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Student Name
+                </label>
+                <input
+                  name="studentName"
+                  value={formValues.studentName}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Amount</label>
-                <input name="amount" required type="number" min="0" value={formValues.amount} onChange={handleChange} className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  name="amount"
+                  required
+                  type="number"
+                  min="0"
+                  value={formValues.amount}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Due Date</label>
-                <input name="dueDate" required type="date" value={formValues.dueDate} onChange={handleChange} className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  name="dueDate"
+                  required
+                  type="date"
+                  value={formValues.dueDate}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-600 text-foreground mb-1.5">Description</label>
-                <textarea name="description" rows={4} value={formValues.description} onChange={handleChange} className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
+                <textarea
+                  name="description"
+                  rows={4}
+                  value={formValues.description}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div>
                 <label className="block text-sm font-600 text-foreground mb-1.5">Status</label>
-                <select name="status" value={formValues.status} onChange={handleChange} className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+                <select
+                  name="status"
+                  value={formValues.status}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
                   <option value="pending">Pending</option>
                   <option value="paid">Paid</option>
                   <option value="overdue">Overdue</option>
@@ -376,11 +479,29 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
               </div>
               <div className="md:col-span-2">
                 <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
-                <textarea name="notes" rows={4} value={formValues.notes} onChange={handleChange} className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring" />
+                <textarea
+                  name="notes"
+                  rows={4}
+                  value={formValues.notes}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </div>
               <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={closeForm} className="btn-outline px-5 py-3 rounded-xl text-sm">Cancel</button>
-                <button type="submit" disabled={submitting} className="btn-primary px-5 py-3 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed">{submitting ? 'Saving...' : editingFeeId ? 'Save changes' : 'Create Invoice'}</button>
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="btn-outline px-5 py-3 rounded-xl text-sm"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary px-5 py-3 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {submitting ? 'Saving...' : editingFeeId ? 'Save changes' : 'Create Invoice'}
+                </button>
               </div>
             </form>
           </div>

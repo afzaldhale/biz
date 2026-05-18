@@ -1,4 +1,14 @@
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, orderBy, query, updateDoc } from 'firebase/firestore';
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  orderBy,
+  query,
+  updateDoc,
+} from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { canAddRecord } from '@/utils/planLimits';
 import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
@@ -17,7 +27,9 @@ export interface FeeRecord {
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
-    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+    throw new Error(
+      'Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.'
+    );
   }
 }
 
@@ -39,7 +51,7 @@ export async function addFee(businessId: string, fee: Omit<FeeRecord, 'id'>) {
 export async function getFees(businessId: string): Promise<FeeRecord[]> {
   const feesQuery = query(
     collection(getFirestoreDb(), `businesses/${businessId}/fees`),
-    orderBy('createdAt', 'desc'),
+    orderBy('createdAt', 'desc')
   );
   const snapshot = await getDocs(feesQuery);
   return snapshot.docs.map((feeDoc) => ({

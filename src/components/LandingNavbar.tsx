@@ -26,7 +26,9 @@ export default function LandingNavbar() {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled ? 'bg-white/95 backdrop-blur-md border-b border-border shadow-sm' : 'bg-transparent'
+        scrolled
+          ? 'bg-white/95 backdrop-blur-md border-b border-border shadow-sm'
+          : 'bg-transparent'
       }`}
     >
       <div className="max-w-screen-2xl mx-auto px-6 lg:px-10">
@@ -45,16 +47,10 @@ export default function LandingNavbar() {
           </nav>
 
           <div className="hidden md:flex items-center gap-3">
-            <Link
-              href="/sign-up-login-screen"
-              className="btn-outline text-sm px-4 py-2 rounded-lg"
-            >
+            <Link href="/sign-up-login-screen" className="btn-outline text-sm px-4 py-2 rounded-lg">
               Log In
             </Link>
-            <Link
-              href="/sign-up-login-screen"
-              className="btn-primary text-sm px-5 py-2 rounded-lg"
-            >
+            <Link href="/sign-up-login-screen" className="btn-primary text-sm px-5 py-2 rounded-lg">
               Get Started Free
             </Link>
           </div>

@@ -99,8 +99,7 @@ export const plans: Plan[] = [
   },
 ];
 
-export const getPlanById = (id: string): Plan | undefined =>
-  plans.find((p) => p.id === id);
+export const getPlanById = (id: string): Plan | undefined => plans.find((p) => p.id === id);
 
 export const getRecordLimit = (planId: string): number | null => {
   const plan = getPlanById(planId);

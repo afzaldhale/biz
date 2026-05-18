@@ -2,8 +2,13 @@
 
 import React from 'react';
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from 'recharts';
 import { BusinessType } from '@/types';
 
@@ -12,7 +17,15 @@ interface RevenueChartProps {
   data: Array<{ month: string; revenue: number }>;
 }
 
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number }>; label?: string }) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ value: number }>;
+  label?: string;
+}) => {
   if (active && payload && payload.length) {
     return (
       <div className="glass-card border border-border/60 rounded-xl px-4 py-3 shadow-card">
@@ -43,7 +56,9 @@ export default function RevenueChart({ businessType, data }: RevenueChartProps) 
 
   const firstRevenue = data[0]?.revenue ?? 0;
   const lastRevenue = data[data.length - 1]?.revenue ?? 0;
-  const percentageChange = firstRevenue ? ((lastRevenue - firstRevenue) / Math.max(firstRevenue, 1)) * 100 : 0;
+  const percentageChange = firstRevenue
+    ? ((lastRevenue - firstRevenue) / Math.max(firstRevenue, 1)) * 100
+    : 0;
 
   return (
     <div className="glass-card rounded-2xl p-5 border border-border/60 h-full">
@@ -53,7 +68,8 @@ export default function RevenueChart({ businessType, data }: RevenueChartProps) 
           <p className="text-xs text-muted-foreground mt-0.5">Last 6 months</p>
         </div>
         <span className="text-xs badge-success px-2.5 py-1 rounded-full font-600">
-          {percentageChange >= 0 ? '+' : ''}{percentageChange.toFixed(1)}% overall
+          {percentageChange >= 0 ? '+' : ''}
+          {percentageChange.toFixed(1)}% overall
         </span>
       </div>
 

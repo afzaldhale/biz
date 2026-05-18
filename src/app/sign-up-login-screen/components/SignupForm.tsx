@@ -4,42 +4,17 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, Loader2, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { BusinessType, PlanId } from '@/types';
 import { useAuth } from '@/context/AuthContext';
-import { getPlanById } from '@/data/plans';
 
 interface SignupFormValues {
   ownerName: string;
-  businessName: string;
   email: string;
   phone: string;
   password: string;
   confirmPassword: string;
-  plan: PlanId;
-  businessType: BusinessType;
 }
-
-const planOptions: { id: PlanId; label: string; price: string }[] = [
-  { id: 'basic', label: 'Basic', price: '₹499/mo' },
-  { id: 'medium', label: 'Medium', price: '₹999/mo' },
-  { id: 'advance', label: 'Advance (Popular)', price: '₹1,499/mo' },
-  { id: 'premium', label: 'Premium', price: '₹1,999/mo' },
-  { id: 'pro', label: 'Pro', price: '₹2,999/mo' },
-  { id: 'custom', label: 'Custom Enterprise', price: 'Custom pricing' },
-];
-
-const businessTypeOptions: { id: BusinessType; label: string }[] = [
-  { id: 'academy', label: 'Academy / Coaching Institute' },
-  { id: 'hotel', label: 'Hotel / Lodging' },
-  { id: 'restaurant', label: 'Restaurant' },
-  { id: 'clinic', label: 'Clinic / Healthcare' },
-  { id: 'service-center', label: 'Service Center' },
-  { id: 'gym', label: 'Gym / Fitness Center' },
-  { id: 'salon', label: 'Salon / Spa' },
-  { id: 'custom', label: 'Custom Business' },
-];
 
 interface SignupFormProps {
   onSwitchToLogin: () => void;
@@ -57,9 +32,7 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<SignupFormValues>({
-    defaultValues: { plan: 'advance', businessType: 'academy' },
-  });
+  } = useForm<SignupFormValues>();
 
   const password = watch('password');
 
@@ -67,16 +40,11 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
     setIsLoading(true);
 
     try {
-      const plan = getPlanById(data.plan);
       await signup({
         email: data.email,
         password: data.password,
         ownerName: data.ownerName,
-        businessName: data.businessName,
         phone: data.phone,
-        businessType: data.businessType,
-        selectedPlan: data.plan,
-        planLimit: plan?.recordLimit ?? null,
       });
 
       toast.success(`Account created for ${data.ownerName}. We've sent your verification email.`);
@@ -96,25 +64,21 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Owner / Manager Name</label>
+          <label className="block text-sm font-600 text-foreground mb-1.5">
+            Owner / Manager Name
+          </label>
           <input
             type="text"
             placeholder="Rajesh Kumar"
             className={`w-full bg-input border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring transition-all ${errors.ownerName ? 'border-danger/60' : 'border-border focus:border-primary/60'}`}
-            {...register('ownerName', { required: 'Owner name is required', minLength: { value: 2, message: 'Minimum 2 characters' } })}
+            {...register('ownerName', {
+              required: 'Owner name is required',
+              minLength: { value: 2, message: 'Minimum 2 characters' },
+            })}
           />
-          {errors.ownerName && <p className="text-xs text-danger mt-1">{errors.ownerName.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Business Name</label>
-          <input
-            type="text"
-            placeholder="Stars Institute / Grand Palace Hotel"
-            className={`w-full bg-input border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring transition-all ${errors.businessName ? 'border-danger/60' : 'border-border focus:border-primary/60'}`}
-            {...register('businessName', { required: 'Business name is required' })}
-          />
-          {errors.businessName && <p className="text-xs text-danger mt-1">{errors.businessName.message}</p>}
+          {errors.ownerName && (
+            <p className="text-xs text-danger mt-1">{errors.ownerName.message}</p>
+          )}
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -157,17 +121,25 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                 {...register('password', {
                   required: 'Password is required',
                   minLength: { value: 8, message: 'Min. 8 characters' },
-                  pattern: { value: /^(?=.*[A-Z])(?=.*\d)/, message: 'Include uppercase and number' },
                 })}
               />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" aria-label="Toggle password visibility">
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Toggle password visibility"
+              >
                 {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            {errors.password && <p className="text-xs text-danger mt-1">{errors.password.message}</p>}
+            {errors.password && (
+              <p className="text-xs text-danger mt-1">{errors.password.message}</p>
+            )}
           </div>
           <div>
-            <label className="block text-sm font-600 text-foreground mb-1.5">Confirm Password</label>
+            <label className="block text-sm font-600 text-foreground mb-1.5">
+              Confirm Password
+            </label>
             <div className="relative">
               <input
                 type={showConfirm ? 'text' : 'password'}
@@ -178,60 +150,34 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
                   validate: (val) => val === password || 'Passwords do not match',
                 })}
               />
-              <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors" aria-label="Toggle confirm password visibility">
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Toggle confirm password visibility"
+              >
                 {showConfirm ? <EyeOff size={15} /> : <Eye size={15} />}
               </button>
             </div>
-            {errors.confirmPassword && <p className="text-xs text-danger mt-1">{errors.confirmPassword.message}</p>}
+            {errors.confirmPassword && (
+              <p className="text-xs text-danger mt-1">{errors.confirmPassword.message}</p>
+            )}
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Select Plan</label>
-          <div className="relative">
-            <select
-              className={`w-full bg-input border rounded-xl px-4 py-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-ring transition-all ${errors.plan ? 'border-danger/60' : 'border-border focus:border-primary/60'}`}
-              {...register('plan', { required: 'Please select a plan' })}
-            >
-              {planOptions.map((plan) => (
-                <option key={`signup-plan-${plan.id}`} value={plan.id}>
-                  {plan.label} — {plan.price}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-          {errors.plan && <p className="text-xs text-danger mt-1">{errors.plan.message}</p>}
-        </div>
-
-        <div>
-          <label className="block text-sm font-600 text-foreground mb-1.5">Business Type</label>
-          <p className="text-xs text-muted-foreground mb-2">Your dashboard will be configured for this industry</p>
-          <div className="relative">
-            <select
-              className={`w-full bg-input border rounded-xl px-4 py-3 text-sm text-foreground appearance-none focus:outline-none focus:ring-2 focus:ring-ring transition-all ${errors.businessType ? 'border-danger/60' : 'border-border focus:border-primary/60'}`}
-              {...register('businessType', { required: 'Please select your business type' })}
-            >
-              {businessTypeOptions.map((biz) => (
-                <option key={`signup-biz-${biz.id}`} value={biz.id}>
-                  {biz.label}
-                </option>
-              ))}
-            </select>
-            <ChevronDown size={15} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-          </div>
-          {errors.businessType && <p className="text-xs text-danger mt-1">{errors.businessType.message}</p>}
         </div>
 
         <p className="text-xs text-muted-foreground">
           By signing up, you agree to our{' '}
-          <Link href="/terms-of-service" className="text-primary hover:text-accent transition-colors">
+          <Link
+            href="/terms-of-service"
+            className="text-primary hover:text-accent transition-colors"
+          >
             Terms of Service
-          </Link>
-          {' '}and{' '}
+          </Link>{' '}
+          and{' '}
           <Link href="/privacy-policy" className="text-primary hover:text-accent transition-colors">
             Privacy Policy
-          </Link>.
+          </Link>
+          .
         </p>
 
         <button
@@ -252,7 +198,10 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
 
       <p className="text-sm text-muted-foreground text-center mt-5">
         Already have an account?{' '}
-        <button onClick={onSwitchToLogin} className="text-primary hover:text-accent font-600 transition-colors">
+        <button
+          onClick={onSwitchToLogin}
+          className="text-primary hover:text-accent font-600 transition-colors"
+        >
           Log in
         </button>
       </p>

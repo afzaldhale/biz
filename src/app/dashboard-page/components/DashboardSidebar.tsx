@@ -7,20 +7,64 @@ import { AuthUser } from '@/types';
 import { getSidebarNavItems } from '@/utils/dashboardResolver';
 import { getIndustryById } from '@/data/industries';
 import {
-  LayoutDashboard, Users, BookOpen, IndianRupee, Receipt,
-  ClipboardCheck, BarChart2, CreditCard, Settings, DoorOpen,
-  CalendarCheck, SprayCan, ShoppingBag, LayoutGrid, UtensilsCrossed,
-  ChefHat, Calendar, FileText, Ticket, Wrench, Dumbbell, UserCheck,
-  Package, Scissors, Sparkles, UserPlus, ChevronLeft, ChevronRight,
-  X
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  IndianRupee,
+  Receipt,
+  ClipboardCheck,
+  BarChart2,
+  CreditCard,
+  Settings,
+  DoorOpen,
+  CalendarCheck,
+  SprayCan,
+  ShoppingBag,
+  LayoutGrid,
+  UtensilsCrossed,
+  ChefHat,
+  Calendar,
+  FileText,
+  Ticket,
+  Wrench,
+  Dumbbell,
+  UserCheck,
+  Package,
+  Scissors,
+  Sparkles,
+  UserPlus,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from 'lucide-react';
 
 const iconMap: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
-  LayoutDashboard, Users, BookOpen, IndianRupee, Receipt,
-  ClipboardCheck, BarChart2, CreditCard, Settings, DoorOpen,
-  CalendarCheck, SprayCan, ShoppingBag, LayoutGrid, UtensilsCrossed,
-  ChefHat, Calendar, FileText, Ticket, Wrench, Dumbbell, UserCheck,
-  Package, Scissors, Sparkles, UserPlus,
+  LayoutDashboard,
+  Users,
+  BookOpen,
+  IndianRupee,
+  Receipt,
+  ClipboardCheck,
+  BarChart2,
+  CreditCard,
+  Settings,
+  DoorOpen,
+  CalendarCheck,
+  SprayCan,
+  ShoppingBag,
+  LayoutGrid,
+  UtensilsCrossed,
+  ChefHat,
+  Calendar,
+  FileText,
+  Ticket,
+  Wrench,
+  Dumbbell,
+  UserCheck,
+  Package,
+  Scissors,
+  Sparkles,
+  UserPlus,
 };
 
 interface SidebarProps {
@@ -34,7 +78,13 @@ interface SidebarProps {
 }
 
 function DashboardSidebar({
-  user, collapsed, mobileOpen, activeNav, onNavChange, onCollapse, onMobileClose
+  user,
+  collapsed,
+  mobileOpen,
+  activeNav,
+  onNavChange,
+  onCollapse,
+  onMobileClose,
 }: SidebarProps) {
   const navGroups = useMemo(() => getSidebarNavItems(user.businessType), [user.businessType]);
   const industry = useMemo(() => getIndustryById(user.businessType), [user.businessType]);
@@ -48,7 +98,9 @@ function DashboardSidebar({
         }`}
       >
         {/* Logo */}
-        <div className={`flex items-center h-14 px-3 border-b border-border flex-shrink-0 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+        <div
+          className={`flex items-center h-14 px-3 border-b border-border flex-shrink-0 ${collapsed ? 'justify-center' : 'justify-between'}`}
+        >
           {!collapsed && (
             <Link href="/" className="flex items-center gap-2">
               <AppLogo size={28} />
@@ -73,7 +125,10 @@ function DashboardSidebar({
                 className="w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0"
                 style={{ backgroundColor: industry.bgColor }}
               >
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: industry.color }} />
+                <div
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ backgroundColor: industry.color }}
+                />
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-600 text-foreground truncate">{user.businessName}</div>
@@ -104,7 +159,8 @@ function DashboardSidebar({
                       collapsed ? 'justify-center w-auto' : ''
                     } ${
                       isActive
-                        ? 'sidebar-active' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                        ? 'sidebar-active'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                     }`}
                     style={{ width: collapsed ? 'calc(100% - 12px)' : 'calc(100% - 12px)' }}
                   >
@@ -124,7 +180,9 @@ function DashboardSidebar({
                       <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-white border border-border rounded-lg text-xs text-foreground font-500 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-card">
                         {item.label}
                         {item.badge !== undefined && item.badge > 0 && (
-                          <span className="ml-1.5 badge-danger px-1 py-0.5 rounded text-2xs">{item.badge}</span>
+                          <span className="ml-1.5 badge-danger px-1 py-0.5 rounded text-2xs">
+                            {item.badge}
+                          </span>
                         )}
                       </div>
                     )}
@@ -140,11 +198,15 @@ function DashboardSidebar({
           <div className="p-3 border-t border-border flex-shrink-0">
             <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-muted/60 transition-colors cursor-pointer">
               <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                <span className="text-xs font-700 text-white">{user.ownerName.charAt(0).toUpperCase()}</span>
+                <span className="text-xs font-700 text-white">
+                  {user.ownerName.charAt(0).toUpperCase()}
+                </span>
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-600 text-foreground truncate">{user.ownerName}</div>
-                <div className="text-2xs text-muted-foreground truncate capitalize">{user.plan} Plan</div>
+                <div className="text-2xs text-muted-foreground truncate capitalize">
+                  {user.plan} Plan
+                </div>
               </div>
             </div>
           </div>
@@ -162,7 +224,11 @@ function DashboardSidebar({
             <AppLogo size={28} />
             <span className="font-800 text-base text-foreground">BizManage</span>
           </Link>
-          <button onClick={onMobileClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors" aria-label="Close sidebar">
+          <button
+            onClick={onMobileClose}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close sidebar"
+          >
             <X size={18} />
           </button>
         </div>
@@ -170,8 +236,14 @@ function DashboardSidebar({
         {industry && (
           <div className="px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg bg-muted/60">
-              <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor: industry.bgColor }}>
-                <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: industry.color }} />
+              <div
+                className="w-6 h-6 rounded-md flex items-center justify-center"
+                style={{ backgroundColor: industry.bgColor }}
+              >
+                <div
+                  className="w-2.5 h-2.5 rounded-sm"
+                  style={{ backgroundColor: industry.color }}
+                />
               </div>
               <div className="min-w-0">
                 <div className="text-xs font-600 text-foreground truncate">{user.businessName}</div>
@@ -184,22 +256,31 @@ function DashboardSidebar({
         <nav className="flex-1 overflow-y-auto scrollbar-thin py-2 px-2">
           {navGroups.map((group) => (
             <div key={`mob-group-${group.section}`} className="mb-2">
-              <div className="px-3 py-1.5 text-2xs font-700 tracking-widest text-muted-foreground uppercase">{group.section}</div>
+              <div className="px-3 py-1.5 text-2xs font-700 tracking-widest text-muted-foreground uppercase">
+                {group.section}
+              </div>
               {group.items.map((item) => {
                 const IconComp = iconMap[item.icon];
                 const isActive = activeNav === item.id;
                 return (
                   <button
                     key={`mob-${item.id}`}
-                    onClick={() => { onNavChange(item.id); onMobileClose(); }}
+                    onClick={() => {
+                      onNavChange(item.id);
+                      onMobileClose();
+                    }}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-500 transition-all duration-150 ${
-                      isActive ? 'sidebar-active' : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                      isActive
+                        ? 'sidebar-active'
+                        : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
                     }`}
                   >
                     {IconComp && <IconComp size={16} className="flex-shrink-0" />}
                     <span className="flex-1 text-left">{item.label}</span>
                     {item.badge !== undefined && item.badge > 0 && (
-                      <span className="text-2xs badge-danger px-1.5 py-0.5 rounded-full font-700">{item.badge}</span>
+                      <span className="text-2xs badge-danger px-1.5 py-0.5 rounded-full font-700">
+                        {item.badge}
+                      </span>
                     )}
                   </button>
                 );
@@ -211,7 +292,9 @@ function DashboardSidebar({
         <div className="p-3 border-t border-border">
           <div className="flex items-center gap-2.5 px-2.5 py-2">
             <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center">
-              <span className="text-xs font-700 text-white">{user.ownerName.charAt(0).toUpperCase()}</span>
+              <span className="text-xs font-700 text-white">
+                {user.ownerName.charAt(0).toUpperCase()}
+              </span>
             </div>
             <div className="min-w-0">
               <div className="text-xs font-600 text-foreground truncate">{user.ownerName}</div>

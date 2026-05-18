@@ -80,11 +80,16 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
             type="email"
             placeholder="you@yourbusiness.in"
             className={`w-full bg-input border rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring transition-all ${
-              errors.email ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:border-primary/60'
+              errors.email
+                ? 'border-danger/60 focus:ring-danger/30'
+                : 'border-border focus:border-primary/60'
             }`}
             {...register('email', {
               required: 'Email is required',
-              pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Enter a valid email address' },
+              pattern: {
+                value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                message: 'Enter a valid email address',
+              },
             })}
           />
           {errors.email && <p className="text-xs text-danger mt-1.5">{errors.email.message}</p>}
@@ -97,7 +102,9 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
               type={showPassword ? 'text' : 'password'}
               placeholder="Your password"
               className={`w-full bg-input border rounded-xl px-4 py-3 pr-11 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring transition-all ${
-                errors.password ? 'border-danger/60 focus:ring-danger/30' : 'border-border focus:border-primary/60'
+                errors.password
+                  ? 'border-danger/60 focus:ring-danger/30'
+                  : 'border-border focus:border-primary/60'
               }`}
               {...register('password', {
                 required: 'Password is required',
@@ -113,7 +120,9 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
           </div>
-          {errors.password && <p className="text-xs text-danger mt-1.5">{errors.password.message}</p>}
+          {errors.password && (
+            <p className="text-xs text-danger mt-1.5">{errors.password.message}</p>
+          )}
         </div>
 
         <div className="flex items-center justify-between">
@@ -125,7 +134,10 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
             />
             <span className="text-sm text-muted-foreground">Remember me</span>
           </label>
-          <button type="button" className="text-sm text-primary hover:text-accent font-600 transition-colors">
+          <button
+            type="button"
+            className="text-sm text-primary hover:text-accent font-600 transition-colors"
+          >
             Forgot password?
           </button>
         </div>
@@ -148,7 +160,10 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
 
       <p className="text-sm text-muted-foreground text-center mt-6">
         Don't have an account?{' '}
-        <button onClick={onSwitchToSignup} className="text-primary hover:text-accent font-600 transition-colors">
+        <button
+          onClick={onSwitchToSignup}
+          className="text-primary hover:text-accent font-600 transition-colors"
+        >
           Sign up free
         </button>
       </p>

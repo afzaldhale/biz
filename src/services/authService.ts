@@ -8,8 +8,7 @@ import {
   type UserCredential,
 } from 'firebase/auth';
 import { auth, isFirebaseConfigured } from '@/lib/firebase';
-import { BusinessType, PlanId } from '@/types';
-import { createBusinessForUser } from '@/services/businessService';
+import { createUserProfile } from '@/services/businessService';
 
 export type SessionUser = User;
 
@@ -17,16 +16,14 @@ interface SignupPayload {
   email: string;
   password: string;
   ownerName: string;
-  businessName: string;
   phone: string;
-  businessType: BusinessType;
-  selectedPlan: PlanId;
-  planLimit: number | null;
 }
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
-    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+    throw new Error(
+      'Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.'
+    );
   }
 }
 
@@ -67,22 +64,22 @@ export async function waitForVerifiedUser() {
 
 export async function signupWithEmailVerification(payload: SignupPayload): Promise<UserCredential> {
   const firebaseAuth = getFirebaseAuth();
-  const userCredential = await createUserWithEmailAndPassword(firebaseAuth, payload.email, payload.password);
+  const userCredential = await createUserWithEmailAndPassword(
+    firebaseAuth,
+    payload.email,
+    payload.password
+  );
   const user = userCredential.user;
 
   await updateProfile(user, {
     displayName: payload.ownerName,
   });
 
-  await createBusinessForUser({
+  await createUserProfile({
     uid: user.uid,
     ownerName: payload.ownerName,
-    businessName: payload.businessName,
     email: payload.email,
     phone: payload.phone,
-    businessType: payload.businessType,
-    selectedPlan: payload.selectedPlan,
-    planLimit: payload.planLimit,
   });
 
   await sendEmailVerification(user);

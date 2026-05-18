@@ -140,11 +140,7 @@ export default function DashboardShell() {
         />
         <main className="flex-1 overflow-auto p-4 md:p-6 xl:p-8">
           <ErrorBoundary>
-            <DashboardContent
-              user={user}
-              activeNav={activeNav}
-              onNavChange={handleNavChange}
-            />
+            <DashboardContent user={user} activeNav={activeNav} onNavChange={handleNavChange} />
           </ErrorBoundary>
         </main>
       </div>

@@ -1,7 +1,13 @@
 import React from 'react';
 import {
-  LayoutDashboard, Bell, BarChart2, CreditCard,
-  Shield, Smartphone, Users, RefreshCw
+  LayoutDashboard,
+  Bell,
+  BarChart2,
+  CreditCard,
+  Shield,
+  Smartphone,
+  Users,
+  RefreshCw,
 } from 'lucide-react';
 
 const features = [
@@ -9,56 +15,64 @@ const features = [
     id: 'feat-1',
     icon: LayoutDashboard,
     title: 'Dynamic Industry Dashboard',
-    description: 'Your dashboard auto-configures based on your business type. Academy gets student management, Hotel gets room control — no manual setup.',
+    description:
+      'Your dashboard auto-configures based on your business type. Academy gets student management, Hotel gets room control — no manual setup.',
     color: '#2563EB',
   },
   {
     id: 'feat-2',
     icon: BarChart2,
     title: 'Real-time Analytics',
-    description: 'Revenue trends, weekly activity, and performance metrics updated live. Make data-driven decisions with charts built for your industry.',
+    description:
+      'Revenue trends, weekly activity, and performance metrics updated live. Make data-driven decisions with charts built for your industry.',
     color: '#7C3AED',
   },
   {
     id: 'feat-3',
     icon: CreditCard,
     title: 'INR Billing & Invoicing',
-    description: 'GST-compliant billing, invoice generation, receipt printing, and payment tracking — all in Indian Rupees with proper tax handling.',
+    description:
+      'GST-compliant billing, invoice generation, receipt printing, and payment tracking — all in Indian Rupees with proper tax handling.',
     color: '#10B981',
   },
   {
     id: 'feat-4',
     icon: Bell,
     title: 'Smart Notifications',
-    description: 'WhatsApp and SMS alerts for fee dues, appointment reminders, booking confirmations, and ticket updates. Keep customers informed automatically.',
+    description:
+      'WhatsApp and SMS alerts for fee dues, appointment reminders, booking confirmations, and ticket updates. Keep customers informed automatically.',
     color: '#F59E0B',
   },
   {
     id: 'feat-5',
     icon: Shield,
     title: 'Plan-Based Access Control',
-    description: 'Record limits enforced per plan tier. Upgrade prompts appear when you approach limits. Clear usage tracking so you\'re never surprised.',
+    description:
+      "Record limits enforced per plan tier. Upgrade prompts appear when you approach limits. Clear usage tracking so you're never surprised.",
     color: '#0891B2',
   },
   {
     id: 'feat-6',
     icon: Smartphone,
     title: 'Fully Responsive',
-    description: 'Manage your business from any device — desktop, tablet, or phone. Every screen is optimized for touch and small displays.',
+    description:
+      'Manage your business from any device — desktop, tablet, or phone. Every screen is optimized for touch and small displays.',
     color: '#EA580C',
   },
   {
     id: 'feat-7',
     icon: Users,
     title: 'Multi-Staff Support',
-    description: 'Add staff accounts based on your plan. Role-based access ensures each team member only sees what they need.',
+    description:
+      'Add staff accounts based on your plan. Role-based access ensures each team member only sees what they need.',
     color: '#EC4899',
   },
   {
     id: 'feat-8',
     icon: RefreshCw,
     title: 'Seamless Plan Upgrades',
-    description: 'Outgrowing your current plan? Upgrade in one click without losing any data. Your business grows, your plan grows with it.',
+    description:
+      'Outgrowing your current plan? Upgrade in one click without losing any data. Your business grows, your plan grows with it.',
     color: '#38BDF8',
   },
 ];
@@ -76,7 +90,8 @@ export default function FeaturesSection() {
             Features Built for <span className="gradient-text">Real Operations</span>
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Not generic SaaS features — every capability is designed around how actual businesses in India operate day to day.
+            Not generic SaaS features — every capability is designed around how actual businesses in
+            India operate day to day.
           </p>
         </div>
 
@@ -94,7 +109,9 @@ export default function FeaturesSection() {
                 <feature.icon size={22} style={{ color: feature?.color }} />
               </div>
               <h3 className="text-base font-700 text-foreground mb-2.5">{feature?.title}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{feature?.description}</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {feature?.description}
+              </p>
             </div>
           ))}
         </div>

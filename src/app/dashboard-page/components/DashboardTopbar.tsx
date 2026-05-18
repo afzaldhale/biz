@@ -38,7 +38,7 @@ function DashboardTopbar({ user, onMenuToggle, onLogout, onNavChange }: TopbarPr
       onNavChange(navId);
       handleCloseUserMenu();
     },
-    [handleCloseUserMenu, onNavChange],
+    [handleCloseUserMenu, onNavChange]
   );
 
   useEffect(() => {
@@ -101,7 +101,10 @@ function DashboardTopbar({ user, onMenuToggle, onLogout, onNavChange }: TopbarPr
         </div>
 
         {/* Notifications */}
-        <button className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors" aria-label="Notifications">
+        <button
+          className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
+          aria-label="Notifications"
+        >
           <Bell size={17} />
           <span className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-danger" />
         </button>
@@ -113,17 +116,29 @@ function DashboardTopbar({ user, onMenuToggle, onLogout, onNavChange }: TopbarPr
             className="flex items-center gap-2 pl-2 pr-3 py-1.5 rounded-lg hover:bg-muted/30 transition-colors"
           >
             <div className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-              <span className="text-xs font-700 text-white">{user.ownerName.charAt(0).toUpperCase()}</span>
+              <span className="text-xs font-700 text-white">
+                {user.ownerName.charAt(0).toUpperCase()}
+              </span>
             </div>
             <div className="hidden sm:block text-left">
-              <div className="text-xs font-600 text-foreground leading-tight">{user.ownerName.split(' ')[0]}</div>
-              <div className="text-2xs text-muted-foreground capitalize leading-tight">{user.plan}</div>
+              <div className="text-xs font-600 text-foreground leading-tight">
+                {user.ownerName.split(' ')[0]}
+              </div>
+              <div className="text-2xs text-muted-foreground capitalize leading-tight">
+                {user.plan}
+              </div>
             </div>
-            <ChevronDown size={13} className={`text-muted-foreground transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown
+              size={13}
+              className={`text-muted-foreground transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
+            />
           </button>
 
           {userMenuOpen && (
-            <div ref={menuRef} className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-border rounded-xl shadow-card overflow-hidden z-50 animate-fade-in">
+            <div
+              ref={menuRef}
+              className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-border rounded-xl shadow-card overflow-hidden z-50 animate-fade-in"
+            >
               <div className="px-4 py-3 border-b border-border">
                 <div className="text-sm font-600 text-foreground">{user.ownerName}</div>
                 <div className="text-xs text-muted-foreground truncate">{user.email}</div>
@@ -146,7 +161,10 @@ function DashboardTopbar({ user, onMenuToggle, onLogout, onNavChange }: TopbarPr
               </div>
               <div className="border-t border-border py-1">
                 <button
-                  onClick={() => { handleCloseUserMenu(); onLogout(); }}
+                  onClick={() => {
+                    handleCloseUserMenu();
+                    onLogout();
+                  }}
                   className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-danger hover:bg-danger/10 transition-colors"
                 >
                   <LogOut size={15} />

@@ -21,7 +21,9 @@ function OverviewSkeletonCard() {
 }
 
 function OverviewChartSkeleton() {
-  return <div className="glass-card rounded-2xl border border-border p-5 h-[320px] bg-white/70 animate-pulse" />;
+  return (
+    <div className="glass-card rounded-2xl border border-border p-5 h-[320px] bg-white/70 animate-pulse" />
+  );
 }
 
 function ModuleSkeleton() {
@@ -85,12 +87,9 @@ const AcademyFeesPanel = dynamic(() => import('./modules/AcademyFeesPanel'), {
   loading: () => <ModuleSkeleton />,
 });
 
-const GenericBusinessModulePanel = dynamic(
-  () => import('./modules/GenericBusinessModulePanel'),
-  {
-    loading: () => <ModuleSkeleton />,
-  },
-);
+const GenericBusinessModulePanel = dynamic(() => import('./modules/GenericBusinessModulePanel'), {
+  loading: () => <ModuleSkeleton />,
+});
 
 const GymMembersPanel = dynamic(() => import('./modules/GymMembersPanel'), {
   loading: () => <ModuleSkeleton />,
@@ -110,52 +109,308 @@ const HelpSupportPanel = dynamic(() => import('@/components/dashboard/HelpSuppor
 
 const defaultKpis: Record<BusinessType, KPICard[]> = {
   academy: [
-    { id: 'kpi-academy-1', label: 'Total Students', value: 0, change: 0, changeType: 'neutral', icon: 'Users', color: '#7C3AED' },
-    { id: 'kpi-academy-2', label: 'Active Courses', value: 0, change: 0, changeType: 'neutral', icon: 'BookOpen', color: '#2563EB' },
-    { id: 'kpi-academy-3', label: 'Fees Collected', value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#10B981' },
-    { id: 'kpi-academy-4', label: 'Pending Fees', value: '₹0', change: 0, changeType: 'neutral', icon: 'AlertCircle', color: '#EF4444' },
+    {
+      id: 'kpi-academy-1',
+      label: 'Total Students',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Users',
+      color: '#7C3AED',
+    },
+    {
+      id: 'kpi-academy-2',
+      label: 'Active Courses',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'BookOpen',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-academy-3',
+      label: 'Fees Collected',
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#10B981',
+    },
+    {
+      id: 'kpi-academy-4',
+      label: 'Pending Fees',
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'AlertCircle',
+      color: '#EF4444',
+    },
   ],
   gym: [
-    { id: 'kpi-gym-1', label: 'Active Members', value: 0, change: 0, changeType: 'neutral', icon: 'Users', color: '#EF4444' },
-    { id: 'kpi-gym-2', label: 'Classes Today', value: 0, change: 0, changeType: 'neutral', icon: 'Dumbbell', color: '#2563EB' },
-    { id: 'kpi-gym-3', label: 'Monthly Revenue', value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#10B981' },
-    { id: 'kpi-gym-4', label: 'Expiring This Week', value: 0, change: 0, changeType: 'neutral', icon: 'AlertCircle', color: '#F59E0B' },
+    {
+      id: 'kpi-gym-1',
+      label: 'Active Members',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Users',
+      color: '#EF4444',
+    },
+    {
+      id: 'kpi-gym-2',
+      label: 'Classes Today',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Dumbbell',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-gym-3',
+      label: 'Monthly Revenue',
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#10B981',
+    },
+    {
+      id: 'kpi-gym-4',
+      label: 'Expiring This Week',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'AlertCircle',
+      color: '#F59E0B',
+    },
   ],
   hotel: [
-    { id: 'kpi-hotel-1', label: 'Total Rooms', value: 0, change: 0, changeType: 'neutral', icon: 'DoorOpen', color: '#0891B2' },
-    { id: 'kpi-hotel-2', label: 'Available Rooms', value: 0, change: 0, changeType: 'neutral', icon: 'BedSingle', color: '#F59E0B' },
-    { id: 'kpi-hotel-3', label: 'Occupied Rooms', value: 0, change: 0, changeType: 'neutral', icon: 'BedDouble', color: '#2563EB' },
-    { id: 'kpi-hotel-4', label: "Today's Revenue", value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#10B981' },
+    {
+      id: 'kpi-hotel-1',
+      label: 'Total Rooms',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'DoorOpen',
+      color: '#0891B2',
+    },
+    {
+      id: 'kpi-hotel-2',
+      label: 'Available Rooms',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'BedSingle',
+      color: '#F59E0B',
+    },
+    {
+      id: 'kpi-hotel-3',
+      label: 'Occupied Rooms',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'BedDouble',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-hotel-4',
+      label: "Today's Revenue",
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#10B981',
+    },
   ],
   restaurant: [
-    { id: 'kpi-rest-1', label: "Today's Orders", value: 0, change: 0, changeType: 'neutral', icon: 'ShoppingBag', color: '#EA580C' },
-    { id: 'kpi-rest-2', label: 'Active Tables', value: 0, change: 0, changeType: 'neutral', icon: 'LayoutGrid', color: '#2563EB' },
-    { id: 'kpi-rest-3', label: 'Total Revenue', value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#10B981' },
-    { id: 'kpi-rest-4', label: 'Pending Orders', value: 0, change: 0, changeType: 'neutral', icon: 'Clock', color: '#EF4444' },
+    {
+      id: 'kpi-rest-1',
+      label: "Today's Orders",
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'ShoppingBag',
+      color: '#EA580C',
+    },
+    {
+      id: 'kpi-rest-2',
+      label: 'Active Tables',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'LayoutGrid',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-rest-3',
+      label: 'Total Revenue',
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#10B981',
+    },
+    {
+      id: 'kpi-rest-4',
+      label: 'Pending Orders',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Clock',
+      color: '#EF4444',
+    },
   ],
   clinic: [
-    { id: 'kpi-clinic-1', label: "Today's Appointments", value: 0, change: 0, changeType: 'neutral', icon: 'Calendar', color: '#10B981' },
-    { id: 'kpi-clinic-2', label: 'Total Patients', value: 0, change: 0, changeType: 'neutral', icon: 'Users', color: '#2563EB' },
-    { id: 'kpi-clinic-3', label: 'Total Revenue', value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#7C3AED' },
-    { id: 'kpi-clinic-4', label: 'Pending Follow-ups', value: 0, change: 0, changeType: 'neutral', icon: 'AlertCircle', color: '#EF4444' },
+    {
+      id: 'kpi-clinic-1',
+      label: "Today's Appointments",
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Calendar',
+      color: '#10B981',
+    },
+    {
+      id: 'kpi-clinic-2',
+      label: 'Total Patients',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Users',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-clinic-3',
+      label: 'Total Revenue',
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#7C3AED',
+    },
+    {
+      id: 'kpi-clinic-4',
+      label: 'Pending Follow-ups',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'AlertCircle',
+      color: '#EF4444',
+    },
   ],
   'service-center': [
-    { id: 'kpi-svc-1', label: 'Open Tickets', value: 0, change: 0, changeType: 'neutral', icon: 'Ticket', color: '#F59E0B' },
-    { id: 'kpi-svc-2', label: 'Assigned Technicians', value: 0, change: 0, changeType: 'neutral', icon: 'Wrench', color: '#2563EB' },
-    { id: 'kpi-svc-3', label: 'Completed Services', value: 0, change: 0, changeType: 'neutral', icon: 'CheckCircle', color: '#10B981' },
-    { id: 'kpi-svc-4', label: 'Total Revenue', value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#7C3AED' },
+    {
+      id: 'kpi-svc-1',
+      label: 'Open Tickets',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Ticket',
+      color: '#F59E0B',
+    },
+    {
+      id: 'kpi-svc-2',
+      label: 'Assigned Technicians',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Wrench',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-svc-3',
+      label: 'Completed Services',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'CheckCircle',
+      color: '#10B981',
+    },
+    {
+      id: 'kpi-svc-4',
+      label: 'Total Revenue',
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#7C3AED',
+    },
   ],
   salon: [
-    { id: 'kpi-salon-1', label: "Today's Appointments", value: 0, change: 0, changeType: 'neutral', icon: 'Calendar', color: '#EC4899' },
-    { id: 'kpi-salon-2', label: 'Active Stylists', value: 0, change: 0, changeType: 'neutral', icon: 'UserCheck', color: '#2563EB' },
-    { id: 'kpi-salon-3', label: "Today's Revenue", value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#10B981' },
-    { id: 'kpi-salon-4', label: 'Pending Bookings', value: 0, change: 0, changeType: 'neutral', icon: 'Clock', color: '#EF4444' },
+    {
+      id: 'kpi-salon-1',
+      label: "Today's Appointments",
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Calendar',
+      color: '#EC4899',
+    },
+    {
+      id: 'kpi-salon-2',
+      label: 'Active Stylists',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'UserCheck',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-salon-3',
+      label: "Today's Revenue",
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#10B981',
+    },
+    {
+      id: 'kpi-salon-4',
+      label: 'Pending Bookings',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Clock',
+      color: '#EF4444',
+    },
   ],
   custom: [
-    { id: 'kpi-custom-1', label: 'Total Customers', value: 0, change: 0, changeType: 'neutral', icon: 'Users', color: '#38BDF8' },
-    { id: 'kpi-custom-2', label: 'Active Staff', value: 0, change: 0, changeType: 'neutral', icon: 'UserCheck', color: '#2563EB' },
-    { id: 'kpi-custom-3', label: 'Total Revenue', value: '₹0', change: 0, changeType: 'neutral', icon: 'IndianRupee', color: '#10B981' },
-    { id: 'kpi-custom-4', label: 'Pending Bills', value: 0, change: 0, changeType: 'neutral', icon: 'FileWarning', color: '#EF4444' },
+    {
+      id: 'kpi-custom-1',
+      label: 'Total Customers',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'Users',
+      color: '#38BDF8',
+    },
+    {
+      id: 'kpi-custom-2',
+      label: 'Active Staff',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'UserCheck',
+      color: '#2563EB',
+    },
+    {
+      id: 'kpi-custom-3',
+      label: 'Total Revenue',
+      value: '₹0',
+      change: 0,
+      changeType: 'neutral',
+      icon: 'IndianRupee',
+      color: '#10B981',
+    },
+    {
+      id: 'kpi-custom-4',
+      label: 'Pending Bills',
+      value: 0,
+      change: 0,
+      changeType: 'neutral',
+      icon: 'FileWarning',
+      color: '#EF4444',
+    },
   ],
 };
 
@@ -333,7 +588,10 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
       }
     }
 
-    if (user.businessType === 'gym' && ['nav-members', 'nav-memberships', 'nav-billing'].includes(activeNav)) {
+    if (
+      user.businessType === 'gym' &&
+      ['nav-members', 'nav-memberships', 'nav-billing'].includes(activeNav)
+    ) {
       return 'gym-members';
     }
 
@@ -382,9 +640,9 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
       new Map(
         getSidebarNavItems(user.businessType)
           .flatMap((group) => group.items)
-          .map((item) => [item.id, item.label]),
+          .map((item) => [item.id, item.label])
       ),
-    [user.businessType],
+    [user.businessType]
   );
 
   if (selectedView === 'academy-students') {

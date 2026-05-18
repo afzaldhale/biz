@@ -117,11 +117,17 @@ export default function SettingsPanel({ businessId }: SettingsPanelProps) {
           </p>
         </div>
         <div className="text-xs text-muted-foreground">
-          Current plan: <span className="font-600 text-foreground capitalize">{profile?.selectedPlan ?? 'custom'}</span>
+          Current plan:{' '}
+          <span className="font-600 text-foreground capitalize">
+            {profile?.selectedPlan ?? 'custom'}
+          </span>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="glass-card rounded-2xl border border-border/60 p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="glass-card rounded-2xl border border-border/60 p-6 space-y-6"
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm text-foreground">
             <span>Invoice prefix</span>
@@ -171,9 +177,14 @@ export default function SettingsPanel({ businessId }: SettingsPanelProps) {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-muted-foreground">
-            Last updated: {profile?.updatedAt ? new Date(profile.updatedAt).toLocaleString('en-IN') : 'Unknown'}
+            Last updated:{' '}
+            {profile?.updatedAt ? new Date(profile.updatedAt).toLocaleString('en-IN') : 'Unknown'}
           </div>
-          <button type="submit" className="btn-primary px-5 py-3 rounded-xl disabled:opacity-60" disabled={saving}>
+          <button
+            type="submit"
+            className="btn-primary px-5 py-3 rounded-xl disabled:opacity-60"
+            disabled={saving}
+          >
             {saving ? 'Saving…' : 'Save settings'}
           </button>
         </div>

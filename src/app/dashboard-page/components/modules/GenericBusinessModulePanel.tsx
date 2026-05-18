@@ -2,15 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState, useDeferredValue } from 'react';
 import { toast } from 'sonner';
-import {
-  Plus,
-  Search,
-  Pencil,
-  Trash2,
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ArrowLeft, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AuthUser, GenericBusinessRecord } from '@/types';
 import {
   addBusinessRecord,
@@ -90,7 +82,8 @@ export default function GenericBusinessModulePanel({
   const [currentPage, setCurrentPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formValues, setFormValues] = useState<Omit<GenericBusinessRecord, 'id'>>(defaultFormValues);
+  const [formValues, setFormValues] =
+    useState<Omit<GenericBusinessRecord, 'id'>>(defaultFormValues);
   const [submitting, setSubmitting] = useState(false);
 
   const collectionName = titleToCollection(activeNav);
@@ -137,18 +130,19 @@ export default function GenericBusinessModulePanel({
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
-        .includes(query),
+        .includes(query)
     );
   }, [deferredSearchTerm, records]);
 
   const totalAmount = useMemo(
     () => records.reduce((sum, record) => sum + (record.amount ?? 0), 0),
-    [records],
+    [records]
   );
 
   const dueRecords = useMemo(
-    () => records.filter((record) => record.status === 'pending' || record.status === 'overdue').length,
-    [records],
+    () =>
+      records.filter((record) => record.status === 'pending' || record.status === 'overdue').length,
+    [records]
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / rowsPerPage));
@@ -200,7 +194,7 @@ export default function GenericBusinessModulePanel({
         [name]: name === 'amount' ? Number(value) : value,
       }));
     },
-    [],
+    []
   );
 
   const handleSubmit = useCallback(
@@ -221,7 +215,9 @@ export default function GenericBusinessModulePanel({
         if (editingId) {
           await updateBusinessRecord(user.id, collectionName, editingId, nextRecord);
           setRecords((current) =>
-            current.map((record) => (record.id === editingId ? { ...record, ...nextRecord } : record)),
+            current.map((record) =>
+              record.id === editingId ? { ...record, ...nextRecord } : record
+            )
           );
           toast.success(`${moduleTitle} updated successfully.`);
         } else {
@@ -236,7 +232,7 @@ export default function GenericBusinessModulePanel({
         setSubmitting(false);
       }
     },
-    [closeForm, collectionName, editingId, formValues, moduleTitle, user.id],
+    [closeForm, collectionName, editingId, formValues, moduleTitle, user.id]
   );
 
   const handleDelete = useCallback(
@@ -252,7 +248,7 @@ export default function GenericBusinessModulePanel({
         toast.error('Unable to delete the record. Please try again later.');
       }
     },
-    [collectionName, user.id],
+    [collectionName, user.id]
   );
 
   return (
@@ -262,7 +258,8 @@ export default function GenericBusinessModulePanel({
           <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">{moduleTitle}</p>
           <h1 className="text-2xl font-700 text-foreground mt-1">{moduleTitle}</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage {moduleTitle.toLowerCase()} records for {user.businessName} with search, edit, and print-ready actions.
+            Manage {moduleTitle.toLowerCase()} records for {user.businessName} with search, edit,
+            and print-ready actions.
           </p>
         </div>
 
@@ -283,16 +280,22 @@ export default function GenericBusinessModulePanel({
         </div>
         {hasAmount && (
           <div className="glass-card rounded-2xl border border-border p-5">
-            <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Total Amount</p>
+            <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+              Total Amount
+            </p>
             <p className="text-2xl font-700 text-foreground mt-2">{formatCurrency(totalAmount)}</p>
           </div>
         )}
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Open / Due</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Open / Due
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{dueRecords}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Workspace</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Workspace
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{user.businessName}</p>
         </div>
       </div>
@@ -300,7 +303,10 @@ export default function GenericBusinessModulePanel({
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               value={searchInput}
@@ -330,7 +336,9 @@ export default function GenericBusinessModulePanel({
         ) : filteredRecords.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <p className="text-sm font-600 text-foreground">No records found.</p>
-            <p className="text-xs text-muted-foreground mt-1">Create your first record to get started.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Create your first record to get started.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -351,14 +359,18 @@ export default function GenericBusinessModulePanel({
                     <td className="px-5 py-4 font-600 text-foreground">{record.title}</td>
                     <td className="px-5 py-4 text-muted-foreground">{record.reference || '—'}</td>
                     {hasAmount && (
-                      <td className="px-5 py-4 text-muted-foreground">{formatCurrency(record.amount ?? 0)}</td>
+                      <td className="px-5 py-4 text-muted-foreground">
+                        {formatCurrency(record.amount ?? 0)}
+                      </td>
                     )}
                     {hasDate && (
                       <td className="px-5 py-4 text-muted-foreground">
                         {record.date ? new Date(record.date).toLocaleDateString('en-IN') : '—'}
                       </td>
                     )}
-                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">{record.status ?? 'pending'}</td>
+                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">
+                      {record.status ?? 'pending'}
+                    </td>
                     <td className="px-5 py-4 space-x-2">
                       <button
                         type="button"
@@ -385,7 +397,9 @@ export default function GenericBusinessModulePanel({
         {!loading && filteredRecords.length > 0 && (
           <div className="px-5 py-4 border-t border-border bg-white/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-xs text-muted-foreground">
-              Showing {(currentPage - 1) * rowsPerPage + 1}-{Math.min(currentPage * rowsPerPage, filteredRecords.length)} of {filteredRecords.length}
+              Showing {(currentPage - 1) * rowsPerPage + 1}-
+              {Math.min(currentPage * rowsPerPage, filteredRecords.length)} of{' '}
+              {filteredRecords.length}
             </p>
             <div className="flex items-center gap-2 self-end md:self-auto">
               <button
@@ -396,7 +410,9 @@ export default function GenericBusinessModulePanel({
               >
                 <ChevronLeft size={14} /> Prev
               </button>
-              <span className="text-xs font-600 text-foreground px-3 py-2 rounded-lg bg-muted">{currentPage} / {totalPages}</span>
+              <span className="text-xs font-600 text-foreground px-3 py-2 rounded-lg bg-muted">
+                {currentPage} / {totalPages}
+              </span>
               <button
                 type="button"
                 onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
@@ -415,17 +431,27 @@ export default function GenericBusinessModulePanel({
           <div className="mx-auto max-w-3xl rounded-3xl bg-white p-6 md:p-8 shadow-xl">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <p className="text-sm text-muted-foreground">{editingId ? 'Edit' : 'New'} {moduleTitle.replace(/s$/, '')}</p>
-                <h2 className="text-2xl font-700 text-foreground mt-1">{editingId ? 'Update' : 'Create'} record</h2>
+                <p className="text-sm text-muted-foreground">
+                  {editingId ? 'Edit' : 'New'} {moduleTitle.replace(/s$/, '')}
+                </p>
+                <h2 className="text-2xl font-700 text-foreground mt-1">
+                  {editingId ? 'Update' : 'Create'} record
+                </h2>
               </div>
-              <button type="button" onClick={closeForm} className="text-muted-foreground hover:text-foreground">
+              <button
+                type="button"
+                onClick={closeForm}
+                className="text-muted-foreground hover:text-foreground"
+              >
                 <ArrowLeft size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">{primaryFieldLabel}</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  {primaryFieldLabel}
+                </label>
                 <input
                   required
                   name="title"
@@ -436,7 +462,9 @@ export default function GenericBusinessModulePanel({
               </div>
 
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">{secondaryFieldLabel}</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  {secondaryFieldLabel}
+                </label>
                 <input
                   name="reference"
                   value={formValues.reference}
@@ -503,10 +531,18 @@ export default function GenericBusinessModulePanel({
               </div>
 
               <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={closeForm} className="btn-outline px-5 py-3 rounded-xl text-sm">
+                <button
+                  type="button"
+                  onClick={closeForm}
+                  className="btn-outline px-5 py-3 rounded-xl text-sm"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={submitting} className="btn-primary px-5 py-3 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="btn-primary px-5 py-3 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed"
+                >
                   {submitting ? 'Saving...' : editingId ? 'Update Record' : 'Create Record'}
                 </button>
               </div>

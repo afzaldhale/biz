@@ -37,8 +37,13 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
       return (
         <div className="min-h-screen flex items-center justify-center px-4 py-10">
           <div className="max-w-2xl rounded-3xl border border-danger/20 bg-white p-8 shadow-xl">
-            <h2 className="text-2xl font-semibold text-foreground mb-4">Oops, something went wrong.</h2>
-            <p className="text-sm text-slate-600 mb-6">We were unable to load this dashboard section. Please try refreshing the page or contact support if the issue persists.</p>
+            <h2 className="text-2xl font-semibold text-foreground mb-4">
+              Oops, something went wrong.
+            </h2>
+            <p className="text-sm text-slate-600 mb-6">
+              We were unable to load this dashboard section. Please try refreshing the page or
+              contact support if the issue persists.
+            </p>
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"

@@ -4,7 +4,8 @@ export const industries: Industry[] = [
   {
     id: 'academy',
     name: 'Academy / Coaching',
-    description: 'Manage students, courses, fees, attendance, and certificates for your coaching institute.',
+    description:
+      'Manage students, courses, fees, attendance, and certificates for your coaching institute.',
     icon: 'GraduationCap',
     color: '#7C3AED',
     bgColor: 'rgba(124, 58, 237, 0.12)',
@@ -40,7 +41,8 @@ export const industries: Industry[] = [
   {
     id: 'service-center',
     name: 'Service Center',
-    description: 'Manage repair tickets, assign technicians, track job progress, and invoice customers.',
+    description:
+      'Manage repair tickets, assign technicians, track job progress, and invoice customers.',
     icon: 'Wrench',
     color: '#F59E0B',
     bgColor: 'rgba(245, 158, 11, 0.12)',
@@ -58,7 +60,8 @@ export const industries: Industry[] = [
   {
     id: 'salon',
     name: 'Salon / Spa',
-    description: 'Book appointments, manage stylists, track services, and handle payments seamlessly.',
+    description:
+      'Book appointments, manage stylists, track services, and handle payments seamlessly.',
     icon: 'Scissors',
     color: '#EC4899',
     bgColor: 'rgba(236, 72, 153, 0.12)',
@@ -67,7 +70,8 @@ export const industries: Industry[] = [
   {
     id: 'custom',
     name: 'Custom Business',
-    description: 'A flexible dashboard for any business type — configure modules to fit your workflow.',
+    description:
+      'A flexible dashboard for any business type — configure modules to fit your workflow.',
     icon: 'LayoutGrid',
     color: '#38BDF8',
     bgColor: 'rgba(56, 189, 248, 0.12)',

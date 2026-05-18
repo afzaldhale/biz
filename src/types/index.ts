@@ -1,5 +1,12 @@
 export type BusinessType =
-  | 'academy' |'hotel' |'restaurant' |'clinic' |'service-center' |'gym' |'salon' |'custom';
+  | 'academy'
+  | 'hotel'
+  | 'restaurant'
+  | 'clinic'
+  | 'service-center'
+  | 'gym'
+  | 'salon'
+  | 'custom';
 
 export type PlanId = 'basic' | 'medium' | 'advance' | 'premium' | 'pro' | 'custom';
 
@@ -59,12 +66,20 @@ export interface BusinessProfile {
 
 export interface UserProfile {
   uid: string;
-  businessId: string;
+  businessId?: string;
   ownerName: string;
   email: string;
   phone: string;
   role: 'owner';
   emailVerified: boolean;
+  onboardingCompleted?: boolean;
+  businessName?: string;
+  businessType?: BusinessType;
+  recordsLimit?: number;
+  pricePerRecord?: number;
+  monthlyPrice?: number;
+  annualPrice?: number;
+  billingModel?: 'per_record' | string;
   createdAt: string;
   updatedAt: string;
 }

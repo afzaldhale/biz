@@ -1,31 +1,73 @@
-import React, { useState, useEffect } from "react";
-import { useBusiness } from "../../context/BusinessContext";
-import { getStudents, addStudent, updateStudent, deleteStudent } from "../../services/studentService";
+import React, { useState, useEffect } from 'react';
+import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import { useBusiness } from '../../context/BusinessContext';
+import {
+  getStudents,
+  getStudentsCount,
+  addStudent,
+  updateStudent,
+  deleteStudent,
+} from '../../services/studentService';
 
 const AcademyDashboard: React.FC = () => {
   const { business } = useBusiness();
   const [students, setStudents] = useState<any[]>([]);
+  const [totalStudents, setTotalStudents] = useState<number | null>(null);
+  const [lastStudentDoc, setLastStudentDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(
+    null
+  );
+  const [hasMoreStudents, setHasMoreStudents] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
+  const pageSize = 25;
 
   useEffect(() => {
-    if (typeof business?.businessId === "string") {
+    if (typeof business?.businessId === 'string') {
       fetchStudents();
     }
     // eslint-disable-next-line
   }, [business]);
 
   const fetchStudents = async () => {
-    if (typeof business?.businessId !== "string") {
+    if (typeof business?.businessId !== 'string') {
       return;
     }
 
     setLoading(true);
     try {
-      const data = await getStudents(business.businessId);
-      setStudents(data);
+      const [paginatedStudents, studentCount] = await Promise.all([
+        getStudents(business.businessId, { pageSize }),
+        getStudentsCount(business.businessId),
+      ]);
+
+      setStudents(paginatedStudents.data);
+      setLastStudentDoc(paginatedStudents.lastDoc);
+      setHasMoreStudents(paginatedStudents.hasMore);
+      setTotalStudents(studentCount);
     } catch (err: any) {
-      setError(err.message || "Failed to fetch students");
+      setError(err.message || 'Failed to fetch students');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMoreStudents = async () => {
+    if (!business?.businessId || !hasMoreStudents || !lastStudentDoc) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const nextPage = await getStudents(business.businessId, {
+        pageSize,
+        lastDoc: lastStudentDoc,
+      });
+
+      setStudents((current) => [...current, ...nextPage.data]);
+      setLastStudentDoc(nextPage.lastDoc);
+      setHasMoreStudents(nextPage.hasMore);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load more students');
     } finally {
       setLoading(false);
     }
@@ -42,7 +84,7 @@ const AcademyDashboard: React.FC = () => {
         <div className="text-red-500">{error}</div>
       ) : (
         <div>
-          <div className="mb-4">Total Students: {students.length}</div>
+          <div className="mb-4">Total Students: {totalStudents ?? students.length}</div>
           {/* Table of students */}
           <table className="min-w-full bg-white border">
             <thead>
@@ -70,6 +112,17 @@ const AcademyDashboard: React.FC = () => {
               ))}
             </tbody>
           </table>
+          {hasMoreStudents && !loading && (
+            <div className="mt-4 flex justify-end">
+              <button
+                type="button"
+                onClick={loadMoreStudents}
+                className="btn-outline px-4 py-2 rounded-lg text-sm"
+              >
+                Load more students
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>

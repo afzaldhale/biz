@@ -3,8 +3,15 @@ import {
   collection,
   deleteDoc,
   doc,
+  DocumentData,
   getDoc,
   getDocs,
+  limit,
+  orderBy,
+  query,
+  QueryConstraint,
+  QueryDocumentSnapshot,
+  startAfter,
   updateDoc,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
@@ -14,7 +21,9 @@ import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/b
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
-    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+    throw new Error(
+      'Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.'
+    );
   }
 }
 
@@ -41,7 +50,7 @@ export async function addGymMember(businessId: string, member: GymMemberRecord) 
 export async function updateGymMember(
   businessId: string,
   memberId: string,
-  member: GymMemberRecord,
+  member: GymMemberRecord
 ) {
   await updateDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId), {
     ...member,
@@ -54,8 +63,69 @@ export async function deleteGymMember(businessId: string, memberId: string) {
   await decrementBusinessUsage(businessId);
 }
 
-export async function getGymMembers(businessId: string): Promise<GymMemberRecord[]> {
-  const snapshot = await getDocs(collection(getFirestoreDb(), `businesses/${businessId}/gymMembers`));
+export interface PaginationOptions {
+  pageSize?: number;
+  lastDoc?: QueryDocumentSnapshot<DocumentData> | null;
+}
+
+export interface PaginatedResult<T> {
+  data: T[];
+  lastDoc: QueryDocumentSnapshot<DocumentData> | null;
+  hasMore: boolean;
+}
+
+function getGymMemberQuery(
+  businessId: string,
+  pageSize: number,
+  lastDoc?: QueryDocumentSnapshot<DocumentData>
+) {
+  const queryConstraints: QueryConstraint[] = [
+    orderBy('createdAt', 'desc'),
+    orderBy('__name__', 'desc'),
+    limit(pageSize),
+  ];
+
+  if (lastDoc) {
+    queryConstraints.push(startAfter(lastDoc));
+  }
+
+  return query(
+    collection(getFirestoreDb(), `businesses/${businessId}/gymMembers`),
+    ...queryConstraints
+  );
+}
+
+export async function getGymMembers(businessId: string): Promise<GymMemberRecord[]>;
+export async function getGymMembers(
+  businessId: string,
+  options: PaginationOptions
+): Promise<PaginatedResult<GymMemberRecord>>;
+export async function getGymMembers(
+  businessId: string,
+  options?: PaginationOptions
+): Promise<GymMemberRecord[] | PaginatedResult<GymMemberRecord>> {
+  if (options) {
+    const pageSize = options.pageSize ?? 25;
+    const membersQuery = getGymMemberQuery(businessId, pageSize, options.lastDoc ?? undefined);
+    const snapshot = await getDocs(membersQuery);
+    const data = snapshot.docs.map((memberDoc) => ({
+      id: memberDoc.id,
+      ...(memberDoc.data() as Omit<GymMemberRecord, 'id'>),
+    }));
+    return {
+      data,
+      lastDoc: snapshot.docs.at(-1) ?? null,
+      hasMore: data.length === pageSize,
+    };
+  }
+
+  const snapshot = await getDocs(
+    query(
+      collection(getFirestoreDb(), `businesses/${businessId}/gymMembers`),
+      orderBy('createdAt', 'desc'),
+      orderBy('__name__', 'desc')
+    )
+  );
   return snapshot.docs.map((memberDoc) => ({
     id: memberDoc.id,
     ...(memberDoc.data() as Omit<GymMemberRecord, 'id'>),
@@ -63,8 +133,13 @@ export async function getGymMembers(businessId: string): Promise<GymMemberRecord
 }
 
 export async function getGymMemberById(businessId: string, memberId: string) {
-  const memberDoc = await getDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId));
+  const memberDoc = await getDoc(
+    doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId)
+  );
   return memberDoc.exists()
-    ? ({ id: memberDoc.id, ...(memberDoc.data() as Omit<GymMemberRecord, 'id'>) } as GymMemberRecord)
+    ? ({
+        id: memberDoc.id,
+        ...(memberDoc.data() as Omit<GymMemberRecord, 'id'>),
+      } as GymMemberRecord)
     : null;
 }

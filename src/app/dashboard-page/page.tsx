@@ -1,12 +1,12 @@
 import React from 'react';
-import DashboardShell from '@/app/dashboard-page/components/DashboardShell';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import DashboardShellClient from '@/app/dashboard-page/components/DashboardShellClient';
 import { DashboardShellSkeleton } from '@/app/dashboard-page/components/DashboardShell';
 
 export default function DashboardPage() {
   return (
     <ProtectedRoute fallback={<DashboardShellSkeleton />}>
-      <DashboardShell />
+      <DashboardShellClient />
     </ProtectedRoute>
   );
 }

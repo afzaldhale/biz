@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
 import { onIdTokenChanged } from 'firebase/auth';
@@ -77,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       refreshAuthState,
       isEmailVerified: Boolean(user?.emailVerified),
     }),
-    [authLoading, isRefreshing, user, refreshUser, refreshAuthState],
+    [authLoading, isRefreshing, user, refreshUser, refreshAuthState]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

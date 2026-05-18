@@ -12,8 +12,9 @@ interface ProtectedRouteProps {
 
 export default function ProtectedRoute({ children, fallback }: ProtectedRouteProps) {
   const router = useRouter();
-  const { user, authLoading, refreshUser } = useAuth();
-  const { business, userProfile, businessLoading, hasBusinessAccess, refreshBusiness } = useBusiness();
+  const { user, authLoading } = useAuth();
+  const { business, userProfile, businessLoading, hasBusinessAccess, refreshBusiness } =
+    useBusiness();
   const [routeChecking, setRouteChecking] = React.useState(true);
 
   useEffect(() => {
@@ -31,11 +32,7 @@ export default function ProtectedRoute({ children, fallback }: ProtectedRoutePro
           return;
         }
 
-        const refreshedUser = await refreshUser();
-        if (!refreshedUser) {
-          return;
-        }
-
+        // Refresh business data once when the user is present to ensure cached profile is loaded.
         await refreshBusiness();
       } finally {
         if (active) {
@@ -49,7 +46,7 @@ export default function ProtectedRoute({ children, fallback }: ProtectedRoutePro
     return () => {
       active = false;
     };
-  }, [authLoading, refreshUser, refreshBusiness, user]);
+  }, [authLoading, refreshBusiness, user]);
 
   useEffect(() => {
     if (authLoading || businessLoading || routeChecking) {
@@ -63,6 +60,11 @@ export default function ProtectedRoute({ children, fallback }: ProtectedRoutePro
 
     if (!user.emailVerified) {
       router.replace('/verify-email');
+      return;
+    }
+
+    if (userProfile?.onboardingCompleted === false) {
+      router.replace('/business-setup');
       return;
     }
 

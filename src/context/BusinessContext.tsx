@@ -1,6 +1,14 @@
-"use client";
+'use client';
 
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from 'react';
 import { BusinessProfile, UserProfile } from '@/types';
 import { getBusinessById, getUserProfile } from '@/services/businessService';
 import { useAuth } from './AuthContext';
@@ -29,39 +37,44 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   const [businessLoading, setBusinessLoading] = useState(true);
   const [businessError, setBusinessError] = useState<string | null>(null);
 
-  const refreshBusiness = useCallback(async (firebaseUser?: SessionUser | null) => {
-    const activeUser = firebaseUser ?? user;
+  const refreshBusiness = useCallback(
+    async (firebaseUser?: SessionUser | null) => {
+      const activeUser = firebaseUser ?? user;
 
-    setBusinessError(null);
-    setBusinessLoading(true);
+      setBusinessError(null);
+      setBusinessLoading(true);
 
-    if (!activeUser) {
-      setBusiness(null);
-      setUserProfile(null);
-      setBusinessLoading(false);
-      return;
-    }
-
-    try {
-      const profile = await getUserProfile(activeUser.uid);
-
-      if (!profile?.businessId) {
-        setUserProfile(profile);
+      if (!activeUser) {
         setBusiness(null);
+        setUserProfile(null);
+        setBusinessLoading(false);
         return;
       }
 
-      const businessProfile = await getBusinessById(profile.businessId);
-      setUserProfile(profile);
-      setBusiness(businessProfile);
-    } catch (error) {
-      setUserProfile(null);
-      setBusiness(null);
-      setBusinessError(error instanceof Error ? error.message : 'Unable to load business profile.');
-    } finally {
-      setBusinessLoading(false);
-    }
-  }, [user]);
+      try {
+        const profile = await getUserProfile(activeUser.uid);
+
+        if (!profile?.businessId) {
+          setUserProfile(profile);
+          setBusiness(null);
+          return;
+        }
+
+        const businessProfile = await getBusinessById(profile.businessId);
+        setUserProfile(profile);
+        setBusiness(businessProfile);
+      } catch (error) {
+        setUserProfile(null);
+        setBusiness(null);
+        setBusinessError(
+          error instanceof Error ? error.message : 'Unable to load business profile.'
+        );
+      } finally {
+        setBusinessLoading(false);
+      }
+    },
+    [user]
+  );
 
   useEffect(() => {
     void refreshBusiness();
@@ -69,10 +82,10 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
 
   const hasBusinessAccess = Boolean(
     user &&
-      user.emailVerified &&
-      userProfile?.businessId &&
-      business &&
-      business.status === 'active',
+    user.emailVerified &&
+    userProfile?.businessId &&
+    business &&
+    business.status === 'active'
   );
 
   const businessReady = !businessLoading && Boolean(business);
@@ -91,7 +104,15 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       hasBusinessAccess,
       refreshBusiness,
     }),
-    [business, businessError, businessLoading, businessReady, hasBusinessAccess, refreshBusiness, userProfile],
+    [
+      business,
+      businessError,
+      businessLoading,
+      businessReady,
+      hasBusinessAccess,
+      refreshBusiness,
+      userProfile,
+    ]
   );
 
   return <BusinessContext.Provider value={contextValue}>{children}</BusinessContext.Provider>;

@@ -72,10 +72,7 @@ export default function ProfilePanel({ businessId }: ProfilePanelProps) {
     };
   }, [businessId]);
 
-  const updatedAt = useMemo(
-    () => profile?.updatedAt ?? '',
-    [profile],
-  );
+  const updatedAt = useMemo(() => profile?.updatedAt ?? '', [profile]);
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
@@ -145,7 +142,10 @@ export default function ProfilePanel({ businessId }: ProfilePanelProps) {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="glass-card rounded-2xl border border-border/60 p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="glass-card rounded-2xl border border-border/60 p-6 space-y-6"
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm text-foreground">
             <span>Owner name</span>
@@ -199,7 +199,10 @@ export default function ProfilePanel({ businessId }: ProfilePanelProps) {
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-sm text-muted-foreground">
-            Business type: <span className="font-600 text-foreground capitalize">{profile?.businessType ?? 'custom'}</span>
+            Business type:{' '}
+            <span className="font-600 text-foreground capitalize">
+              {profile?.businessType ?? 'custom'}
+            </span>
           </div>
           <button
             type="submit"

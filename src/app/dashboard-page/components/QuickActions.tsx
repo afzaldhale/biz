@@ -3,19 +3,54 @@
 import React, { memo, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
-  UserPlus, IndianRupee, Printer, BookOpen, LogIn, CalendarCheck,
-  LogOut, Receipt, Plus, LayoutGrid, UtensilsCrossed, Calendar,
-  FileText, Ticket, Wrench, RefreshCw, Package, Sparkles, UserCheck, BarChart2
+  UserPlus,
+  IndianRupee,
+  Printer,
+  BookOpen,
+  LogIn,
+  CalendarCheck,
+  LogOut,
+  Receipt,
+  Plus,
+  LayoutGrid,
+  UtensilsCrossed,
+  Calendar,
+  FileText,
+  Ticket,
+  Wrench,
+  RefreshCw,
+  Package,
+  Sparkles,
+  UserCheck,
+  BarChart2,
 } from 'lucide-react';
 
 const iconMap: Record<
   string,
   React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>
 > = {
-  UserPlus, IndianRupee, Printer, BookOpen: BookOpen, LogIn, CalendarCheck,
-  LogOut, Receipt, Plus, LayoutGrid, UtensilsCrossed, Calendar,
-  FileText, Ticket, Wrench, RefreshCw, Package, Sparkles, UserCheck, BarChart2,
-  BookPlus: BookOpen, CalendarPlus: Calendar,
+  UserPlus,
+  IndianRupee,
+  Printer,
+  BookOpen: BookOpen,
+  LogIn,
+  CalendarCheck,
+  LogOut,
+  Receipt,
+  Plus,
+  LayoutGrid,
+  UtensilsCrossed,
+  Calendar,
+  FileText,
+  Ticket,
+  Wrench,
+  RefreshCw,
+  Package,
+  Sparkles,
+  UserCheck,
+  BarChart2,
+  BookPlus: BookOpen,
+  CalendarPlus: Calendar,
 };
 
 interface QuickActionsProps {

@@ -6,10 +6,24 @@ import {
   setDoc,
   updateDoc,
   writeBatch,
-  increment,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { BusinessProfile, BusinessType, PlanId, UserProfile } from '@/types';
+import { INTERNAL_PRICE_PER_RECORD, MIN_RECORDS } from '@/utils/pricing';
+
+interface CreateUserProfilePayload {
+  uid: string;
+  ownerName: string;
+  email: string;
+  phone: string;
+}
+
+interface SetupBusinessForUserPayload {
+  uid: string;
+  businessName: string;
+  businessType: BusinessType;
+  recordsLimit: number;
+}
 
 interface CreateBusinessForUserPayload {
   uid: string;
@@ -24,7 +38,9 @@ interface CreateBusinessForUserPayload {
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
-    throw new Error('Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.');
+    throw new Error(
+      'Firebase environment variables are missing. Please configure NEXT_PUBLIC_FIREBASE_* values.'
+    );
   }
 }
 
@@ -33,46 +49,92 @@ function getFirestoreDb() {
   return db!;
 }
 
-export async function createBusinessForUser(payload: CreateBusinessForUserPayload) {
+export async function createUserProfile(payload: CreateUserProfilePayload) {
   const firestore = getFirestoreDb();
   const now = new Date().toISOString();
-  const businessRef = doc(collection(firestore, 'businesses'));
   const userRef = doc(firestore, 'users', payload.uid);
 
   const userProfile: UserProfile = {
     uid: payload.uid,
-    businessId: businessRef.id,
     ownerName: payload.ownerName,
     email: payload.email,
     phone: payload.phone,
     role: 'owner',
     emailVerified: false,
+    onboardingCompleted: false,
     createdAt: now,
     updatedAt: now,
   };
 
+  await setDoc(userRef, userProfile);
+  return userProfile;
+}
+
+export async function setupBusinessForUser(payload: SetupBusinessForUserPayload) {
+  const firestore = getFirestoreDb();
+  const now = new Date().toISOString();
+  const userRef = doc(firestore, 'users', payload.uid);
+  const userProfile = await getUserProfile(payload.uid);
+
+  if (!userProfile) {
+    throw new Error('User profile not found for onboarding.');
+  }
+
+  const billableRecords = Math.max(payload.recordsLimit, MIN_RECORDS);
+  const monthlyPrice = billableRecords * INTERNAL_PRICE_PER_RECORD;
+  const annualPrice = monthlyPrice * 12;
+  const businessRef = doc(collection(firestore, 'businesses'));
+
   const businessProfile: BusinessProfile = {
     businessId: businessRef.id,
     ownerId: payload.uid,
-    ownerName: payload.ownerName,
+    ownerName: userProfile.ownerName,
     businessName: payload.businessName,
     businessType: payload.businessType,
-    selectedPlan: payload.selectedPlan,
-    planLimit: payload.planLimit,
+    selectedPlan: 'custom',
+    planLimit: billableRecords,
     currentUsage: 0,
-    email: payload.email,
-    phone: payload.phone,
-    status: 'pending_verification',
+    email: userProfile.email,
+    phone: userProfile.phone,
+    status: 'active',
     createdAt: now,
     updatedAt: now,
   };
 
   const batch = writeBatch(firestore);
-  batch.set(userRef, userProfile);
   batch.set(businessRef, businessProfile);
+  batch.update(userRef, {
+    businessId: businessRef.id,
+    businessName: payload.businessName,
+    businessType: payload.businessType,
+    recordsLimit: billableRecords,
+    pricePerRecord: INTERNAL_PRICE_PER_RECORD,
+    monthlyPrice,
+    annualPrice,
+    billingModel: 'per_record',
+    onboardingCompleted: true,
+    emailVerified: true,
+    updatedAt: now,
+  });
   await batch.commit();
 
-  return { userProfile, businessProfile };
+  return {
+    userProfile: {
+      ...userProfile,
+      businessId: businessRef.id,
+      businessName: payload.businessName,
+      businessType: payload.businessType,
+      recordsLimit: billableRecords,
+      pricePerRecord: INTERNAL_PRICE_PER_RECORD,
+      monthlyPrice,
+      annualPrice,
+      billingModel: 'per_record',
+      onboardingCompleted: true,
+      emailVerified: true,
+      updatedAt: now,
+    },
+    businessProfile,
+  };
 }
 
 export async function getUserProfile(uid: string) {
@@ -115,10 +177,16 @@ export async function safeIncrementBusinessUsage(businessId: string, delta = 1) 
     }
 
     const businessProfile = snapshot.data() as BusinessProfile;
-    const currentUsage = typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
-    const planLimit = typeof businessProfile.planLimit === 'number' ? businessProfile.planLimit : null;
+    const currentUsage =
+      typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
+    const planLimit =
+      typeof businessProfile.planLimit === 'number' ? businessProfile.planLimit : null;
 
-    if (businessProfile.selectedPlan !== 'custom' && planLimit !== null && currentUsage + delta > planLimit) {
+    if (
+      businessProfile.selectedPlan !== 'custom' &&
+      planLimit !== null &&
+      currentUsage + delta > planLimit
+    ) {
       throw new Error('You have reached your plan limit. Please upgrade to add more records.');
     }
 
@@ -138,7 +206,8 @@ export async function decrementBusinessUsage(businessId: string, delta = 1) {
     }
 
     const businessProfile = snapshot.data() as BusinessProfile;
-    const currentUsage = typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
+    const currentUsage =
+      typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
     const nextUsage = Math.max(0, currentUsage - delta);
 
     transaction.update(businessRef, {
@@ -148,48 +217,48 @@ export async function decrementBusinessUsage(businessId: string, delta = 1) {
   });
 }
 
-export async function updateUserEmailVerified(uid: string) {
+export async function markUserEmailVerified(uid: string) {
+  const now = new Date().toISOString();
   await updateDoc(doc(getFirestoreDb(), 'users', uid), {
     emailVerified: true,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
   });
+}
+
+export async function updateUserEmailVerified(uid: string) {
+  await markUserEmailVerified(uid);
 }
 
 export async function activateBusinessAfterVerification(uid: string) {
   const userProfile = await getUserProfile(uid);
 
-  if (!userProfile?.businessId) {
-    throw new Error('User profile is missing a business mapping.');
-  }
-
-  const business = await getBusinessById(userProfile.businessId);
-
-  if (!business) {
-    throw new Error('Business profile was not found.');
+  if (!userProfile) {
+    throw new Error('User profile not found.');
   }
 
   const now = new Date().toISOString();
-
   const batch = writeBatch(getFirestoreDb());
   batch.update(doc(getFirestoreDb(), 'users', uid), {
     emailVerified: true,
     updatedAt: now,
   });
-  batch.update(doc(getFirestoreDb(), 'businesses', userProfile.businessId), {
-    status: 'active',
-    updatedAt: now,
-  });
+
+  if (userProfile.businessId) {
+    const business = await getBusinessById(userProfile.businessId);
+    if (business) {
+      batch.update(doc(getFirestoreDb(), 'businesses', userProfile.businessId), {
+        status: 'active',
+        updatedAt: now,
+      });
+    }
+  }
+
   await batch.commit();
 
   return {
     userProfile: {
       ...userProfile,
       emailVerified: true,
-      updatedAt: now,
-    },
-    business: {
-      ...business,
-      status: 'active' as const,
       updatedAt: now,
     },
   };

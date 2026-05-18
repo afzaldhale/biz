@@ -47,7 +47,10 @@ export default function InfoPageShell({
             </p>
 
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/sign-up-login-screen" className="btn-primary px-5 py-3 rounded-xl text-sm">
+              <Link
+                href="/sign-up-login-screen"
+                className="btn-primary px-5 py-3 rounded-xl text-sm"
+              >
                 Start Free Trial
               </Link>
               <Link href="/#contact" className="btn-outline px-5 py-3 rounded-xl text-sm">

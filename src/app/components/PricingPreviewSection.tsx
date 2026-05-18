@@ -1,123 +1,128 @@
 import React from 'react';
 import Link from 'next/link';
-import { Check, ArrowRight, Zap } from 'lucide-react';
-
-const previewPlans = [
-  {
-    id: 'basic',
-    name: 'Basic',
-    price: 499,
-    recordLimit: 50,
-    color: '#64748B',
-    features: ['50 records', '1 staff account', 'Core modules', 'Email support'],
-    popular: false,
-  },
-  {
-    id: 'advance',
-    name: 'Advance',
-    price: 1499,
-    recordLimit: 250,
-    color: '#7C3AED',
-    features: ['250 records', '5 staff accounts', 'Full analytics', 'SMS notifications', 'PDF & Excel export'],
-    popular: true,
-  },
-  {
-    id: 'pro',
-    name: 'Pro',
-    price: 2999,
-    recordLimit: 1000,
-    color: '#D97706',
-    features: ['1000 records', '25 staff accounts', 'Enterprise analytics', 'Multi-branch', 'White-label option', 'API access'],
-    popular: false,
-  },
-];
+import { ArrowRight, Zap, ShieldCheck, Sparkles } from 'lucide-react';
+import { MIN_RECORDS, INTERNAL_PRICE_PER_RECORD } from '@/utils/pricing';
 
 export default function PricingPreviewSection() {
   return (
     <section id="pricing" className="py-24 bg-background">
       <div className="max-w-screen-2xl mx-auto px-6 lg:px-10">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 badge-success px-3 py-1.5 rounded-full text-xs font-600 mb-4">
-            <Zap size={12} />
-            Simple Pricing
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-sm font-semibold text-primary shadow-sm">
+            <Zap size={16} />
+            Pay only for the records you need
           </div>
-          <h2 className="text-4xl md:text-5xl font-800 text-foreground mb-4">
-            Plans That <span className="gradient-text">Grow With You</span>
+          <h2 className="mt-6 text-4xl md:text-5xl font-extrabold text-foreground">
+            Record-based pricing for growing businesses
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Start at ₹499/month and upgrade as your business grows. No hidden charges, no setup fees.
+          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+            Start with {MIN_RECORDS} records at ₹
+            {(MIN_RECORDS * INTERNAL_PRICE_PER_RECORD).toLocaleString('en-IN')}/month. Add more
+            records anytime and scale seamlessly.
           </p>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {previewPlans?.map((plan) => (
-            <div
-              key={`pricing-${plan?.id}`}
-              className={`relative rounded-2xl p-7 flex flex-col ${
-                plan?.popular
-                  ? 'pricing-popular bg-card' :'glass-card border border-border/60'
-              }`}
-            >
-              {plan?.popular && (
-                <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
-                  <span className="btn-primary text-xs px-4 py-1.5 rounded-full font-600">
-                    Most Popular
+        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] items-start">
+          <div className="rounded-[2rem] border border-border/70 bg-white p-8 shadow-card">
+            <div className="mb-8 space-y-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary/80">
+                Flexible pricing
+              </p>
+              <h3 className="text-3xl font-semibold text-foreground">₹9 per record / month</h3>
+              <p className="text-base text-muted-foreground">
+                A modern SaaS model built around your record volume, with a predictable minimum and
+                no hidden fees.
+              </p>
+            </div>
+            <div className="grid gap-4">
+              <div className="rounded-3xl bg-slate-50 p-5">
+                <h4 className="text-sm font-semibold text-foreground">Starter commitment</h4>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Begin with the smallest stable package for fast onboarding.
+                </p>
+                <div className="mt-4 flex items-center justify-between text-sm font-semibold text-foreground">
+                  <span>{MIN_RECORDS.toLocaleString('en-IN')} records</span>
+                  <span>
+                    ₹{(MIN_RECORDS * INTERNAL_PRICE_PER_RECORD).toLocaleString('en-IN')}/month
                   </span>
                 </div>
-              )}
-
-              {/* Plan header */}
-              <div className="mb-6">
-                <div
-                  className="text-xs font-700 tracking-widest uppercase mb-2"
-                  style={{ color: plan?.color }}
-                >
-                  {plan?.name}
+              </div>
+              <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6">
+                <div className="flex items-center gap-3 text-primary">
+                  <ShieldCheck size={20} />
+                  <span className="text-sm font-semibold">Transparent billing</span>
                 </div>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-800 text-foreground font-tabular">₹{plan?.price?.toLocaleString('en-IN')}</span>
-                  <span className="text-muted-foreground text-sm">/month</span>
+                <ul className="mt-4 space-y-3 text-sm text-foreground">
+                  <li>✓ ₹9 per record / month</li>
+                  <li>✓ Minimum {MIN_RECORDS} records</li>
+                  <li>✓ Monthly pricing with annual view</li>
+                  <li>✓ No license or setup surcharge</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+          <div className="rounded-[2rem] bg-gradient-to-br from-primary/10 to-slate-50 p-8 shadow-xl border border-primary/10">
+            <div className="mb-8">
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-primary/80">
+                Pricing summary
+              </p>
+              <h3 className="mt-4 text-3xl font-semibold text-foreground">
+                Start with the records you need
+              </h3>
+            </div>
+            <div className="space-y-4 rounded-[1.75rem] bg-white p-6 shadow-sm border border-border/70">
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Price per record</span>
+                <span className="font-semibold text-foreground">
+                  ₹{INTERNAL_PRICE_PER_RECORD}/month
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Minimum records</span>
+                <span className="font-semibold text-foreground">{MIN_RECORDS}</span>
+              </div>
+              <div className="border-t border-border/70 pt-4">
+                <p className="text-sm text-muted-foreground">Monthly starting price</p>
+                <p className="mt-2 text-3xl font-semibold text-foreground">
+                  ₹{(MIN_RECORDS * INTERNAL_PRICE_PER_RECORD).toLocaleString('en-IN')}/month
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Annual equivalent</p>
+                <p className="mt-2 text-xl font-semibold text-foreground">
+                  ₹{(MIN_RECORDS * INTERNAL_PRICE_PER_RECORD * 12).toLocaleString('en-IN')}/year
+                </p>
+              </div>
+            </div>
+            <div className="mt-8 rounded-[1.75rem] border border-border/70 bg-white p-6 shadow-sm">
+              <p className="text-sm text-muted-foreground">Example monthly pricing</p>
+              <div className="mt-4 grid gap-3">
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-sm text-muted-foreground">250 records</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">
+                    ₹2,250/mo · ₹27,000/yr
+                  </p>
                 </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  Up to {plan?.recordLimit} records
+                <div className="rounded-3xl bg-slate-50 p-4">
+                  <p className="text-sm text-muted-foreground">500 records</p>
+                  <p className="mt-2 text-lg font-semibold text-foreground">
+                    ₹4,500/mo · ₹54,000/yr
+                  </p>
                 </div>
               </div>
-
-              {/* Features */}
-              <ul className="space-y-2.5 mb-8 flex-1">
-                {plan?.features?.map((feature) => (
-                  <li key={`plan-feat-${plan?.id}-${feature}`} className="flex items-center gap-2.5 text-sm text-muted-foreground">
-                    <Check size={14} className="text-success flex-shrink-0" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
-
-              {/* CTA */}
-              <Link
-                href="/sign-up-login-screen"
-                className={`w-full py-3 rounded-xl text-sm font-600 text-center flex items-center justify-center gap-2 transition-all ${
-                  plan?.popular ? 'btn-primary' : 'btn-outline'
-                }`}
-              >
-                Get Started
-                <ArrowRight size={14} />
-              </Link>
             </div>
-          ))}
+            <Link
+              href="/sign-up-login-screen"
+              className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-3xl bg-primary px-6 py-4 text-sm font-semibold text-white shadow-lg shadow-primary/20 transition hover:bg-indigo-600"
+            >
+              Start onboarding
+              <ArrowRight size={16} />
+            </Link>
+          </div>
         </div>
-
-        {/* View all pricing */}
-        <div className="text-center mt-10">
-          <p className="text-sm text-muted-foreground mb-3">
-            Also available: Medium ₹999, Premium ₹1,999, and Custom Enterprise plans
-          </p>
-          <Link href="/sign-up-login-screen" className="text-sm text-primary hover:text-accent font-600 transition-colors inline-flex items-center gap-1.5">
-            View full pricing comparison
-            <ArrowRight size={14} />
-          </Link>
+        <div className="mt-10 text-center text-sm text-muted-foreground">
+          <Sparkles size={16} className="inline-block mr-2" />
+          All pricing is usage-based and scales with your business records.
         </div>
       </div>
     </section>

@@ -7,12 +7,19 @@ import AppLogo from '@/components/ui/AppLogo';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
 import {
-  GraduationCap, Building2, UtensilsCrossed, Stethoscope,
-  Wrench, Dumbbell, Scissors, LayoutGrid,
-  CheckCircle, Shield, Zap
+  GraduationCap,
+  Building2,
+  UtensilsCrossed,
+  Stethoscope,
+  Wrench,
+  Dumbbell,
+  Scissors,
+  LayoutGrid,
+  CheckCircle,
+  Shield,
+  Zap,
 } from 'lucide-react';
 import Icon from '@/components/ui/AppIcon';
-
 
 export default function AuthScreen() {
   const [activeTab, setActiveTab] = useState<'login' | 'signup'>('login');
@@ -59,7 +66,8 @@ export default function AuthScreen() {
             <span className="gradient-text">One Dashboard</span>
           </h2>
           <p className="text-muted-foreground text-base mb-10 leading-relaxed max-w-sm">
-            Industry-specific dashboards for Academy, Hotel, Restaurant, Clinic, Service Center, Gym, Salon, and more.
+            Industry-specific dashboards for Academy, Hotel, Restaurant, Clinic, Service Center,
+            Gym, Salon, and more.
           </p>
 
           {/* Perks */}
@@ -110,7 +118,9 @@ export default function AuthScreen() {
           <div className="flex bg-muted rounded-xl p-1 mb-8 border border-border">
             <button
               className={`flex-1 py-2.5 text-sm font-600 rounded-lg transition-all duration-200 ${
-                activeTab === 'login' ?'btn-primary shadow-glow-sm' :'text-muted-foreground hover:text-foreground'
+                activeTab === 'login'
+                  ? 'btn-primary shadow-glow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
               onClick={() => setActiveTab('login')}
             >
@@ -118,7 +128,9 @@ export default function AuthScreen() {
             </button>
             <button
               className={`flex-1 py-2.5 text-sm font-600 rounded-lg transition-all duration-200 ${
-                activeTab === 'signup' ?'btn-primary shadow-glow-sm' :'text-muted-foreground hover:text-foreground'
+                activeTab === 'signup'
+                  ? 'btn-primary shadow-glow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
               }`}
               onClick={() => setActiveTab('signup')}
             >

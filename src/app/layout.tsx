@@ -12,22 +12,19 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: 'BizManage — Run Any Business From One Dashboard',
-  description: 'BizManage is a multi-industry SaaS platform that gives every business — Academy, Hotel, Restaurant, Clinic, and more — a powerful industry-specific dashboard.',
+  description:
+    'BizManage is a multi-industry SaaS platform that gives every business — Academy, Hotel, Restaurant, Clinic, and more — a powerful industry-specific dashboard.',
   icons: {
     icon: [{ url: '/favicon.ico', type: 'image/x-icon' }],
   },
 };
 
-export default function RootLayout({
-  children,
-}: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body>
         <AuthProvider>
-          <BusinessProvider>
-            {children}
-          </BusinessProvider>
+          <BusinessProvider>{children}</BusinessProvider>
         </AuthProvider>
         <Toaster
           position="bottom-right"

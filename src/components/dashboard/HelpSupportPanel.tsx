@@ -17,7 +17,9 @@ export default function HelpSupportPanel({ businessId, ownerName }: HelpSupportP
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
   };
@@ -60,7 +62,10 @@ export default function HelpSupportPanel({ businessId, ownerName }: HelpSupportP
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="glass-card rounded-2xl border border-border/60 p-6 space-y-6">
+      <form
+        onSubmit={handleSubmit}
+        className="glass-card rounded-2xl border border-border/60 p-6 space-y-6"
+      >
         <div className="grid gap-4 md:grid-cols-2">
           <label className="space-y-2 text-sm text-foreground">
             <span>Subject</span>
@@ -104,7 +109,11 @@ export default function HelpSupportPanel({ businessId, ownerName }: HelpSupportP
           <p className="text-sm text-muted-foreground">
             We aim to respond within one business day.
           </p>
-          <button type="submit" className="btn-primary px-5 py-3 rounded-xl disabled:opacity-60" disabled={submitting}>
+          <button
+            type="submit"
+            className="btn-primary px-5 py-3 rounded-xl disabled:opacity-60"
+            disabled={submitting}
+          >
             {submitting ? 'Sending…' : 'Submit ticket'}
           </button>
         </div>

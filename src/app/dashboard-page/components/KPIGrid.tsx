@@ -3,9 +3,24 @@
 import React, { memo } from 'react';
 import { KPICard } from '@/types';
 import {
-  Users, BookOpen, IndianRupee, AlertCircle, DoorOpen, BedDouble,
-  BedSingle, ShoppingBag, LayoutGrid, Clock, Calendar, CheckCircle,
-  Ticket, Wrench, Dumbbell, UserCheck, Scissors, FileWarning
+  Users,
+  BookOpen,
+  IndianRupee,
+  AlertCircle,
+  DoorOpen,
+  BedDouble,
+  BedSingle,
+  ShoppingBag,
+  LayoutGrid,
+  Clock,
+  Calendar,
+  CheckCircle,
+  Ticket,
+  Wrench,
+  Dumbbell,
+  UserCheck,
+  Scissors,
+  FileWarning,
 } from 'lucide-react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 
@@ -13,9 +28,24 @@ const iconMap: Record<
   string,
   React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>
 > = {
-  Users, BookOpen, IndianRupee, AlertCircle, DoorOpen, BedDouble,
-  BedSingle, ShoppingBag, LayoutGrid, Clock, Calendar, CheckCircle,
-  Ticket, Wrench, Dumbbell, UserCheck, Scissors, FileWarning,
+  Users,
+  BookOpen,
+  IndianRupee,
+  AlertCircle,
+  DoorOpen,
+  BedDouble,
+  BedSingle,
+  ShoppingBag,
+  LayoutGrid,
+  Clock,
+  Calendar,
+  CheckCircle,
+  Ticket,
+  Wrench,
+  Dumbbell,
+  UserCheck,
+  Scissors,
+  FileWarning,
 };
 
 interface KPIGridProps {
@@ -31,10 +61,7 @@ function KPIGrid({ kpis }: KPIGridProps) {
         const isNegative = kpi.changeType === 'negative';
 
         return (
-          <div
-            key={kpi.id}
-            className="glass-card card-hover rounded-2xl p-5 border border-border"
-          >
+          <div key={kpi.id} className="glass-card card-hover rounded-2xl p-5 border border-border">
             {/* Header */}
             <div className="flex items-start justify-between mb-4">
               <div
@@ -49,8 +76,15 @@ function KPIGrid({ kpis }: KPIGridProps) {
                     isPositive ? 'badge-success' : isNegative ? 'badge-danger' : 'badge-neutral'
                   }`}
                 >
-                  {isPositive ? <TrendingUp size={11} /> : isNegative ? <TrendingDown size={11} /> : <Minus size={11} />}
-                  {Math.abs(kpi.change)}{typeof kpi.change === 'number' && kpi.change % 1 !== 0 ? '' : '%'}
+                  {isPositive ? (
+                    <TrendingUp size={11} />
+                  ) : isNegative ? (
+                    <TrendingDown size={11} />
+                  ) : (
+                    <Minus size={11} />
+                  )}
+                  {Math.abs(kpi.change)}
+                  {typeof kpi.change === 'number' && kpi.change % 1 !== 0 ? '' : '%'}
                 </div>
               )}
             </div>

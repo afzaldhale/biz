@@ -8,7 +8,12 @@ export default function ContactSection() {
       <div className="max-w-screen-2xl mx-auto px-6 lg:px-10">
         {/* CTA Banner */}
         <div className="relative rounded-3xl overflow-hidden gradient-primary p-12 md:p-16 text-center mb-16">
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 0%, transparent 50%)' }} />
+          <div
+            className="absolute inset-0 opacity-10"
+            style={{
+              backgroundImage: 'radial-gradient(circle at 20% 50%, white 0%, transparent 50%)',
+            }}
+          />
           <div className="relative z-10">
             <h2 className="text-3xl md:text-5xl font-800 text-white mb-4">
               Ready to Transform Your Business?
@@ -31,11 +36,35 @@ export default function ContactSection() {
         {/* Contact channels */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
-            { id: 'contact-whatsapp', icon: MessageCircle, title: 'WhatsApp Support', desc: 'Chat with us on WhatsApp for instant help', action: 'Chat Now', color: '#10B981' },
-            { id: 'contact-email', icon: Mail, title: 'Email Support', desc: 'support@bizmanage.in — response within 4 hours', action: 'Send Email', color: '#2563EB' },
-            { id: 'contact-phone', icon: Phone, title: 'Phone Support', desc: 'Mon–Sat 9AM–7PM IST — Hindi & English', action: 'Call Now', color: '#7C3AED' },
+            {
+              id: 'contact-whatsapp',
+              icon: MessageCircle,
+              title: 'WhatsApp Support',
+              desc: 'Chat with us on WhatsApp for instant help',
+              action: 'Chat Now',
+              color: '#10B981',
+            },
+            {
+              id: 'contact-email',
+              icon: Mail,
+              title: 'Email Support',
+              desc: 'support@bizmanage.in — response within 4 hours',
+              action: 'Send Email',
+              color: '#2563EB',
+            },
+            {
+              id: 'contact-phone',
+              icon: Phone,
+              title: 'Phone Support',
+              desc: 'Mon–Sat 9AM–7PM IST — Hindi & English',
+              action: 'Call Now',
+              color: '#7C3AED',
+            },
           ]?.map((channel) => (
-            <div key={channel?.id} className="glass-card rounded-2xl p-6 border border-border/60 text-center card-hover">
+            <div
+              key={channel?.id}
+              className="glass-card rounded-2xl p-6 border border-border/60 text-center card-hover"
+            >
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4"
                 style={{ backgroundColor: `${channel?.color}18` }}

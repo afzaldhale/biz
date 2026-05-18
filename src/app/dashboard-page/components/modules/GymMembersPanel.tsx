@@ -1,13 +1,7 @@
 'use client';
 
-import React, {
-  memo,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
+import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { toast } from 'sonner';
 import {
   CalendarClock,
@@ -37,6 +31,7 @@ import {
 import {
   addGymPayment,
   deleteGymPayment,
+  getAllGymPaymentsForMember,
   getGymPayments,
   getGymPaymentsForMember,
 } from '@/services/gymPaymentService';
@@ -76,6 +71,8 @@ interface MembersTableProps {
   onDelete: (member: GymMemberRecord) => void;
   onEdit: (member: GymMemberRecord) => void;
   onOpenPayments: (member: GymMemberRecord) => void;
+  hasMoreMembers: boolean;
+  loadMoreMembers: () => void;
 }
 
 interface PaymentsTableProps {
@@ -83,13 +80,15 @@ interface PaymentsTableProps {
   loading: boolean;
   onPrint: (payment: GymPaymentRecord) => void;
   payments: GymPaymentRecord[];
+  hasMorePayments: boolean;
+  loadMorePayments: () => void;
 }
 
 interface MemberFormModalProps {
   editingMemberId: string | null;
   formValues: MemberFormValues;
   onChange: (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => void;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -101,8 +100,10 @@ interface PaymentModalProps {
   loadingHistory: boolean;
   member: GymMemberRecord | null;
   memberPayments: GymPaymentRecord[];
+  hasMorePayments: boolean;
+  onLoadMorePayments: () => void;
   onChange: (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>,
+    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => void;
   onClose: () => void;
   onPrint: (payment: GymPaymentRecord) => void;
@@ -111,7 +112,13 @@ interface PaymentModalProps {
 }
 
 const rowsPerPageOptions = [10, 20];
-const membershipPlanOptions = ['Monthly', 'Quarterly', 'Half-Yearly', 'Annual', 'Personal Training'];
+const membershipPlanOptions = [
+  'Monthly',
+  'Quarterly',
+  'Half-Yearly',
+  'Annual',
+  'Personal Training',
+];
 
 const emptyMemberForm: MemberFormValues = {
   fullName: '',
@@ -186,7 +193,7 @@ function buildInvoiceId() {
 
 function normalizeGymMemberRecord(
   member: Partial<GymMemberRecord>,
-  fallbackId: string,
+  fallbackId: string
 ): GymMemberRecord {
   return {
     id: member.id ?? fallbackId,
@@ -210,7 +217,7 @@ function normalizeGymMemberRecord(
 
 function normalizeGymPaymentRecord(
   payment: Partial<GymPaymentRecord>,
-  fallbackId: string,
+  fallbackId: string
 ): GymPaymentRecord {
   return {
     id: payment.id ?? fallbackId,
@@ -235,18 +242,32 @@ const MembersTable = memo(function MembersTable({
   onDelete,
   onEdit,
   onOpenPayments,
+  hasMoreMembers,
+  loadMoreMembers,
 }: MembersTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[1100px]">
         <thead className="bg-muted/40">
           <tr>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Member</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Plan</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Contact</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Status</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Billing</th>
-            <th className="text-right px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Actions</th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Member
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Plan
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Contact
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Status
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Billing
+            </th>
+            <th className="text-right px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/70">
@@ -295,7 +316,9 @@ const MembersTable = memo(function MembersTable({
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-sm font-700 text-foreground">{formatCurrency(member.paidAmount)}</p>
+                      <p className="text-sm font-700 text-foreground">
+                        {formatCurrency(member.paidAmount)}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-1">
                         Due {formatCurrency(balance)} | Renewal {member.renewalDate}
                       </p>
@@ -348,6 +371,17 @@ const MembersTable = memo(function MembersTable({
           Page {currentPage}
         </div>
       )}
+      {!loading && hasMoreMembers && (
+        <div className="px-5 py-4 border-t border-border bg-white/80 text-right">
+          <button
+            type="button"
+            onClick={loadMoreMembers}
+            className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          >
+            Load more members
+          </button>
+        </div>
+      )}
     </div>
   );
 });
@@ -357,18 +391,32 @@ const PaymentsTable = memo(function PaymentsTable({
   loading,
   onPrint,
   payments,
+  hasMorePayments,
+  loadMorePayments,
 }: PaymentsTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[980px]">
         <thead className="bg-muted/40">
           <tr>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Receipt</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Member</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Period</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Method</th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Amount</th>
-            <th className="text-right px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">Actions</th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Receipt
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Member
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Period
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Method
+            </th>
+            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Amount
+            </th>
+            <th className="text-right px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-border/70">
@@ -400,9 +448,13 @@ const PaymentsTable = memo(function PaymentsTable({
                     </span>
                   </td>
                   <td className="px-5 py-4">
-                    <p className="text-sm font-700 text-foreground">{formatCurrency(payment.amount)}</p>
+                    <p className="text-sm font-700 text-foreground">
+                      {formatCurrency(payment.amount)}
+                    </p>
                     {payment.notes && (
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">{payment.notes}</p>
+                      <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
+                        {payment.notes}
+                      </p>
                     )}
                   </td>
                   <td className="px-5 py-4">
@@ -434,6 +486,17 @@ const PaymentsTable = memo(function PaymentsTable({
       {!loading && payments.length > 0 && (
         <div className="px-5 py-3 border-t border-border bg-white/80 text-xs text-muted-foreground">
           Page {currentPage}
+        </div>
+      )}
+      {!loading && hasMorePayments && (
+        <div className="px-5 py-4 border-t border-border bg-white/80 text-right">
+          <button
+            type="button"
+            onClick={loadMorePayments}
+            className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
+          >
+            Load more payments
+          </button>
         </div>
       )}
     </div>
@@ -484,7 +547,9 @@ const MemberFormModal = memo(function MemberFormModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Membership Plan</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Membership Plan
+                </label>
                 <select
                   name="membershipPlan"
                   value={formValues.membershipPlan}
@@ -530,7 +595,9 @@ const MemberFormModal = memo(function MemberFormModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Emergency Contact</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Emergency Contact
+                </label>
                 <input
                   name="emergencyContact"
                   value={formValues.emergencyContact}
@@ -540,7 +607,9 @@ const MemberFormModal = memo(function MemberFormModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Joining Date</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Joining Date
+                </label>
                 <input
                   required
                   type="date"
@@ -551,7 +620,9 @@ const MemberFormModal = memo(function MemberFormModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Renewal Date</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Renewal Date
+                </label>
                 <input
                   required
                   type="date"
@@ -562,7 +633,9 @@ const MemberFormModal = memo(function MemberFormModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Membership Fee</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Membership Fee
+                </label>
                 <input
                   required
                   min="0"
@@ -615,7 +688,11 @@ const MemberFormModal = memo(function MemberFormModal({
             </div>
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" onClick={onClose} className="btn-outline px-5 py-3 rounded-xl text-sm">
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-outline px-5 py-3 rounded-xl text-sm"
+              >
                 Cancel
               </button>
               <button
@@ -638,6 +715,8 @@ const PaymentModal = memo(function PaymentModal({
   loadingHistory,
   member,
   memberPayments,
+  hasMorePayments,
+  onLoadMorePayments,
   onChange,
   onClose,
   onPrint,
@@ -656,7 +735,9 @@ const PaymentModal = memo(function PaymentModal({
         <div className="w-full max-w-5xl glass-card rounded-[28px] border border-border shadow-card overflow-hidden animate-slide-up">
           <div className="flex items-center justify-between px-6 py-5 border-b border-border">
             <div>
-              <p className="text-xs font-700 tracking-[0.22em] text-primary uppercase">Fee Collection</p>
+              <p className="text-xs font-700 tracking-[0.22em] text-primary uppercase">
+                Fee Collection
+              </p>
               <h2 className="text-xl font-700 text-foreground mt-1">{member.fullName}</h2>
               <p className="text-sm text-muted-foreground mt-1">
                 Record payments, print receipts, and review fee history for this member.
@@ -675,20 +756,32 @@ const PaymentModal = memo(function PaymentModal({
           <div className="p-6 space-y-6">
             <div className="grid gap-4 md:grid-cols-4">
               <div className="rounded-2xl border border-border bg-white/80 p-4">
-                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Member ID</p>
+                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                  Member ID
+                </p>
                 <p className="text-sm font-700 text-foreground mt-2">{member.memberId}</p>
               </div>
               <div className="rounded-2xl border border-border bg-white/80 p-4">
-                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Plan</p>
+                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                  Plan
+                </p>
                 <p className="text-sm font-700 text-foreground mt-2">{member.membershipPlan}</p>
               </div>
               <div className="rounded-2xl border border-border bg-white/80 p-4">
-                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Collected</p>
-                <p className="text-sm font-700 text-foreground mt-2">{formatCurrency(member.paidAmount)}</p>
+                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                  Collected
+                </p>
+                <p className="text-sm font-700 text-foreground mt-2">
+                  {formatCurrency(member.paidAmount)}
+                </p>
               </div>
               <div className="rounded-2xl border border-border bg-white/80 p-4">
-                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Outstanding</p>
-                <p className="text-sm font-700 text-foreground mt-2">{formatCurrency(outstanding)}</p>
+                <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                  Outstanding
+                </p>
+                <p className="text-sm font-700 text-foreground mt-2">
+                  {formatCurrency(outstanding)}
+                </p>
               </div>
             </div>
 
@@ -714,7 +807,9 @@ const PaymentModal = memo(function PaymentModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-600 text-foreground mb-1.5">Payment Date</label>
+                  <label className="block text-sm font-600 text-foreground mb-1.5">
+                    Payment Date
+                  </label>
                   <input
                     required
                     type="date"
@@ -725,7 +820,9 @@ const PaymentModal = memo(function PaymentModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-600 text-foreground mb-1.5">Billing Period</label>
+                  <label className="block text-sm font-600 text-foreground mb-1.5">
+                    Billing Period
+                  </label>
                   <input
                     required
                     name="billingPeriod"
@@ -736,7 +833,9 @@ const PaymentModal = memo(function PaymentModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-600 text-foreground mb-1.5">Payment Method</label>
+                  <label className="block text-sm font-600 text-foreground mb-1.5">
+                    Payment Method
+                  </label>
                   <select
                     name="paymentMethod"
                     value={formValues.paymentMethod}
@@ -761,7 +860,11 @@ const PaymentModal = memo(function PaymentModal({
                   />
                 </div>
                 <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                  <button type="button" onClick={onClose} className="btn-outline px-5 py-3 rounded-xl text-sm">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    className="btn-outline px-5 py-3 rounded-xl text-sm"
+                  >
                     Close
                   </button>
                   <button
@@ -790,7 +893,10 @@ const PaymentModal = memo(function PaymentModal({
                   {loadingHistory ? (
                     <div className="p-5 space-y-3">
                       {Array.from({ length: 4 }).map((_, index) => (
-                        <div key={`member-payment-skeleton-${index}`} className="h-20 rounded-xl bg-muted animate-pulse" />
+                        <div
+                          key={`member-payment-skeleton-${index}`}
+                          className="h-20 rounded-xl bg-muted animate-pulse"
+                        />
                       ))}
                     </div>
                   ) : memberPayments.length === 0 ? (
@@ -803,18 +909,24 @@ const PaymentModal = memo(function PaymentModal({
                   ) : (
                     <div className="divide-y divide-border/70">
                       {memberPayments.map((payment) => (
-                        <div key={payment.id} className="px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div
+                          key={payment.id}
+                          className="px-5 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                        >
                           <div>
                             <p className="text-sm font-700 text-foreground">{payment.invoiceId}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {payment.paymentDate} | {payment.billingPeriod} | {formatPaymentMethod(payment.paymentMethod)}
+                              {payment.paymentDate} | {payment.billingPeriod} |{' '}
+                              {formatPaymentMethod(payment.paymentMethod)}
                             </p>
                             {payment.notes && (
                               <p className="text-xs text-muted-foreground mt-1">{payment.notes}</p>
                             )}
                           </div>
                           <div className="flex items-center gap-3">
-                            <p className="text-sm font-700 text-foreground">{formatCurrency(payment.amount)}</p>
+                            <p className="text-sm font-700 text-foreground">
+                              {formatCurrency(payment.amount)}
+                            </p>
                             <button
                               type="button"
                               onClick={() => onPrint(payment)}
@@ -829,6 +941,17 @@ const PaymentModal = memo(function PaymentModal({
                     </div>
                   )}
                 </div>
+                {hasMorePayments && !loadingHistory && (
+                  <div className="px-5 py-4 border-t border-border text-center">
+                    <button
+                      type="button"
+                      onClick={onLoadMorePayments}
+                      className="btn-outline px-5 py-3 rounded-xl text-sm"
+                    >
+                      Load more receipts
+                    </button>
+                  </div>
+                )}
               </div>
             </form>
           </div>
@@ -838,10 +961,7 @@ const PaymentModal = memo(function PaymentModal({
   );
 });
 
-export default function GymMembersPanel({
-  initialView = 'members',
-  user,
-}: GymMembersPanelProps) {
+export default function GymMembersPanel({ initialView = 'members', user }: GymMembersPanelProps) {
   const [activeTab, setActiveTab] = useState<'members' | 'payments'>(initialView);
   const [members, setMembers] = useState<GymMemberRecord[]>([]);
   const [payments, setPayments] = useState<GymPaymentRecord[]>([]);
@@ -849,9 +969,23 @@ export default function GymMembersPanel({
   const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
   const [searchInput, setSearchInput] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | GymMemberRecord['status']>('all');
-  const [methodFilter, setMethodFilter] = useState<'all' | GymPaymentRecord['paymentMethod']>('all');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [methodFilter, setMethodFilter] = useState<'all' | GymPaymentRecord['paymentMethod']>(
+    'all'
+  );
+  const [rowsPerPage, setRowsPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
+  const [lastMemberDoc, setLastMemberDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(
+    null
+  );
+  const [hasMoreMembers, setHasMoreMembers] = useState(false);
+  const [lastPaymentDoc, setLastPaymentDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(
+    null
+  );
+  const [hasMorePayments, setHasMorePayments] = useState(false);
+  const [memberPaymentHistory, setMemberPaymentHistory] = useState<GymPaymentRecord[]>([]);
+  const [memberPaymentLastDoc, setMemberPaymentLastDoc] =
+    useState<QueryDocumentSnapshot<DocumentData> | null>(null);
+  const [hasMoreMemberPaymentHistory, setHasMoreMemberPaymentHistory] = useState(false);
   const [isMemberFormOpen, setIsMemberFormOpen] = useState(false);
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
@@ -873,11 +1007,15 @@ export default function GymMembersPanel({
 
     async function loadGymData() {
       setLoading(true);
+      setLastMemberDoc(null);
+      setHasMoreMembers(false);
+      setLastPaymentDoc(null);
+      setHasMorePayments(false);
 
       try {
-        const [membersData, paymentsData] = await Promise.all([
-          getGymMembers(user.id),
-          getGymPayments(user.id),
+        const [membersPage, paymentsPage] = await Promise.all([
+          getGymMembers(user.id, { pageSize: rowsPerPage }),
+          getGymPayments(user.id, { pageSize: rowsPerPage }),
         ]);
 
         if (!mounted) {
@@ -885,15 +1023,23 @@ export default function GymMembersPanel({
         }
 
         setMembers(
-          membersData
+          membersPage.data
             .map((member, index) => normalizeGymMemberRecord(member, `member-${index + 1}`))
-            .sort((a, b) => (b.createdAt ?? b.joiningDate).localeCompare(a.createdAt ?? a.joiningDate)),
+            .sort((a, b) =>
+              (b.createdAt ?? b.joiningDate).localeCompare(a.createdAt ?? a.joiningDate)
+            )
         );
         setPayments(
-          paymentsData
+          paymentsPage.data
             .map((payment, index) => normalizeGymPaymentRecord(payment, `payment-${index + 1}`))
-            .sort((a, b) => (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate)),
+            .sort((a, b) =>
+              (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate)
+            )
         );
+        setLastMemberDoc(membersPage.lastDoc);
+        setHasMoreMembers(membersPage.hasMore);
+        setLastPaymentDoc(paymentsPage.lastDoc);
+        setHasMorePayments(paymentsPage.hasMore);
       } catch {
         if (!mounted) {
           return;
@@ -914,7 +1060,61 @@ export default function GymMembersPanel({
     return () => {
       mounted = false;
     };
-  }, [user.id]);
+  }, [user.id, rowsPerPage]);
+
+  const loadMoreMembers = useCallback(async () => {
+    if (!hasMoreMembers || !lastMemberDoc) return;
+
+    setLoading(true);
+    try {
+      const nextPage = await getGymMembers(user.id, {
+        pageSize: rowsPerPage,
+        lastDoc: lastMemberDoc,
+      });
+
+      setMembers((current) =>
+        [
+          ...current,
+          ...nextPage.data.map((member, index) =>
+            normalizeGymMemberRecord(member, `member-${current.length + index + 1}`)
+          ),
+        ].sort((a, b) => (b.createdAt ?? b.joiningDate).localeCompare(a.createdAt ?? a.joiningDate))
+      );
+      setLastMemberDoc(nextPage.lastDoc);
+      setHasMoreMembers(nextPage.hasMore);
+    } catch {
+      toast.error('Unable to load more members.');
+    } finally {
+      setLoading(false);
+    }
+  }, [hasMoreMembers, lastMemberDoc, rowsPerPage, user.id]);
+
+  const loadMorePayments = useCallback(async () => {
+    if (!hasMorePayments || !lastPaymentDoc) return;
+
+    setLoading(true);
+    try {
+      const nextPage = await getGymPayments(user.id, {
+        pageSize: rowsPerPage,
+        lastDoc: lastPaymentDoc,
+      });
+
+      setPayments((current) =>
+        [
+          ...current,
+          ...nextPage.data.map((payment, index) =>
+            normalizeGymPaymentRecord(payment, `payment-${current.length + index + 1}`)
+          ),
+        ].sort((a, b) => (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate))
+      );
+      setLastPaymentDoc(nextPage.lastDoc);
+      setHasMorePayments(nextPage.hasMore);
+    } catch {
+      toast.error('Unable to load more payments.');
+    } finally {
+      setLoading(false);
+    }
+  }, [hasMorePayments, lastPaymentDoc, rowsPerPage, user.id]);
 
   const filteredMembers = useMemo(() => {
     const query = deferredSearchTerm.trim().toLowerCase();
@@ -977,7 +1177,10 @@ export default function GymMembersPanel({
       totalMembers: members.length,
       activeMembers,
       totalCollected,
-      outstanding: Math.max(totalDue - members.reduce((sum, member) => sum + member.paidAmount, 0), 0),
+      outstanding: Math.max(
+        totalDue - members.reduce((sum, member) => sum + member.paidAmount, 0),
+        0
+      ),
       thisMonthPayments,
     };
   }, [members, payments]);
@@ -986,7 +1189,7 @@ export default function GymMembersPanel({
 
   const totalPages = useMemo(
     () => Math.max(1, Math.ceil(activeItems.length / rowsPerPage)),
-    [activeItems.length, rowsPerPage],
+    [activeItems.length, rowsPerPage]
   );
 
   const paginatedMembers = useMemo(() => {
@@ -999,13 +1202,34 @@ export default function GymMembersPanel({
     return filteredPayments.slice(startIndex, startIndex + rowsPerPage);
   }, [currentPage, filteredPayments, rowsPerPage]);
 
-  const selectedMemberPayments = useMemo(() => {
-    if (!selectedMember) {
-      return [];
-    }
+  const selectedMemberPayments = useMemo(() => memberPaymentHistory, [memberPaymentHistory]);
 
-    return payments.filter((payment) => payment.memberDocId === selectedMember.id);
-  }, [payments, selectedMember]);
+  const loadMoreMemberPayments = useCallback(async () => {
+    if (!hasMoreMemberPaymentHistory || !memberPaymentLastDoc || !selectedMember) return;
+
+    setPaymentHistoryLoading(true);
+    try {
+      const nextPage = await getGymPaymentsForMember(user.id, selectedMember.id, {
+        pageSize: rowsPerPage,
+        lastDoc: memberPaymentLastDoc,
+      });
+
+      setMemberPaymentHistory((current) =>
+        [
+          ...current,
+          ...nextPage.data.map((payment, index) =>
+            normalizeGymPaymentRecord(payment, `member-payment-${current.length + index + 1}`)
+          ),
+        ].sort((a, b) => (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate))
+      );
+      setMemberPaymentLastDoc(nextPage.lastDoc);
+      setHasMoreMemberPaymentHistory(nextPage.hasMore);
+    } catch {
+      toast.error('Unable to load more payment history.');
+    } finally {
+      setPaymentHistoryLoading(false);
+    }
+  }, [hasMoreMemberPaymentHistory, memberPaymentLastDoc, rowsPerPage, selectedMember, user.id]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -1028,6 +1252,9 @@ export default function GymMembersPanel({
     setSelectedMember(null);
     setPaymentFormValues(emptyPaymentForm);
     setPaymentHistoryLoading(false);
+    setMemberPaymentHistory([]);
+    setMemberPaymentLastDoc(null);
+    setHasMoreMemberPaymentHistory(false);
   }, []);
 
   const openCreateMemberForm = useCallback(() => {
@@ -1066,24 +1293,28 @@ export default function GymMembersPanel({
       setPaymentHistoryLoading(true);
 
       try {
-        const paymentHistory = await getGymPaymentsForMember(user.id, member.id);
-        setPayments((current) => {
-          const otherPayments = current.filter((payment) => payment.memberDocId !== member.id);
-          const normalizedHistory = paymentHistory
-            .map((payment, index) => normalizeGymPaymentRecord(payment, `member-payment-${index + 1}`))
-            .sort((a, b) => (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate));
-
-          return [...otherPayments, ...normalizedHistory].sort((a, b) =>
-            (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate),
-          );
+        const paymentHistoryPage = await getGymPaymentsForMember(user.id, member.id, {
+          pageSize: rowsPerPage,
         });
+
+        const normalizedHistory = paymentHistoryPage.data
+          .map((payment, index) =>
+            normalizeGymPaymentRecord(payment, `member-payment-${index + 1}`)
+          )
+          .sort((a, b) =>
+            (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate)
+          );
+
+        setMemberPaymentHistory(normalizedHistory);
+        setMemberPaymentLastDoc(paymentHistoryPage.lastDoc);
+        setHasMoreMemberPaymentHistory(paymentHistoryPage.hasMore);
       } catch {
         toast.error('Unable to load payment history for this member.');
       } finally {
         setPaymentHistoryLoading(false);
       }
     },
-    [user.id],
+    [user.id]
   );
 
   const handleMemberInputChange = useCallback(
@@ -1094,7 +1325,7 @@ export default function GymMembersPanel({
         [name]: value,
       }));
     },
-    [],
+    []
   );
 
   const handlePaymentInputChange = useCallback(
@@ -1105,19 +1336,16 @@ export default function GymMembersPanel({
         [name]: value,
       }));
     },
-    [],
+    []
   );
 
   const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     setSearchInput(event.target.value);
   }, []);
 
-  const handleRowsPerPageChange = useCallback(
-    (event: React.ChangeEvent<HTMLSelectElement>) => {
-      setRowsPerPage(Number(event.target.value));
-    },
-    [],
-  );
+  const handleRowsPerPageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
+    setRowsPerPage(Number(event.target.value));
+  }, []);
 
   const handleResetFilters = useCallback(() => {
     setSearchInput('');
@@ -1132,7 +1360,9 @@ export default function GymMembersPanel({
       setSubmittingMember(true);
 
       const normalizedFeeAmount = Number(memberFormValues.feeAmount || 0);
-      const normalizedOpeningPayment = editingMemberId ? 0 : Number(memberFormValues.initialPayment || 0);
+      const normalizedOpeningPayment = editingMemberId
+        ? 0
+        : Number(memberFormValues.initialPayment || 0);
       const existingMember = members.find((member) => member.id === editingMemberId);
 
       const nextMember: GymMemberRecord = {
@@ -1185,8 +1415,8 @@ export default function GymMembersPanel({
 
             setPayments((current) =>
               [openingPayment, ...current].sort((a, b) =>
-                (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate),
-              ),
+                (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate)
+              )
             );
           }
         }
@@ -1195,19 +1425,30 @@ export default function GymMembersPanel({
           if (editingMemberId) {
             return current
               .map((member) => (member.id === editingMemberId ? nextMember : member))
-              .sort((a, b) => (b.createdAt ?? b.joiningDate).localeCompare(a.createdAt ?? a.joiningDate));
+              .sort((a, b) =>
+                (b.createdAt ?? b.joiningDate).localeCompare(a.createdAt ?? a.joiningDate)
+              );
           }
 
           return [nextMember, ...current].sort((a, b) =>
-            (b.createdAt ?? b.joiningDate).localeCompare(a.createdAt ?? a.joiningDate),
+            (b.createdAt ?? b.joiningDate).localeCompare(a.createdAt ?? a.joiningDate)
           );
         });
+        setMemberPaymentHistory((current) =>
+          current.map((payment) =>
+            payment.memberDocId === nextMember.id
+              ? { ...payment, memberName: nextMember.fullName }
+              : payment
+          )
+        );
 
         if (selectedMember?.id === nextMember.id) {
           setSelectedMember(nextMember);
         }
 
-        toast.success(editingMemberId ? 'Gym member updated successfully.' : 'Gym member added successfully.');
+        toast.success(
+          editingMemberId ? 'Gym member updated successfully.' : 'Gym member added successfully.'
+        );
         closeMemberForm();
       } catch (error) {
         const message =
@@ -1217,13 +1458,13 @@ export default function GymMembersPanel({
         setSubmittingMember(false);
       }
     },
-    [closeMemberForm, editingMemberId, memberFormValues, members, selectedMember?.id, user.id],
+    [closeMemberForm, editingMemberId, memberFormValues, members, selectedMember?.id, user.id]
   );
 
   const handleDeleteMember = useCallback(
     async (member: GymMemberRecord) => {
       const confirmed = window.confirm(
-        `Delete ${member.fullName} and all of their fee history from the gym records?`,
+        `Delete ${member.fullName} and all of their fee history from the gym records?`
       );
 
       if (!confirmed) {
@@ -1231,7 +1472,7 @@ export default function GymMembersPanel({
       }
 
       try {
-        const memberPayments = await getGymPaymentsForMember(user.id, member.id);
+        const memberPayments = await getAllGymPaymentsForMember(user.id, member.id);
 
         await Promise.all([
           deleteGymMember(user.id, member.id),
@@ -1250,7 +1491,7 @@ export default function GymMembersPanel({
         toast.error('Unable to delete this gym member right now.');
       }
     },
-    [closePaymentModal, selectedMember?.id, user.id],
+    [closePaymentModal, selectedMember?.id, user.id]
   );
 
   const handlePaymentSubmit = useCallback(
@@ -1294,12 +1535,13 @@ export default function GymMembersPanel({
 
         setPayments((current) =>
           [paymentRecord, ...current].sort((a, b) =>
-            (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate),
-          ),
+            (b.createdAt ?? b.paymentDate).localeCompare(a.createdAt ?? a.paymentDate)
+          )
         );
         setMembers((current) =>
-          current.map((member) => (member.id === selectedMember.id ? updatedMember : member)),
+          current.map((member) => (member.id === selectedMember.id ? updatedMember : member))
         );
+        setMemberPaymentHistory((current) => [paymentRecord, ...current]);
         setSelectedMember(updatedMember);
         setPaymentFormValues({
           ...emptyPaymentForm,
@@ -1312,7 +1554,7 @@ export default function GymMembersPanel({
         setSubmittingPayment(false);
       }
     },
-    [paymentFormValues, selectedMember, user.id],
+    [paymentFormValues, selectedMember, user.id]
   );
 
   const handlePrintReceipt = useCallback(
@@ -1378,17 +1620,20 @@ export default function GymMembersPanel({
       receiptWindow.focus();
       receiptWindow.print();
     },
-    [members, selectedMember, user.businessName],
+    [members, selectedMember, user.businessName]
   );
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">Gym Management</p>
+          <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">
+            Gym Management
+          </p>
           <h1 className="text-2xl font-700 text-foreground mt-1">Members and Fees</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage member onboarding, fee collection, payment history, and printable receipts from one workspace.
+            Manage member onboarding, fee collection, payment history, and printable receipts from
+            one workspace.
           </p>
         </div>
 
@@ -1416,8 +1661,12 @@ export default function GymMembersPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Total Members</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{dashboardStats.totalMembers}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Total Members
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {dashboardStats.totalMembers}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary">
               <Users size={20} />
@@ -1427,8 +1676,12 @@ export default function GymMembersPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Active Members</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{dashboardStats.activeMembers}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Active Members
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {dashboardStats.activeMembers}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600">
               <Dumbbell size={20} />
@@ -1438,8 +1691,12 @@ export default function GymMembersPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Collected Fees</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{formatCurrency(dashboardStats.totalCollected)}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Collected Fees
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {formatCurrency(dashboardStats.totalCollected)}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
               <IndianRupee size={20} />
@@ -1449,8 +1706,12 @@ export default function GymMembersPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Outstanding</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{formatCurrency(dashboardStats.outstanding)}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                Outstanding
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {formatCurrency(dashboardStats.outstanding)}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
               <CreditCard size={20} />
@@ -1460,8 +1721,12 @@ export default function GymMembersPanel({
         <div className="glass-card rounded-2xl border border-border p-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">This Month</p>
-              <p className="text-2xl font-700 text-foreground mt-2">{formatCurrency(dashboardStats.thisMonthPayments)}</p>
+              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+                This Month
+              </p>
+              <p className="text-2xl font-700 text-foreground mt-2">
+                {formatCurrency(dashboardStats.thisMonthPayments)}
+              </p>
             </div>
             <div className="w-11 h-11 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-600">
               <CalendarClock size={20} />
@@ -1478,7 +1743,9 @@ export default function GymMembersPanel({
                 type="button"
                 onClick={() => setActiveTab('members')}
                 className={`px-4 py-2 rounded-xl text-sm font-600 transition-colors ${
-                  activeTab === 'members' ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'
+                  activeTab === 'members'
+                    ? 'bg-white text-foreground shadow-sm'
+                    : 'text-muted-foreground'
                 }`}
               >
                 Members
@@ -1487,7 +1754,9 @@ export default function GymMembersPanel({
                 type="button"
                 onClick={() => setActiveTab('payments')}
                 className={`px-4 py-2 rounded-xl text-sm font-600 transition-colors ${
-                  activeTab === 'payments' ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'
+                  activeTab === 'payments'
+                    ? 'bg-white text-foreground shadow-sm'
+                    : 'text-muted-foreground'
                 }`}
               >
                 Payments
@@ -1518,7 +1787,10 @@ export default function GymMembersPanel({
 
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                size={16}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
               <input
                 type="text"
                 value={searchInput}
@@ -1535,7 +1807,9 @@ export default function GymMembersPanel({
             {activeTab === 'members' ? (
               <select
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as 'all' | GymMemberRecord['status'])}
+                onChange={(event) =>
+                  setStatusFilter(event.target.value as 'all' | GymMemberRecord['status'])
+                }
                 className="bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="all">All statuses</option>
@@ -1546,7 +1820,9 @@ export default function GymMembersPanel({
             ) : (
               <select
                 value={methodFilter}
-                onChange={(event) => setMethodFilter(event.target.value as 'all' | GymPaymentRecord['paymentMethod'])}
+                onChange={(event) =>
+                  setMethodFilter(event.target.value as 'all' | GymPaymentRecord['paymentMethod'])
+                }
                 className="bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="all">All methods</option>
@@ -1562,7 +1838,9 @@ export default function GymMembersPanel({
         {activeTab === 'members' ? (
           !loading && filteredMembers.length === 0 ? (
             <div className="px-5 py-16 text-center">
-              <p className="text-sm font-600 text-foreground">No members match the current filters.</p>
+              <p className="text-sm font-600 text-foreground">
+                No members match the current filters.
+              </p>
               <p className="text-xs text-muted-foreground mt-1">
                 Try a different search or add a new member.
               </p>
@@ -1575,11 +1853,15 @@ export default function GymMembersPanel({
               onDelete={handleDeleteMember}
               onEdit={openEditMemberForm}
               onOpenPayments={openPaymentModal}
+              hasMoreMembers={hasMoreMembers}
+              loadMoreMembers={loadMoreMembers}
             />
           )
         ) : !loading && filteredPayments.length === 0 ? (
           <div className="px-5 py-16 text-center">
-            <p className="text-sm font-600 text-foreground">No payment receipts match the current filters.</p>
+            <p className="text-sm font-600 text-foreground">
+              No payment receipts match the current filters.
+            </p>
             <p className="text-xs text-muted-foreground mt-1">
               Record a payment for any member to start the history.
             </p>
@@ -1590,6 +1872,8 @@ export default function GymMembersPanel({
             loading={loading}
             onPrint={handlePrintReceipt}
             payments={paginatedPayments}
+            hasMorePayments={hasMorePayments}
+            loadMorePayments={loadMorePayments}
           />
         )}
 
@@ -1636,7 +1920,8 @@ export default function GymMembersPanel({
             <div>
               <p className="text-sm font-700 text-foreground">Receipt-ready fee collection</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Each saved payment creates a searchable fee history entry and a printable receipt that members can save as PDF from the browser print dialog.
+                Each saved payment creates a searchable fee history entry and a printable receipt
+                that members can save as PDF from the browser print dialog.
               </p>
             </div>
           </div>
@@ -1649,7 +1934,8 @@ export default function GymMembersPanel({
             <div>
               <p className="text-sm font-700 text-foreground">History stays consistent</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Member balances are updated from recorded payments so receipt totals and outstanding amounts stay aligned.
+                Member balances are updated from recorded payments so receipt totals and outstanding
+                amounts stay aligned.
               </p>
             </div>
           </div>
@@ -1673,6 +1959,8 @@ export default function GymMembersPanel({
           loadingHistory={paymentHistoryLoading}
           member={selectedMember}
           memberPayments={selectedMemberPayments}
+          hasMorePayments={hasMoreMemberPaymentHistory}
+          onLoadMorePayments={loadMoreMemberPayments}
           onChange={handlePaymentInputChange}
           onClose={closePaymentModal}
           onPrint={handlePrintReceipt}

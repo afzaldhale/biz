@@ -1,66 +1,60 @@
 export function sidebarResolver(businessType: string) {
   switch (businessType) {
-    case "academy":
+    case 'academy':
       return [
-        "Dashboard",
-        "Students",
-        "Courses",
-        "Fees",
-        "Receipts",
-        "Reports",
-        "Subscription",
-        "Settings",
+        'Dashboard',
+        'Students',
+        'Courses',
+        'Fees',
+        'Receipts',
+        'Reports',
+        'Subscription',
+        'Settings',
       ];
-    case "hotel":
+    case 'hotel':
       return [
-        "Dashboard",
-        "Rooms",
-        "Bookings",
-        "Guests",
-        "Billing",
-        "Reports",
-        "Subscription",
-        "Settings",
+        'Dashboard',
+        'Rooms',
+        'Bookings',
+        'Guests',
+        'Billing',
+        'Reports',
+        'Subscription',
+        'Settings',
       ];
-    case "restaurant":
+    case 'restaurant':
       return [
-        "Dashboard",
-        "Orders",
-        "Tables",
-        "Menu",
-        "Billing",
-        "Reports",
-        "Subscription",
-        "Settings",
+        'Dashboard',
+        'Orders',
+        'Tables',
+        'Menu',
+        'Billing',
+        'Reports',
+        'Subscription',
+        'Settings',
       ];
-    case "clinic":
+    case 'clinic':
       return [
-        "Dashboard",
-        "Patients",
-        "Appointments",
-        "Billing",
-        "Reports",
-        "Subscription",
-        "Settings",
+        'Dashboard',
+        'Patients',
+        'Appointments',
+        'Billing',
+        'Reports',
+        'Subscription',
+        'Settings',
       ];
-    case "serviceCenter":
+    case 'serviceCenter':
       return [
-        "Dashboard",
-        "Tickets",
-        "Customers",
-        "Technicians",
-        "Invoices",
-        "Reports",
-        "Subscription",
-        "Settings",
+        'Dashboard',
+        'Tickets',
+        'Customers',
+        'Technicians',
+        'Invoices',
+        'Reports',
+        'Subscription',
+        'Settings',
       ];
     default:
-      return [
-        "Dashboard",
-        "Customers",
-        "Reports",
-        "Subscription",
-        "Settings",
-      ];
+      return ['Dashboard', 'Customers', 'Reports', 'Subscription', 'Settings'];
   }
 }
