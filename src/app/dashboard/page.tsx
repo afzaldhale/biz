@@ -1,6 +1,16 @@
-import React from 'react';
-import DashboardPage from '@/app/dashboard-page/page';
+'use client';
 
-export default function DashboardAliasPage() {
-  return <DashboardPage />;
+import React from 'react';
+import DashboardContent from '@/app/dashboard-page/components/DashboardContent';
+import { useDashboardUser } from './components/useDashboardUser';
+import { DashboardShellSkeleton } from '@/app/dashboard-page/components/DashboardShell';
+
+export default function DashboardPage() {
+  const { user } = useDashboardUser();
+
+  if (!user) {
+    return <DashboardShellSkeleton />;
+  }
+
+  return <DashboardContent user={user} activeNav="nav-dashboard" onNavChange={() => undefined} />;
 }

@@ -79,14 +79,6 @@ const AcademyStudentsPanel = dynamic(() => import('./modules/AcademyStudentsPane
   loading: () => <ModuleSkeleton />,
 });
 
-const AcademyCoursesPanel = dynamic(() => import('./modules/AcademyCoursesPanel'), {
-  loading: () => <ModuleSkeleton />,
-});
-
-const AcademyFeesPanel = dynamic(() => import('./modules/AcademyFeesPanel'), {
-  loading: () => <ModuleSkeleton />,
-});
-
 const GenericBusinessModulePanel = dynamic(() => import('./modules/GenericBusinessModulePanel'), {
   loading: () => <ModuleSkeleton />,
 });

@@ -1,18 +1,20 @@
 'use client';
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AuthUser } from '@/types';
 import { Menu, Search, Bell, ChevronDown, LogOut, Settings, User, HelpCircle } from 'lucide-react';
 import { getIndustryById } from '@/data/industries';
+import { getDashboardHrefFromNavId } from '@/app/dashboard/components/dashboardRoutes';
 
 interface TopbarProps {
   user: AuthUser;
   onMenuToggle: () => void;
   onLogout: () => void | Promise<void>;
-  onNavChange: (navId: string) => void;
 }
 
-function DashboardTopbar({ user, onMenuToggle, onLogout, onNavChange }: TopbarProps) {
+function DashboardTopbar({ user, onMenuToggle, onLogout }: TopbarProps) {
+  const router = useRouter();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const industry = useMemo(() => getIndustryById(user.businessType), [user.businessType]);
 
@@ -35,10 +37,10 @@ function DashboardTopbar({ user, onMenuToggle, onLogout, onNavChange }: TopbarPr
 
   const handleUserMenuAction = useCallback(
     (navId: string) => {
-      onNavChange(navId);
+      router.push(getDashboardHrefFromNavId(navId));
       handleCloseUserMenu();
     },
-    [handleCloseUserMenu, onNavChange]
+    [handleCloseUserMenu, router]
   );
 
   useEffect(() => {

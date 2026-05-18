@@ -115,7 +115,6 @@ export default function DashboardShell() {
         collapsed={sidebarCollapsed}
         mobileOpen={mobileSidebarOpen}
         activeNav={activeNav}
-        onNavChange={handleNavChange}
         onCollapse={handleCollapse}
         onMobileClose={handleCloseMobileSidebar}
       />
@@ -136,7 +135,6 @@ export default function DashboardShell() {
           user={user}
           onMenuToggle={handleOpenMobileSidebar}
           onLogout={handleLogout}
-          onNavChange={handleNavChange}
         />
         <main className="flex-1 overflow-auto p-4 md:p-6 xl:p-8">
           <ErrorBoundary>

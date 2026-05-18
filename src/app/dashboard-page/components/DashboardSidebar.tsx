@@ -6,6 +6,7 @@ import AppLogo from '@/components/ui/AppLogo';
 import { AuthUser } from '@/types';
 import { getSidebarNavItems } from '@/utils/dashboardResolver';
 import { getIndustryById } from '@/data/industries';
+import { getDashboardHrefFromNavId } from '@/app/dashboard/components/dashboardRoutes';
 import {
   LayoutDashboard,
   Users,
@@ -72,7 +73,6 @@ interface SidebarProps {
   collapsed: boolean;
   mobileOpen: boolean;
   activeNav: string;
-  onNavChange: (id: string) => void;
   onCollapse: () => void;
   onMobileClose: () => void;
 }
@@ -82,7 +82,6 @@ function DashboardSidebar({
   collapsed,
   mobileOpen,
   activeNav,
-  onNavChange,
   onCollapse,
   onMobileClose,
 }: SidebarProps) {
@@ -151,9 +150,9 @@ function DashboardSidebar({
                 const IconComp = iconMap[item.icon];
                 const isActive = activeNav === item.id;
                 return (
-                  <button
+                  <Link
                     key={item.id}
-                    onClick={() => onNavChange(item.id)}
+                    href={getDashboardHrefFromNavId(item.id)}
                     title={collapsed ? item.label : undefined}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 mx-1.5 rounded-lg text-sm font-500 transition-all duration-150 relative group ${
                       collapsed ? 'justify-center w-auto' : ''
@@ -186,7 +185,7 @@ function DashboardSidebar({
                         )}
                       </div>
                     )}
-                  </button>
+                  </Link>
                 );
               })}
             </div>
@@ -263,12 +262,10 @@ function DashboardSidebar({
                 const IconComp = iconMap[item.icon];
                 const isActive = activeNav === item.id;
                 return (
-                  <button
+                  <Link
                     key={`mob-${item.id}`}
-                    onClick={() => {
-                      onNavChange(item.id);
-                      onMobileClose();
-                    }}
+                    href={getDashboardHrefFromNavId(item.id)}
+                    onClick={onMobileClose}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-500 transition-all duration-150 ${
                       isActive
                         ? 'sidebar-active'
@@ -282,7 +279,7 @@ function DashboardSidebar({
                         {item.badge}
                       </span>
                     )}
-                  </button>
+                  </Link>
                 );
               })}
             </div>
