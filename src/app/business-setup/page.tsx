@@ -75,6 +75,52 @@ const trustBadges = [
   { icon: BadgeCheck, label: 'Usage-based billing' },
 ];
 
+const industryAccentStyles: Record<
+  BusinessType,
+  { iconBg: string; iconText: string; selectedGlow: string }
+> = {
+  academy: {
+    iconBg: 'bg-violet-100',
+    iconText: 'text-violet-600',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(139,92,246,0.18)]',
+  },
+  hotel: {
+    iconBg: 'bg-sky-100',
+    iconText: 'text-sky-600',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(14,165,233,0.16)]',
+  },
+  restaurant: {
+    iconBg: 'bg-orange-100',
+    iconText: 'text-orange-500',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(249,115,22,0.16)]',
+  },
+  clinic: {
+    iconBg: 'bg-emerald-100',
+    iconText: 'text-emerald-600',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(16,185,129,0.16)]',
+  },
+  'service-center': {
+    iconBg: 'bg-amber-100',
+    iconText: 'text-amber-600',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(245,158,11,0.16)]',
+  },
+  gym: {
+    iconBg: 'bg-rose-100',
+    iconText: 'text-rose-500',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(244,63,94,0.16)]',
+  },
+  salon: {
+    iconBg: 'bg-pink-100',
+    iconText: 'text-pink-500',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(236,72,153,0.16)]',
+  },
+  custom: {
+    iconBg: 'bg-cyan-100',
+    iconText: 'text-cyan-500',
+    selectedGlow: 'shadow-[0_16px_36px_rgba(6,182,212,0.16)]',
+  },
+};
+
 interface BusinessSetupValues {
   businessType: BusinessType;
   businessName: string;
@@ -249,86 +295,79 @@ export default function BusinessSetupPage() {
                 </p>
               </div>
 
-              <div className="rounded-[1.5rem] border border-white/60 bg-white/55 p-3 backdrop-blur">
-                <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-                  <div className="grid gap-2 sm:grid-cols-3 xl:flex xl:flex-1">
-                    {progressSteps.map((step, index) => (
-                      <div
-                        key={step.id}
-                        className="flex items-center gap-3 rounded-2xl border border-indigo-100/80 bg-white/80 px-3 py-2.5 shadow-sm xl:min-w-[150px]"
-                      >
-                        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4f46e5,#7c3aed)] text-xs font-semibold text-white">
-                          {index + 1}
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary/70">
-                            {step.id}
-                          </p>
-                          <p className="text-sm font-semibold text-slate-900">{step.title}</p>
-                        </div>
-                      </div>
-                    ))}
+              <div className="flex flex-wrap items-center gap-2">
+                {progressSteps.map((step, index) => (
+                  <div
+                    key={step.id}
+                    className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm"
+                  >
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[linear-gradient(135deg,#4f46e5,#7c3aed)] text-[11px] font-semibold text-white">
+                      {index + 1}
+                    </span>
+                    <span>{step.title}</span>
                   </div>
-
-                  <div className="flex flex-wrap gap-2 xl:justify-end">
-                    {trustBadges.map((badge) => {
-                      const Icon = badge.icon;
-                      return (
-                        <div
-                          key={badge.label}
-                          className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-3 py-2 text-xs font-medium text-slate-600 shadow-sm backdrop-blur"
-                        >
-                          <Icon size={14} className="text-primary" />
-                          {badge.label}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                ))}
+                {trustBadges.map((badge) => {
+                  const Icon = badge.icon;
+                  return (
+                    <div
+                      key={badge.label}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/70 px-3 py-2 text-xs font-medium text-slate-500"
+                    >
+                      <Icon size={14} className="text-primary" />
+                      {badge.label}
+                    </div>
+                  );
+                })}
               </div>
 
-              <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
-                {businessTypeCards.map((option) => {
-                  const Icon = option.icon;
-                  const selected = selectedBusinessType === option.id;
+              <div className="rounded-[1.6rem] border border-white/65 bg-white/55 p-3.5 sm:p-4">
+                <div className="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">Choose your industry</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Select a workspace type to personalize your dashboard.
+                    </p>
+                  </div>
+                  <span className="hidden rounded-full border border-indigo-100 bg-white/80 px-3 py-1 text-xs font-medium text-slate-500 sm:inline-flex">
+                    8 options
+                  </span>
+                </div>
 
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => handleTypeSelect(option.id)}
-                      className={`group relative flex min-h-[88px] items-start gap-3 overflow-hidden rounded-[1.25rem] border p-3 text-left transition duration-200 xl:min-h-[120px] xl:flex-col xl:justify-between ${
-                        selected
-                          ? 'border-transparent bg-[linear-gradient(135deg,rgba(79,70,229,0.16),rgba(168,85,247,0.14),rgba(56,189,248,0.10))] shadow-[0_14px_34px_rgba(79,70,229,0.14)] ring-1 ring-indigo-200/80'
-                          : 'border-slate-200/90 bg-white/75 shadow-sm hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white hover:shadow-[0_16px_32px_rgba(99,102,241,0.10)]'
-                      }`}
-                    >
-                      <div className="flex w-full items-start gap-3 xl:justify-between">
+                <div className="grid gap-3 grid-cols-2 sm:grid-cols-2 lg:grid-cols-4">
+                  {businessTypeCards.map((option) => {
+                    const Icon = option.icon;
+                    const selected = selectedBusinessType === option.id;
+                    const accent = industryAccentStyles[option.id];
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => handleTypeSelect(option.id)}
+                        className={`group relative flex min-h-[112px] flex-col items-center justify-center rounded-[1.35rem] border px-3 py-4 text-center transition duration-200 sm:min-h-[124px] ${
+                          selected
+                            ? `border-indigo-200 bg-white ${accent.selectedGlow} ring-2 ring-indigo-100`
+                            : 'border-slate-200/90 bg-white/82 shadow-sm hover:-translate-y-0.5 hover:border-indigo-200 hover:bg-white'
+                        }`}
+                      >
                         <div
-                          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition xl:h-11 xl:w-11 ${
-                            selected
-                              ? 'bg-[linear-gradient(135deg,#4f46e5,#7c3aed)] text-white shadow-lg shadow-indigo-500/20'
-                              : 'bg-slate-50 text-primary group-hover:bg-indigo-50'
-                          }`}
+                          className={`mb-3 flex h-10 w-10 items-center justify-center rounded-full sm:h-11 sm:w-11 ${accent.iconBg} ${accent.iconText}`}
                         >
                           <Icon size={18} />
                         </div>
+                        <p className="text-sm font-medium leading-5 text-slate-700">
+                          {option.title.split(' / ')[0]}
+                        </p>
                         {selected ? (
-                          <div className="ml-auto flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-primary shadow-sm">
-                            <Check size={14} />
+                          <div className="absolute right-3 top-3 flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-primary">
+                            <Check size={13} />
                           </div>
                         ) : null}
-                      </div>
-
-                      <div className="min-w-0 flex-1 xl:w-full">
-                        <p className="text-sm font-semibold leading-5 text-slate-950">
-                          {option.title}
-                        </p>
-                        <p className="mt-1 text-xs leading-4 text-slate-500">{option.label}</p>
-                      </div>
-                    </button>
-                  );
-                })}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </section>
