@@ -25,8 +25,6 @@ import { BusinessType } from '@/types';
 import {
   MAX_UI_INPUT,
   MIN_RECORDS,
-  calculateMonthlyPrice,
-  formatINR,
   getBillableRecords,
   getRecordLabel,
   parseRecordCount,
@@ -166,7 +164,6 @@ export default function BusinessSetupPage() {
   const selectedBusinessType = watch('businessType') ?? 'academy';
   const records = watch('records') ?? MIN_RECORDS;
   const billableRecords = useMemo(() => getBillableRecords(records), [records]);
-  const monthlyPrice = useMemo(() => calculateMonthlyPrice(records), [records]);
   const recordLabel = useMemo(() => getRecordLabel(selectedBusinessType), [selectedBusinessType]);
 
   useEffect(() => {
@@ -413,118 +410,67 @@ export default function BusinessSetupPage() {
                   ) : null}
                 </div>
 
-                <div className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
-                  <div className="rounded-[1.5rem] border border-white/70 bg-white/70 p-4 shadow-sm backdrop-blur">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div>
-                        <label className="block text-sm font-semibold text-slate-900">
-                          Records required
-                        </label>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Minimum billing starts at {MIN_RECORDS} records.
-                        </p>
-                      </div>
-                      <span className="rounded-full border border-indigo-200/70 bg-indigo-50 px-3 py-1 text-xs font-semibold text-primary">
-                        {recordLabel}
-                      </span>
-                    </div>
-
-                    <div className="mt-4 flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={() => updateRecordCount(billableRecords - RECORD_STEP)}
-                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={billableRecords <= MIN_RECORDS}
-                        aria-label="Decrease records"
-                      >
-                        <Minus size={18} />
-                      </button>
-                      <div className="relative flex-1">
-                        <input
-                          type="text"
-                          inputMode="numeric"
-                          value={recordInput}
-                          onChange={(event) => handleRecordInputChange(event.target.value)}
-                          onBlur={handleRecordInputBlur}
-                          className={`w-full rounded-2xl border bg-white/95 px-4 py-3 text-center text-base font-semibold text-slate-950 transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 ${
-                            errors.records ? 'border-danger/60' : 'border-slate-200'
-                          }`}
-                          aria-label="Records required"
-                        />
-                        <p className="mt-2 text-center text-xs text-slate-500">
-                          Enter a value between {MIN_RECORDS} and{' '}
-                          {MAX_UI_INPUT.toLocaleString('en-IN')}.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => updateRecordCount(billableRecords + RECORD_STEP)}
-                        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-semibold text-slate-700 transition hover:border-primary hover:text-primary"
-                        aria-label="Increase records"
-                      >
-                        +
-                      </button>
-                    </div>
-
-                    {billableRecords === MIN_RECORDS && records < MIN_RECORDS ? (
-                      <p className="mt-3 text-xs text-amber-600">
-                        Minimum billing is applied at {MIN_RECORDS} records.
+                <div className="rounded-[1.5rem] border border-white/70 bg-white/70 p-4 shadow-sm backdrop-blur">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-900">
+                        Records required
+                      </label>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Minimum billing starts at {MIN_RECORDS} records.
                       </p>
-                    ) : null}
-
-                    {errors.records ? (
-                      <p className="mt-2 text-xs text-danger">{errors.records.message}</p>
-                    ) : null}
+                    </div>
+                    <span className="rounded-full border border-indigo-200/70 bg-indigo-50 px-3 py-1 text-xs font-semibold text-primary">
+                      {recordLabel}
+                    </span>
                   </div>
 
-                  <div className="rounded-[1.5rem] border border-indigo-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.88),rgba(238,242,255,0.88))] p-4 shadow-sm">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">Pricing Summary</p>
-                        <p className="mt-1 text-xs text-slate-500">
-                          Billing is calculated from your selected volume.
-                        </p>
-                      </div>
-                      <div className="rounded-full border border-indigo-200/80 bg-white/90 px-3 py-1 text-xs font-semibold text-primary">
-                        Usage based
-                      </div>
-                    </div>
-
-                    <div className="space-y-2.5 text-sm text-slate-700">
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Records selected</span>
-                        <span className="font-semibold text-slate-950">
-                          {records.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Billable records</span>
-                        <span className="font-semibold text-slate-950">
-                          {billableRecords.toLocaleString('en-IN')}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4">
-                        <span>Minimum billing</span>
-                        <span className="font-semibold text-slate-950">
-                          {MIN_RECORDS.toLocaleString('en-IN')} records
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between gap-4 border-t border-indigo-100 pt-3">
-                        <span className="text-sm font-semibold text-slate-900">
-                          Estimated monthly price
-                        </span>
-                        <span className="text-lg font-bold tracking-tight text-slate-950">
-                          {formatINR(monthlyPrice)}
-                        </span>
-                      </div>
-                    </div>
-
-                    {records < MIN_RECORDS ? (
-                      <p className="mt-3 text-xs text-amber-600">
-                        Minimum billing is applied at {MIN_RECORDS} records.
+                  <div className="mt-4 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => updateRecordCount(billableRecords - RECORD_STEP)}
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-700 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={billableRecords <= MIN_RECORDS}
+                      aria-label="Decrease records"
+                    >
+                      <Minus size={18} />
+                    </button>
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        value={recordInput}
+                        onChange={(event) => handleRecordInputChange(event.target.value)}
+                        onBlur={handleRecordInputBlur}
+                        className={`w-full rounded-2xl border bg-white/95 px-4 py-3 text-center text-base font-semibold text-slate-950 transition focus:border-primary focus:outline-none focus:ring-4 focus:ring-primary/10 ${
+                          errors.records ? 'border-danger/60' : 'border-slate-200'
+                        }`}
+                        aria-label="Records required"
+                      />
+                      <p className="mt-2 text-center text-xs text-slate-500">
+                        Enter a value between {MIN_RECORDS} and{' '}
+                        {MAX_UI_INPUT.toLocaleString('en-IN')}.
                       </p>
-                    ) : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => updateRecordCount(billableRecords + RECORD_STEP)}
+                      className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-slate-200 bg-white text-lg font-semibold text-slate-700 transition hover:border-primary hover:text-primary"
+                      aria-label="Increase records"
+                    >
+                      +
+                    </button>
                   </div>
+
+                  {billableRecords === MIN_RECORDS && records < MIN_RECORDS ? (
+                    <p className="mt-3 text-xs text-amber-600">
+                      Minimum billing is applied at {MIN_RECORDS} records.
+                    </p>
+                  ) : null}
+
+                  {errors.records ? (
+                    <p className="mt-2 text-xs text-danger">{errors.records.message}</p>
+                  ) : null}
                 </div>
 
                 <button
