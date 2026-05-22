@@ -1,12 +1,13 @@
 'use client';
 
-import React, { memo, useMemo } from 'react';
+import React, { memo, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import { AuthUser } from '@/types';
 import { getSidebarNavItems } from '@/utils/dashboardResolver';
 import { getIndustryById } from '@/data/industries';
 import { getDashboardHrefFromNavId } from '@/app/dashboard/components/dashboardRoutes';
+import { getAcademySidebarCounts } from '@/services/academyDashboardService';
 import {
   LayoutDashboard,
   Users,
@@ -87,6 +88,36 @@ function DashboardSidebar({
 }: SidebarProps) {
   const navGroups = useMemo(() => getSidebarNavItems(user.businessType), [user.businessType]);
   const industry = useMemo(() => getIndustryById(user.businessType), [user.businessType]);
+  const [academyBadges, setAcademyBadges] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    let active = true;
+
+    if (user.businessType !== 'academy') {
+      setAcademyBadges({});
+      return;
+    }
+
+    getAcademySidebarCounts(user.id)
+      .then((counts) => {
+        if (!active) return;
+        setAcademyBadges({
+          'nav-students': counts.students,
+          'nav-courses': counts.courses,
+          'nav-fees': counts.fees,
+          'nav-receipts': counts.receipts,
+          'nav-attendance': counts.attendance,
+        });
+      })
+      .catch(() => {
+        if (!active) return;
+        setAcademyBadges({});
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user.businessType, user.id]);
 
   return (
     <>
@@ -149,6 +180,10 @@ function DashboardSidebar({
               {group.items.map((item) => {
                 const IconComp = iconMap[item.icon];
                 const isActive = activeNav === item.id;
+                const badgeValue =
+                  user.businessType === 'academy'
+                    ? academyBadges[item.id]
+                    : item.badge;
                 return (
                   <Link
                     key={item.id}
@@ -167,9 +202,9 @@ function DashboardSidebar({
                     {!collapsed && (
                       <>
                         <span className="flex-1 text-left truncate">{item.label}</span>
-                        {item.badge !== undefined && item.badge > 0 && (
+                        {badgeValue !== undefined && badgeValue >= 0 && (
                           <span className="text-2xs badge-danger px-1.5 py-0.5 rounded-full font-700 min-w-[18px] text-center">
-                            {item.badge > 99 ? '99+' : item.badge}
+                            {badgeValue > 99 ? '99+' : badgeValue}
                           </span>
                         )}
                       </>
@@ -178,9 +213,9 @@ function DashboardSidebar({
                     {collapsed && (
                       <div className="absolute left-full ml-2 px-2.5 py-1.5 bg-white border border-border rounded-lg text-xs text-foreground font-500 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-50 shadow-card">
                         {item.label}
-                        {item.badge !== undefined && item.badge > 0 && (
+                        {badgeValue !== undefined && badgeValue >= 0 && (
                           <span className="ml-1.5 badge-danger px-1 py-0.5 rounded text-2xs">
-                            {item.badge}
+                            {badgeValue}
                           </span>
                         )}
                       </div>
@@ -261,6 +296,10 @@ function DashboardSidebar({
               {group.items.map((item) => {
                 const IconComp = iconMap[item.icon];
                 const isActive = activeNav === item.id;
+                const badgeValue =
+                  user.businessType === 'academy'
+                    ? academyBadges[item.id]
+                    : item.badge;
                 return (
                   <Link
                     key={`mob-${item.id}`}
@@ -274,9 +313,9 @@ function DashboardSidebar({
                   >
                     {IconComp && <IconComp size={16} className="flex-shrink-0" />}
                     <span className="flex-1 text-left">{item.label}</span>
-                    {item.badge !== undefined && item.badge > 0 && (
+                    {badgeValue !== undefined && badgeValue >= 0 && (
                       <span className="text-2xs badge-danger px-1.5 py-0.5 rounded-full font-700">
-                        {item.badge}
+                        {badgeValue > 99 ? '99+' : badgeValue}
                       </span>
                     )}
                   </Link>

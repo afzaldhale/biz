@@ -1,95 +1,50 @@
 'use client';
 
-import React, { memo, useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  Search,
-  UserPlus,
-  PencilLine,
-  Trash2,
+  BookOpen,
+  CalendarCheck2,
+  Eye,
+  Pencil,
+  Plus,
   Printer,
+  Search,
+  Trash2,
+  Wallet,
   X,
-  Users,
-  GraduationCap,
-  IndianRupee,
-  ReceiptText,
-  ChevronLeft,
-  ChevronRight,
 } from 'lucide-react';
-import { AuthUser, StudentRecord } from '@/types';
-import { addStudent, deleteStudent, getStudents, updateStudent } from '@/services/studentService';
+import { AcademyCourse, AcademyReceipt, AcademyStudent, AuthUser } from '@/types';
+import {
+  AcademyStudentInput,
+  createAcademyStudent,
+  deleteAcademyStudent,
+  getAcademyStudents,
+  updateAcademyStudent,
+} from '@/services/academyStudentService';
+import { getAcademyCourses } from '@/services/academyCourseService';
+import { getAcademyReceipts } from '@/services/academyReceiptService';
+import { getStudentProfileData } from '@/services/academyDashboardService';
 
 interface AcademyStudentsPanelProps {
   user: AuthUser;
   onNavigate: (navId: string) => void;
 }
 
-interface StudentFormValues {
-  studentName: string;
-  parentName: string;
-  courseName: string;
-  phone: string;
-  email: string;
-  admissionDate: string;
-  feeAmount: string;
-  paidAmount: string;
-  status: StudentRecord['status'];
-  notes: string;
-}
+interface StudentFormState extends AcademyStudentInput {}
 
-interface StudentTableProps {
-  currentPage: number;
-  loading: boolean;
-  onDelete: (student: StudentRecord) => void;
-  onEdit: (student: StudentRecord) => void;
-  onPrint: (student: StudentRecord) => void;
-  students: StudentRecord[];
-  hasMoreStudents: boolean;
-  loadMoreStudents: () => void;
-}
-
-interface StudentFormModalProps {
-  formValues: StudentFormValues;
-  editingStudentId: string | null;
-  onChange: (
-    event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => void;
-  onClose: () => void;
-  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
-  submitting: boolean;
-}
-
-const rowsPerPageOptions = [25, 50];
-
-const emptyForm: StudentFormValues = {
+const emptyForm: StudentFormState = {
   studentName: '',
   parentName: '',
-  courseName: '',
   phone: '',
   email: '',
+  address: '',
+  dateOfBirth: '',
   admissionDate: new Date().toISOString().slice(0, 10),
-  feeAmount: '',
-  paidAmount: '',
-  status: 'active',
   notes: '',
+  status: 'active',
+  selectedCourses: [],
 };
-
-function useDebouncedValue<T>(value: T, delay: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [delay, value]);
-
-  return debouncedValue;
-}
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -99,904 +54,653 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-function buildAdmissionId(students: StudentRecord[]) {
-  return `ADM-${String(students.length + 2401).padStart(4, '0')}`;
+function calculateAttendancePercentage(total: number, present: number, late: number) {
+  if (total === 0) return 0;
+  return Math.round(((present + late) / total) * 100);
 }
 
-function normalizeStudentRecord(
-  student: Partial<StudentRecord>,
-  fallbackId: string
-): StudentRecord {
-  return {
-    id: student.id ?? fallbackId,
-    admissionId: student.admissionId ?? fallbackId.toUpperCase(),
-    studentName: student.studentName ?? 'Unknown Student',
-    courseName: student.courseName ?? 'Unassigned Course',
-    phone: student.phone ?? '',
-    email: student.email ?? '',
-    parentName: student.parentName ?? 'N/A',
-    status: (student.status as StudentRecord['status']) ?? 'active',
-    admissionDate: student.admissionDate ?? new Date().toISOString().slice(0, 10),
-    feeAmount: Number(student.feeAmount ?? 0),
-    paidAmount: Number(student.paidAmount ?? 0),
-    notes: student.notes ?? '',
-    createdAt: student.createdAt,
-  };
-}
+function printReceipt(receipt: AcademyReceipt) {
+  const receiptWindow = window.open('', '_blank', 'width=920,height=760');
+  if (!receiptWindow) {
+    toast.error('Popup blocked. Please allow popups to print receipts.');
+    return;
+  }
 
-const StudentsTable = memo(function StudentsTable({
-  currentPage,
-  loading,
-  onDelete,
-  onEdit,
-  onPrint,
-  students,
-  hasMoreStudents,
-  loadMoreStudents,
-}: StudentTableProps) {
-  return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[980px]">
-        <thead className="bg-muted/40">
-          <tr>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
-              Student
-            </th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
-              Course
-            </th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
-              Contact
-            </th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
-              Status
-            </th>
-            <th className="text-left px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
-              Fees
-            </th>
-            <th className="text-right px-5 py-3 text-2xs font-700 text-muted-foreground uppercase tracking-wider">
-              Actions
-            </th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-border/70">
-          {loading
-            ? Array.from({ length: 6 }).map((_, index) => (
-                <tr key={`student-skeleton-${index}`}>
-                  <td colSpan={6} className="px-5 py-4">
-                    <div className="h-14 rounded-xl bg-muted animate-pulse" />
-                  </td>
-                </tr>
-              ))
-            : students.map((student) => {
-                const balance = student.feeAmount - student.paidAmount;
-                return (
-                  <tr key={student.id} className="hover:bg-muted/20 transition-colors">
-                    <td className="px-5 py-4">
-                      <div>
-                        <p className="text-sm font-700 text-foreground">{student.studentName}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {student.admissionId} · Parent: {student.parentName}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-600 text-foreground">{student.courseName}</p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Joined {student.admissionDate}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="text-sm text-foreground">{student.phone}</p>
-                      <p className="text-xs text-muted-foreground mt-1">{student.email}</p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`inline-flex px-2.5 py-1 rounded-full text-xs font-600 capitalize ${
-                          student.status === 'active'
-                            ? 'badge-success'
-                            : student.status === 'pending'
-                              ? 'badge-warning'
-                              : 'badge-info'
-                        }`}
-                      >
-                        {student.status}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4">
-                      <p className="text-sm font-700 text-foreground">
-                        {formatCurrency(student.paidAmount)}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Balance {formatCurrency(balance)}
-                      </p>
-                    </td>
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => onPrint(student)}
-                          className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5"
-                        >
-                          <Printer size={14} />
-                          Receipt
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onEdit(student)}
-                          className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5"
-                        >
-                          <PencilLine size={14} />
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onDelete(student)}
-                          className="px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 border border-danger/30 bg-danger/5 text-danger hover:bg-danger/10 transition-colors"
-                        >
-                          <Trash2 size={14} />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-          {!loading && students.length === 0 && (
-            <tr>
-              <td colSpan={6} className="px-5 py-16 text-center">
-                <p className="text-sm font-600 text-foreground">No students found on this page.</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Try a different filter or return to page 1.
-                </p>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-      {!loading && students.length > 0 && (
-        <div className="px-5 py-3 border-t border-border bg-white/80 text-xs text-muted-foreground">
-          Page {currentPage}
-        </div>
-      )}
-      {!loading && hasMoreStudents && (
-        <div className="px-5 py-4 border-t border-border bg-white/80 text-right">
-          <button
-            type="button"
-            onClick={loadMoreStudents}
-            className="btn-outline inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm"
-          >
-            Load more students
-          </button>
-        </div>
-      )}
-    </div>
-  );
-});
-
-const StudentFormModal = memo(function StudentFormModal({
-  formValues,
-  editingStudentId,
-  onChange,
-  onClose,
-  onSubmit,
-  submitting,
-}: StudentFormModalProps) {
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/45 backdrop-blur-sm p-4 overflow-y-auto">
-      <div className="min-h-full flex items-center justify-center">
-        <div className="w-full max-w-3xl glass-card rounded-[28px] border border-border shadow-card overflow-hidden animate-slide-up">
-          <div className="flex items-center justify-between px-6 py-5 border-b border-border">
-            <div>
-              <p className="text-xs font-700 tracking-[0.22em] text-primary uppercase">
-                {editingStudentId ? 'Edit Record' : 'New Admission'}
-              </p>
-              <h2 className="text-xl font-700 text-foreground mt-1">
-                {editingStudentId ? 'Update Student' : 'Add Student'}
-              </h2>
+  receiptWindow.document.write(`
+    <html>
+      <head>
+        <title>Receipt ${receipt.receiptNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; color: #111827; margin: 0; }
+          .receipt { max-width: 820px; margin: 24px auto; padding: 32px; }
+          .card { border: 1px solid #dbe3f0; border-radius: 18px; padding: 28px; }
+          .header { display: flex; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+          .brand { font-size: 28px; font-weight: 700; color: #4338ca; }
+          .muted { color: #64748b; font-size: 13px; }
+          .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 18px; }
+          .label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px; }
+          .value { font-size: 14px; font-weight: 600; color: #111827; }
+          .summary { margin-top: 24px; padding-top: 20px; border-top: 1px solid #e5e7eb; }
+          .summary-row { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 14px; }
+          .signature { margin-top: 40px; display: flex; justify-content: space-between; align-items: end; }
+          @media print {
+            body { margin: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt">
+          <div class="card">
+            <div class="header">
+              <div>
+                <div class="brand">${receipt.businessName}</div>
+                <div class="muted">${receipt.businessAddress || ''}</div>
+                <div class="muted">${receipt.businessPhone || ''}</div>
+              </div>
+              <div>
+                <div class="label">Receipt Number</div>
+                <div class="value">${receipt.receiptNumber}</div>
+                <div class="label" style="margin-top: 14px;">Payment Date</div>
+                <div class="value">${receipt.paymentDate}</div>
+              </div>
             </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="w-10 h-10 rounded-full bg-muted/70 text-muted-foreground hover:text-foreground hover:bg-muted flex items-center justify-center transition-colors"
-              aria-label="Close form"
-            >
-              <X size={18} />
-            </button>
+            <div class="grid">
+              <div><div class="label">Student Name</div><div class="value">${receipt.studentName}</div></div>
+              <div><div class="label">Course</div><div class="value">${receipt.courseName}</div></div>
+              <div><div class="label">Payment Mode</div><div class="value">${receipt.paymentMode}</div></div>
+              <div><div class="label">Receipt ID</div><div class="value">${receipt.receiptId}</div></div>
+            </div>
+            <div class="summary">
+              <div class="summary-row"><span>Amount Paid</span><strong>${formatCurrency(receipt.amountPaid)}</strong></div>
+              <div class="summary-row"><span>Pending Amount</span><strong>${formatCurrency(receipt.pendingAmount)}</strong></div>
+            </div>
+            <div class="signature">
+              <div class="muted">Generated by BizManage</div>
+              <div>
+                <div class="muted">Authorized Signature</div>
+                <div style="width: 180px; border-top: 1px solid #111827; margin-top: 32px;"></div>
+              </div>
+            </div>
           </div>
-
-          <form onSubmit={onSubmit} className="p-6 space-y-5">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">
-                  Student Name
-                </label>
-                <input
-                  required
-                  name="studentName"
-                  value={formValues.studentName}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Parent Name</label>
-                <input
-                  required
-                  name="parentName"
-                  value={formValues.parentName}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Course Name</label>
-                <input
-                  required
-                  name="courseName"
-                  value={formValues.courseName}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">
-                  Admission Date
-                </label>
-                <input
-                  required
-                  type="date"
-                  name="admissionDate"
-                  value={formValues.admissionDate}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Phone</label>
-                <input
-                  required
-                  name="phone"
-                  value={formValues.phone}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Email</label>
-                <input
-                  required
-                  type="email"
-                  name="email"
-                  value={formValues.email}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Total Fee</label>
-                <input
-                  required
-                  min="0"
-                  type="number"
-                  name="feeAmount"
-                  value={formValues.feeAmount}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Paid Amount</label>
-                <input
-                  required
-                  min="0"
-                  type="number"
-                  name="paidAmount"
-                  value={formValues.paidAmount}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">
-                  Enrollment Status
-                </label>
-                <select
-                  name="status"
-                  value={formValues.status}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  <option value="active">Active</option>
-                  <option value="pending">Pending</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
-                <textarea
-                  name="notes"
-                  rows={4}
-                  value={formValues.notes}
-                  onChange={onChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="Batch preference, fee reminder, academic notes, or parent communication details"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={onClose}
-                className="btn-outline px-5 py-3 rounded-xl text-sm"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={submitting}
-                className="btn-primary px-5 py-3 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {submitting ? 'Saving...' : editingStudentId ? 'Update Student' : 'Add Student'}
-              </button>
-            </div>
-          </form>
         </div>
-      </div>
-    </div>
-  );
-});
+      </body>
+    </html>
+  `);
+
+  receiptWindow.document.close();
+  receiptWindow.focus();
+  receiptWindow.print();
+}
 
 export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStudentsPanelProps) {
-  const [students, setStudents] = useState<StudentRecord[]>([]);
+  const [students, setStudents] = useState<AcademyStudent[]>([]);
+  const [courses, setCourses] = useState<AcademyCourse[]>([]);
+  const [receiptCounts, setReceiptCounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | StudentRecord['status']>('all');
-  const [rowsPerPage, setRowsPerPage] = useState(25);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [lastStudentDoc, setLastStudentDoc] = useState<QueryDocumentSnapshot<DocumentData> | null>(
-    null
-  );
-  const [hasMoreStudents, setHasMoreStudents] = useState(false);
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [formValues, setFormValues] = useState<StudentFormValues>(emptyForm);
-  const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-
-  const debouncedSearchTerm = useDebouncedValue(searchInput, 250);
-  const deferredSearchTerm = useDeferredValue(debouncedSearchTerm);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | AcademyStudent['status']>('all');
+  const [page, setPage] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<AcademyStudent | null>(null);
+  const [form, setForm] = useState<StudentFormState>(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [profileStudent, setProfileStudent] = useState<AcademyStudent | null>(null);
+  const [profileData, setProfileData] = useState<Awaited<ReturnType<typeof getStudentProfileData>> | null>(null);
+  const [profileTab, setProfileTab] = useState<'overview' | 'courses' | 'fees' | 'receipts' | 'attendance'>('overview');
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadStudents() {
-      setLoading(true);
-      setLastStudentDoc(null);
-      setHasMoreStudents(false);
-
-      try {
-        const paginated = await getStudents(user.id, { pageSize: rowsPerPage });
-        if (!mounted) {
-          return;
-        }
-
-        setStudents(
-          paginated.data.map((student: StudentRecord, index: number) =>
-            normalizeStudentRecord(student, `student-${index + 1}`)
-          )
-        );
-        setLastStudentDoc(paginated.lastDoc);
-        setHasMoreStudents(paginated.hasMore);
-      } catch {
-        if (!mounted) {
-          return;
-        }
-
-        setStudents([]);
-        toast.error('Unable to load students from Firebase right now.');
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadStudents();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user.id, rowsPerPage]);
-
-  const loadMoreStudents = useCallback(async () => {
-    if (!hasMoreStudents || !lastStudentDoc) {
-      return;
-    }
-
+    let active = true;
     setLoading(true);
-    try {
-      const paginated = await getStudents(user.id, {
-        pageSize: rowsPerPage,
-        lastDoc: lastStudentDoc,
+
+    Promise.all([getAcademyStudents(user.id), getAcademyCourses(user.id), getAcademyReceipts(user.id)])
+      .then(([studentData, courseData, receipts]) => {
+        if (!active) return;
+        setStudents(studentData);
+        setCourses(courseData.filter((course) => course.status === 'active'));
+        const counts = new Map<string, number>();
+        receipts.forEach((receipt) => {
+          counts.set(receipt.studentId, (counts.get(receipt.studentId) ?? 0) + 1);
+        });
+        setReceiptCounts(counts);
+      })
+      .catch(() => {
+        if (!active) return;
+        toast.error('Unable to load academy students right now.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
 
-      setStudents((current) => [
-        ...current,
-        ...paginated.data.map((student: StudentRecord, index: number) =>
-          normalizeStudentRecord(student, `student-${current.length + index + 1}`)
-        ),
-      ]);
-      setLastStudentDoc(paginated.lastDoc);
-      setHasMoreStudents(paginated.hasMore);
-    } catch {
-      toast.error('Unable to load more students. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  }, [hasMoreStudents, lastStudentDoc, rowsPerPage, user.id]);
+    return () => {
+      active = false;
+    };
+  }, [user.id]);
 
   const filteredStudents = useMemo(() => {
-    const query = deferredSearchTerm.trim().toLowerCase();
-
+    const query = search.trim().toLowerCase();
     return students.filter((student) => {
       const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
       const matchesQuery =
         query.length === 0 ||
         [
+          student.admissionId,
           student.studentName,
-          student.courseName,
+          student.parentName,
           student.phone,
           student.email,
-          student.parentName,
-          student.admissionId,
         ]
           .join(' ')
           .toLowerCase()
           .includes(query);
-
       return matchesStatus && matchesQuery;
     });
-  }, [deferredSearchTerm, statusFilter, students]);
-
-  const studentStats = useMemo(() => {
-    const totalFees = students.reduce((sum, student) => sum + student.feeAmount, 0);
-    const totalCollected = students.reduce((sum, student) => sum + student.paidAmount, 0);
-
-    return {
-      totalStudents: students.length,
-      activeStudents: students.filter((student) => student.status === 'active').length,
-      totalCollected,
-      pendingFees: totalFees - totalCollected,
-    };
-  }, [students]);
-
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(filteredStudents.length / rowsPerPage)),
-    [filteredStudents.length, rowsPerPage]
-  );
+  }, [search, statusFilter, students]);
 
   const paginatedStudents = useMemo(() => {
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    return filteredStudents.slice(startIndex, startIndex + rowsPerPage);
-  }, [currentPage, filteredStudents, rowsPerPage]);
+    const start = (page - 1) * 10;
+    return filteredStudents.slice(start, start + 10);
+  }, [filteredStudents, page]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredStudents.length / 10));
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [deferredSearchTerm, rowsPerPage, statusFilter]);
+    setPage(1);
+  }, [search, statusFilter]);
 
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const closeForm = useCallback(() => {
-    setFormValues(emptyForm);
-    setEditingStudentId(null);
-    setIsFormOpen(false);
-  }, []);
-
-  const openCreateForm = useCallback(() => {
-    setFormValues(emptyForm);
-    setEditingStudentId(null);
-    setIsFormOpen(true);
-  }, []);
-
-  const openEditForm = useCallback((student: StudentRecord) => {
-    setEditingStudentId(student.id);
-    setFormValues({
-      studentName: student.studentName,
-      parentName: student.parentName,
-      courseName: student.courseName,
-      phone: student.phone,
-      email: student.email,
-      admissionDate: student.admissionDate,
-      feeAmount: String(student.feeAmount),
-      paidAmount: String(student.paidAmount),
-      status: student.status,
-      notes: student.notes ?? '',
-    });
-    setIsFormOpen(true);
-  }, []);
-
-  const handleInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-      const { name, value } = event.target;
-      setFormValues((current) => ({
+  const toggleCourse = useCallback((course: AcademyCourse) => {
+    setForm((current) => {
+      const exists = current.selectedCourses.some((item) => item.courseId === course.courseId);
+      return {
         ...current,
-        [name]: value,
-      }));
+        selectedCourses: exists
+          ? current.selectedCourses.filter((item) => item.courseId !== course.courseId)
+          : [
+              ...current.selectedCourses,
+              {
+                courseId: course.courseId,
+                courseName: course.courseName,
+                fees: course.fees,
+              },
+            ],
+      };
+    });
+  }, []);
+
+  const openCreateModal = useCallback(() => {
+    setEditingStudent(null);
+    setForm(emptyForm);
+    setIsModalOpen(true);
+  }, []);
+
+  const openEditModal = useCallback(
+    (student: AcademyStudent) => {
+      setEditingStudent(student);
+      const selectedCourses = courses
+        .filter((course) => student.enrolledCourseIds.includes(course.courseId))
+        .map((course) => ({
+          courseId: course.courseId,
+          courseName: course.courseName,
+          fees: course.fees,
+        }));
+      setForm({
+        studentName: student.studentName,
+        parentName: student.parentName,
+        phone: student.phone,
+        email: student.email,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        admissionDate: student.admissionDate,
+        notes: student.notes,
+        status: student.status,
+        selectedCourses,
+      });
+      setIsModalOpen(true);
     },
-    []
+    [courses]
   );
 
-  const handleSearchChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchInput(event.target.value);
-  }, []);
-
-  const handleResetFilters = useCallback(() => {
-    setSearchInput('');
-    setStatusFilter('all');
-    setCurrentPage(1);
+  const closeModal = useCallback(() => {
+    setEditingStudent(null);
+    setForm(emptyForm);
+    setIsModalOpen(false);
   }, []);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      setSubmitting(true);
-
-      const nextRecord: StudentRecord = {
-        id: editingStudentId ?? `student-${Date.now()}`,
-        admissionId:
-          students.find((student) => student.id === editingStudentId)?.admissionId ??
-          buildAdmissionId(students),
-        studentName: formValues.studentName.trim(),
-        parentName: formValues.parentName.trim(),
-        courseName: formValues.courseName.trim(),
-        phone: formValues.phone.trim(),
-        email: formValues.email.trim(),
-        admissionDate: formValues.admissionDate,
-        feeAmount: Number(formValues.feeAmount || 0),
-        paidAmount: Number(formValues.paidAmount || 0),
-        status: formValues.status,
-        notes: formValues.notes.trim(),
-        createdAt: new Date().toISOString(),
-      };
+      setSaving(true);
 
       try {
-        if (editingStudentId) {
-          await updateStudent(user.id, editingStudentId, nextRecord);
+        if (editingStudent) {
+          await updateAcademyStudent(user.id, editingStudent.id, {
+            ...form,
+            paidFees: editingStudent.paidFees,
+          });
+          setStudents(await getAcademyStudents(user.id));
+          toast.success('Student updated successfully.');
         } else {
-          const newId = await addStudent(user.id, nextRecord);
-          nextRecord.id = newId;
+          await createAcademyStudent(user.id, form);
+          setStudents(await getAcademyStudents(user.id));
+          toast.success('Student added successfully.');
         }
-
-        setStudents((current) => {
-          if (editingStudentId) {
-            return current.map((student) =>
-              student.id === editingStudentId ? nextRecord : student
-            );
-          }
-
-          return [nextRecord, ...current];
-        });
-
-        toast.success(
-          editingStudentId ? 'Student details updated successfully.' : 'Student added successfully.'
-        );
-        closeForm();
-      } catch {
-        toast.error('Unable to save student right now. Please try again.');
+        closeModal();
+      } catch (caught) {
+        toast.error(caught instanceof Error ? caught.message : 'Unable to save student.');
       } finally {
-        setSubmitting(false);
+        setSaving(false);
       }
     },
-    [closeForm, editingStudentId, formValues, students, user.id]
+    [closeModal, editingStudent, form, user.id]
   );
 
   const handleDelete = useCallback(
-    async (student: StudentRecord) => {
-      const confirmed = window.confirm(`Delete ${student.studentName} from the student list?`);
-      if (!confirmed) {
-        return;
-      }
-
+    async (student: AcademyStudent) => {
+      const confirmed = window.confirm(`Delete ${student.studentName}?`);
+      if (!confirmed) return;
       try {
-        await deleteStudent(user.id, student.id);
-
-        setStudents((current) => current.filter((item) => item.id !== student.id));
-        toast.success('Student removed successfully.');
+        await deleteAcademyStudent(user.id, student.id);
+        setStudents(await getAcademyStudents(user.id));
+        toast.success('Student deleted successfully.');
       } catch {
-        toast.error('Unable to delete this student right now.');
+        toast.error('Unable to delete student right now.');
       }
     },
     [user.id]
   );
 
-  const handlePrintReceipt = useCallback(
-    (student: StudentRecord) => {
-      const balance = student.feeAmount - student.paidAmount;
-      const receiptWindow = window.open('', '_blank', 'width=900,height=700');
+  const openProfile = useCallback(async (student: AcademyStudent) => {
+    setProfileStudent(student);
+    setProfileTab('overview');
+    const data = await getStudentProfileData(user.id, student.studentId);
+    setProfileData(data);
+  }, [user.id]);
 
-      if (!receiptWindow) {
-        toast.error('Popup blocked. Please allow popups to print receipts.');
-        return;
-      }
-
-      receiptWindow.document.write(`
-        <html>
-          <head>
-            <title>Receipt ${student.admissionId}</title>
-            <style>
-              body { font-family: Arial, sans-serif; margin: 0; color: #0f172a; }
-              .print-area { padding: 32px; width: 100%; max-width: 900px; margin: 0 auto; }
-              .header { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 24px; }
-              .brand { font-size: 24px; font-weight: 700; color: #4338ca; margin-bottom: 8px; }
-              .card { border: 1px solid #e2e8f0; border-radius: 16px; padding: 24px; background: #fff; }
-              .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
-              .label { font-size: 11px; text-transform: uppercase; color: #64748b; margin-bottom: 6px; letter-spacing: 0.04em; }
-              .value { font-size: 14px; font-weight: 600; color: #0f172a; }
-              .summary { margin-top: 24px; padding: 18px; border-radius: 12px; background: #eef2ff; }
-              .summary div { margin-bottom: 10px; }
-              .summary div:last-child { margin-bottom: 0; }
-              @media print {
-                body { color: #000; }
-                .print-area { box-shadow: none; }
-                .no-print, button { display: none !important; }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="print-area">
-              <div class="header">
-                <div>
-                  <div class="brand">${user.businessName}</div>
-                  <div>Academy Fee Receipt</div>
-                </div>
-                <div>
-                  <div><strong>Receipt:</strong> ${student.admissionId}</div>
-                  <div><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN')}</div>
-                </div>
-              </div>
-              <div class="card">
-                <div class="grid">
-                  <div><div class="label">Student Name</div><div class="value">${student.studentName}</div></div>
-                  <div><div class="label">Parent Name</div><div class="value">${student.parentName}</div></div>
-                  <div><div class="label">Course</div><div class="value">${student.courseName}</div></div>
-                  <div><div class="label">Phone</div><div class="value">${student.phone}</div></div>
-                  <div><div class="label">Email</div><div class="value">${student.email}</div></div>
-                  <div><div class="label">Admission Date</div><div class="value">${student.admissionDate}</div></div>
-                </div>
-                <div class="summary">
-                  <div><strong>Total Fee:</strong> ${formatCurrency(student.feeAmount)}</div>
-                  <div><strong>Paid:</strong> ${formatCurrency(student.paidAmount)}</div>
-                  <div><strong>Balance:</strong> ${formatCurrency(balance)}</div>
-                </div>
-              </div>
-            </div>
-          </body>
-        </html>
-      `);
-      receiptWindow.document.close();
-      receiptWindow.focus();
-      receiptWindow.print();
-    },
-    [user.businessName]
-  );
-
-  const handleRowsPerPageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    setRowsPerPage(Number(event.target.value));
+  const closeProfile = useCallback(() => {
+    setProfileStudent(null);
+    setProfileData(null);
   }, []);
+
+  const handleAddFee = useCallback((student: AcademyStudent) => {
+    window.sessionStorage.setItem('academy:selectedStudentId', student.studentId);
+    onNavigate('nav-fees');
+  }, [onNavigate]);
+
+  const handleAttendance = useCallback((student: AcademyStudent) => {
+    window.sessionStorage.setItem('academy:selectedStudentId', student.studentId);
+    onNavigate('nav-attendance');
+  }, [onNavigate]);
+
+  const handlePrintLatestReceipt = useCallback(async (student: AcademyStudent) => {
+    const data = await getStudentProfileData(user.id, student.studentId);
+    const latestReceipt = data.receipts[0];
+    if (!latestReceipt) {
+      toast.error('No receipts found for this student yet.');
+      return;
+    }
+    printReceipt(latestReceipt);
+  }, [user.id]);
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">
-            Academy Management
-          </p>
-          <h1 className="text-2xl font-700 text-foreground mt-1">Students</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Manage admissions, track fee collection, and print student receipts from one workspace.
+          <p className="text-xs font-700 uppercase tracking-[0.24em] text-primary">Academy Students</p>
+          <h1 className="mt-1 text-2xl font-700 text-foreground">Students</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Admissions, enrollments, fee summary, receipt access, and attendance history.
           </p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onNavigate('nav-fees')}
-            className="btn-outline px-4 py-2.5 rounded-xl text-sm"
-          >
-            Open Fees
-          </button>
-          <button
-            type="button"
-            onClick={openCreateForm}
-            className="btn-primary px-4 py-2.5 rounded-xl text-sm inline-flex items-center gap-2"
-          >
-            <UserPlus size={16} />
-            Add Student
-          </button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-                Total Students
-              </p>
-              <p className="text-2xl font-700 text-foreground mt-2">{studentStats.totalStudents}</p>
-            </div>
-            <div className="w-11 h-11 rounded-2xl bg-indigo-50 flex items-center justify-center text-primary">
-              <Users size={20} />
-            </div>
-          </div>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-                Active Enrollments
-              </p>
-              <p className="text-2xl font-700 text-foreground mt-2">
-                {studentStats.activeStudents}
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-2xl bg-sky-50 flex items-center justify-center text-sky-600">
-              <GraduationCap size={20} />
-            </div>
-          </div>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-                Fees Collected
-              </p>
-              <p className="text-2xl font-700 text-foreground mt-2">
-                {formatCurrency(studentStats.totalCollected)}
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-              <IndianRupee size={20} />
-            </div>
-          </div>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-                Pending Balance
-              </p>
-              <p className="text-2xl font-700 text-foreground mt-2">
-                {formatCurrency(studentStats.pendingFees)}
-              </p>
-            </div>
-            <div className="w-11 h-11 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-600">
-              <ReceiptText size={20} />
-            </div>
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
+        >
+          <Plus size={16} />
+          Add Student
+        </button>
       </div>
 
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
-        <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 border-b border-border p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
-            <Search
-              size={16}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
-              type="text"
-              value={searchInput}
-              onChange={handleSearchChange}
-              placeholder="Search by name, course, phone, email, parent, or admission ID"
-              className="w-full bg-input border border-border rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by name, phone, email, parent name, or admission ID"
+              className="w-full rounded-xl border border-border bg-input py-3 pl-11 pr-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <select
-              value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value as 'all' | StudentRecord['status'])
-              }
-              className="bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <option value="all">All statuses</option>
-              <option value="active">Active</option>
-              <option value="pending">Pending</option>
-              <option value="completed">Completed</option>
-            </select>
-            <select
-              value={rowsPerPage}
-              onChange={handleRowsPerPageChange}
-              className="bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {rowsPerPageOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option} rows
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleResetFilters}
-              className="btn-outline px-4 py-3 rounded-xl text-sm"
-            >
-              Reset Filters
-            </button>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as 'all' | AcademyStudent['status'])}
+            className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
 
-        {!loading && filteredStudents.length === 0 ? (
+        {loading ? (
+          <div className="p-16 text-center text-muted-foreground">Loading students...</div>
+        ) : filteredStudents.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <p className="text-sm font-600 text-foreground">
-              No students match the current filters.
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Try a different search or add a new student.
+              No students yet. Add your first student to start managing admissions.
             </p>
           </div>
         ) : (
-          <StudentsTable
-            currentPage={currentPage}
-            loading={loading}
-            onDelete={handleDelete}
-            onEdit={openEditForm}
-            onPrint={handlePrintReceipt}
-            students={paginatedStudents}
-            hasMoreStudents={hasMoreStudents}
-            loadMoreStudents={loadMoreStudents}
-          />
+          <div className="overflow-x-auto">
+            <table className="min-w-[1200px] w-full text-left text-sm">
+              <thead className="bg-muted/80 text-xs uppercase tracking-wider text-muted-foreground">
+                <tr>
+                  <th className="px-5 py-4">Admission ID</th>
+                  <th className="px-5 py-4">Student Name</th>
+                  <th className="px-5 py-4">Parent Name</th>
+                  <th className="px-5 py-4">Phone</th>
+                  <th className="px-5 py-4">Courses Enrolled</th>
+                  <th className="px-5 py-4">Total Fees</th>
+                  <th className="px-5 py-4">Paid Fees</th>
+                  <th className="px-5 py-4">Pending Fees</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border bg-white">
+                {paginatedStudents.map((student) => (
+                  <tr key={student.id}>
+                    <td className="px-5 py-4 text-muted-foreground">{student.admissionId}</td>
+                    <td className="px-5 py-4">
+                      <p className="font-600 text-foreground">{student.studentName}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{student.email}</p>
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">{student.parentName}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{student.phone}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{student.enrolledCourseIds.length}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(student.totalFees)}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(student.paidFees)}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(student.pendingFees)}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${student.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
+                        {student.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button type="button" onClick={() => openProfile(student)} className="btn-outline rounded-xl px-3 py-2 text-xs"><Eye size={14} /></button>
+                        <button type="button" onClick={() => openEditModal(student)} className="btn-outline rounded-xl px-3 py-2 text-xs"><Pencil size={14} /></button>
+                        <button type="button" onClick={() => handleAddFee(student)} className="btn-outline rounded-xl px-3 py-2 text-xs"><Wallet size={14} /></button>
+                        <button type="button" onClick={() => handleAttendance(student)} className="btn-outline rounded-xl px-3 py-2 text-xs"><CalendarCheck2 size={14} /></button>
+                        <button
+                          type="button"
+                          disabled={!receiptCounts.get(student.studentId)}
+                          onClick={() => handlePrintLatestReceipt(student)}
+                          className="btn-outline rounded-xl px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          <Printer size={14} />
+                        </button>
+                        <button type="button" onClick={() => handleDelete(student)} className="rounded-xl border border-danger/25 bg-danger/5 px-3 py-2 text-xs text-danger transition hover:bg-danger/10"><Trash2 size={14} /></button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {!loading && filteredStudents.length > 0 && (
-          <div className="px-5 py-4 border-t border-border bg-white/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex items-center justify-between border-t border-border bg-white/80 px-5 py-4">
             <p className="text-xs text-muted-foreground">
-              Showing {(currentPage - 1) * rowsPerPage + 1}-
-              {Math.min(currentPage * rowsPerPage, filteredStudents.length)} of{' '}
-              {filteredStudents.length} students
+              Showing {(page - 1) * 10 + 1}-{Math.min(page * 10, filteredStudents.length)} of {filteredStudents.length} students
             </p>
-            <div className="flex items-center gap-2 self-end md:self-auto">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={14} />
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => setPage((current) => Math.max(1, current - 1))} disabled={page === 1} className="btn-outline rounded-xl px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
                 Prev
               </button>
-              <span className="text-xs font-600 text-foreground px-3 py-2 rounded-lg bg-muted">
-                {currentPage} / {totalPages}
+              <span className="rounded-lg bg-muted px-3 py-2 text-xs font-600 text-foreground">
+                {page} / {totalPages}
               </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={currentPage === totalPages}
-                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
+              <button type="button" onClick={() => setPage((current) => Math.min(totalPages, current + 1))} disabled={page === totalPages} className="btn-outline rounded-xl px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50">
                 Next
-                <ChevronRight size={14} />
               </button>
             </div>
           </div>
         )}
       </div>
 
-      {isFormOpen && (
-        <StudentFormModal
-          formValues={formValues}
-          editingStudentId={editingStudentId}
-          onChange={handleInputChange}
-          onClose={closeForm}
-          onSubmit={handleSubmit}
-          submitting={submitting}
-        />
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div className="mx-auto mt-8 max-w-4xl overflow-hidden rounded-[28px] border border-border bg-white shadow-card">
+            <div className="flex items-center justify-between border-b border-border px-6 py-5">
+              <div>
+                <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
+                  {editingStudent ? 'Edit Student' : 'New Admission'}
+                </p>
+                <h2 className="mt-1 text-xl font-700 text-foreground">
+                  {editingStudent ? 'Update student profile' : 'Add student'}
+                </h2>
+              </div>
+              <button type="button" onClick={closeModal} className="rounded-full bg-muted p-2 text-muted-foreground">
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="grid gap-4 p-6 md:grid-cols-2">
+              {[
+                ['Student Name', 'studentName'],
+                ['Parent Name', 'parentName'],
+                ['Phone', 'phone'],
+                ['Email', 'email'],
+              ].map(([label, key]) => (
+                <div key={key}>
+                  <label className="mb-1.5 block text-sm font-600 text-foreground">{label}</label>
+                  <input
+                    required={key !== 'email'}
+                    type={key === 'email' ? 'email' : 'text'}
+                    value={form[key as keyof StudentFormState] as string}
+                    onChange={(event) => setForm((current) => ({ ...current, [key]: event.target.value }))}
+                    className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              ))}
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Address</label>
+                <input
+                  value={form.address}
+                  onChange={(event) => setForm((current) => ({ ...current, address: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Admission Date</label>
+                <input
+                  required
+                  type="date"
+                  value={form.admissionDate}
+                  onChange={(event) => setForm((current) => ({ ...current, admissionDate: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Date of Birth</label>
+                <input
+                  type="date"
+                  value={form.dateOfBirth}
+                  onChange={(event) => setForm((current) => ({ ...current, dateOfBirth: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Select Courses</label>
+                <div className="grid gap-3 rounded-2xl border border-border bg-muted/30 p-4 sm:grid-cols-2">
+                  {courses.map((course) => {
+                    const selected = form.selectedCourses.some((item) => item.courseId === course.courseId);
+                    return (
+                      <button
+                        key={course.id}
+                        type="button"
+                        onClick={() => toggleCourse(course)}
+                        className={`rounded-2xl border px-4 py-3 text-left transition ${selected ? 'border-primary bg-indigo-50' : 'border-border bg-white'}`}
+                      >
+                        <p className="font-600 text-foreground">{course.courseName}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {course.duration} · {formatCurrency(course.fees)}
+                        </p>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Notes</label>
+                <textarea
+                  rows={4}
+                  value={form.notes}
+                  onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                  className="w-full resize-none rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Status</label>
+                <select
+                  value={form.status}
+                  onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as AcademyStudent['status'] }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" onClick={closeModal} className="btn-outline rounded-xl px-5 py-3 text-sm">
+                  Cancel
+                </button>
+                <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+                  {saving ? 'Saving...' : editingStudent ? 'Update Student' : 'Add Student'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {profileStudent && profileData && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div className="ml-auto max-w-4xl rounded-[28px] border border-border bg-white shadow-card">
+            <div className="flex items-center justify-between border-b border-border px-6 py-5">
+              <div>
+                <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">Student Profile</p>
+                <h2 className="mt-1 text-xl font-700 text-foreground">{profileStudent.studentName}</h2>
+              </div>
+              <button type="button" onClick={closeProfile} className="rounded-full bg-muted p-2 text-muted-foreground">
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="flex flex-wrap gap-2 border-b border-border px-6 py-4">
+              {(['overview', 'courses', 'fees', 'receipts', 'attendance'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  onClick={() => setProfileTab(tab)}
+                  className={`rounded-full px-4 py-2 text-sm font-600 ${profileTab === tab ? 'bg-indigo-50 text-primary' : 'bg-muted/60 text-muted-foreground'}`}
+                >
+                  {tab === 'fees' ? 'Fee History' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-6">
+              {profileTab === 'overview' && (() => {
+                const totalAttendance = profileData.attendance.length;
+                const presentCount = profileData.attendance.filter((item) => item.status === 'present').length;
+                const lateCount = profileData.attendance.filter((item) => item.status === 'late').length;
+                return (
+                  <div className="grid gap-5 md:grid-cols-2">
+                    <div className="rounded-2xl border border-border p-5">
+                      <p className="text-sm font-700 text-foreground">Student Details</p>
+                      <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                        <p><span className="font-600 text-foreground">Admission ID:</span> {profileStudent.admissionId}</p>
+                        <p><span className="font-600 text-foreground">Parent:</span> {profileStudent.parentName}</p>
+                        <p><span className="font-600 text-foreground">Phone:</span> {profileStudent.phone}</p>
+                        <p><span className="font-600 text-foreground">Email:</span> {profileStudent.email}</p>
+                        <p><span className="font-600 text-foreground">Address:</span> {profileStudent.address || '—'}</p>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border p-5">
+                      <p className="text-sm font-700 text-foreground">Fee & Attendance Summary</p>
+                      <div className="mt-4 space-y-3 text-sm text-muted-foreground">
+                        <p><span className="font-600 text-foreground">Total Fees:</span> {formatCurrency(profileStudent.totalFees)}</p>
+                        <p><span className="font-600 text-foreground">Paid Fees:</span> {formatCurrency(profileStudent.paidFees)}</p>
+                        <p><span className="font-600 text-foreground">Pending Fees:</span> {formatCurrency(profileStudent.pendingFees)}</p>
+                        <p><span className="font-600 text-foreground">Attendance Percentage:</span> {calculateAttendancePercentage(totalAttendance, presentCount, lateCount)}%</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {profileTab === 'courses' && (
+                <div className="space-y-3">
+                  {profileData.enrollments.length ? profileData.enrollments.map((enrollment) => (
+                    <div key={enrollment.id} className="rounded-2xl border border-border p-4">
+                      <p className="font-600 text-foreground">{String(enrollment.courseName ?? '')}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Enrolled: {String(enrollment.enrollmentDate ?? '')} · Status: {String(enrollment.status ?? '')}
+                      </p>
+                    </div>
+                  )) : <p className="text-sm text-muted-foreground">No enrollments found.</p>}
+                </div>
+              )}
+
+              {profileTab === 'fees' && (
+                <div className="space-y-3">
+                  {profileData.fees.length ? profileData.fees.map((fee) => (
+                    <div key={fee.id} className="rounded-2xl border border-border p-4">
+                      <p className="font-600 text-foreground">{fee.courseName}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Paid {formatCurrency(fee.paidAmount)} · Pending {formatCurrency(fee.pendingAmount)} · {fee.paymentMode} · {fee.paymentDate}
+                      </p>
+                    </div>
+                  )) : <p className="text-sm text-muted-foreground">No fee history found.</p>}
+                </div>
+              )}
+
+              {profileTab === 'receipts' && (
+                <div className="space-y-3">
+                  {profileData.receipts.length ? profileData.receipts.map((receipt) => (
+                    <div key={receipt.id} className="flex items-center justify-between rounded-2xl border border-border p-4">
+                      <div>
+                        <p className="font-600 text-foreground">{receipt.receiptNumber}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {receipt.courseName} · {formatCurrency(receipt.amountPaid)} · {receipt.paymentDate}
+                        </p>
+                      </div>
+                      <button type="button" onClick={() => printReceipt(receipt)} className="btn-outline rounded-xl px-4 py-2 text-xs">
+                        Print Receipt
+                      </button>
+                    </div>
+                  )) : <p className="text-sm text-muted-foreground">No receipts found.</p>}
+                </div>
+              )}
+
+              {profileTab === 'attendance' && (
+                <div className="space-y-3">
+                  {profileData.attendance.length ? profileData.attendance.map((record) => (
+                    <div key={record.id} className="rounded-2xl border border-border p-4">
+                      <p className="font-600 text-foreground">{record.courseName}</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {record.attendanceDate} · {record.status} · {record.remarks || 'No remarks'}
+                      </p>
+                    </div>
+                  )) : <p className="text-sm text-muted-foreground">No attendance history found.</p>}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

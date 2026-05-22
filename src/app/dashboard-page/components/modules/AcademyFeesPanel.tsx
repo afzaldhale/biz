@@ -1,37 +1,37 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState, useDeferredValue } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { AuthUser, FeeRecord } from '@/types';
-import { addFee, deleteFee, getFees, updateFee } from '@/services/feeService';
+import { Eye, Plus, Printer, Search } from 'lucide-react';
+import { AcademyEnrollment, AcademyFee, AcademyPaymentMode, AcademyReceipt, AcademyStudent, AuthUser } from '@/types';
+import { getAcademyStudents } from '@/services/academyStudentService';
+import { getStudentEnrollments } from '@/services/academyEnrollmentService';
+import { getAcademyFees, recordAcademyFeePayment } from '@/services/academyFeeService';
+import { getAcademyReceipts, getReceiptById } from '@/services/academyReceiptService';
+import { useBusiness } from '@/context/BusinessContext';
 
 interface AcademyFeesPanelProps {
   user: AuthUser;
   onNavigate: (navId: string) => void;
 }
 
-const emptyFee: Omit<FeeRecord, 'id'> = {
-  title: '',
-  description: '',
-  studentName: '',
-  amount: 0,
-  dueDate: new Date().toISOString().slice(0, 10),
-  status: 'pending',
-  notes: '',
-  createdAt: undefined,
-};
-
-function useDebouncedValue<T>(value: T, delay: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedValue(value), delay);
-    return () => window.clearTimeout(timeout);
-  }, [delay, value]);
-
-  return debouncedValue;
+interface FeePaymentForm {
+  studentId: string;
+  enrollmentId: string;
+  amountPaid: string;
+  paymentMode: AcademyPaymentMode;
+  paymentDate: string;
+  notes: string;
 }
+
+const emptyForm: FeePaymentForm = {
+  studentId: '',
+  enrollmentId: '',
+  amountPaid: '',
+  paymentMode: 'cash',
+  paymentDate: new Date().toISOString().slice(0, 10),
+  notes: '',
+};
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -41,265 +41,276 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelProps) {
-  const [fees, setFees] = useState<FeeRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingFeeId, setEditingFeeId] = useState<string | null>(null);
-  const [formValues, setFormValues] = useState<Omit<FeeRecord, 'id'>>(emptyFee);
-  const [submitting, setSubmitting] = useState(false);
+function printReceipt(receipt: AcademyReceipt) {
+  const receiptWindow = window.open('', '_blank', 'width=920,height=760');
+  if (!receiptWindow) {
+    toast.error('Popup blocked. Please allow popups to print receipts.');
+    return;
+  }
 
-  const debouncedSearchTerm = useDebouncedValue(searchInput, 250);
-  const deferredSearchTerm = useDeferredValue(debouncedSearchTerm);
+  receiptWindow.document.write(`
+    <html>
+      <head>
+        <title>${receipt.receiptNumber}</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 0; color: #111827; }
+          .shell { max-width: 820px; margin: 0 auto; padding: 32px; }
+          .card { border: 1px solid #dbe3f0; border-radius: 18px; padding: 28px; }
+          .row { display: flex; justify-content: space-between; gap: 24px; }
+          .muted { color: #64748b; font-size: 13px; }
+          .brand { color: #4338ca; font-size: 28px; font-weight: 700; }
+        </style>
+      </head>
+      <body>
+        <div class="shell">
+          <div class="card">
+            <div class="row">
+              <div>
+                <div class="brand">${receipt.businessName}</div>
+                <div class="muted">${receipt.businessAddress || ''}</div>
+                <div class="muted">${receipt.businessPhone || ''}</div>
+              </div>
+              <div>
+                <div><strong>Receipt:</strong> ${receipt.receiptNumber}</div>
+                <div><strong>Date:</strong> ${receipt.paymentDate}</div>
+              </div>
+            </div>
+            <hr style="margin: 24px 0; border: none; border-top: 1px solid #e5e7eb;" />
+            <div><strong>Student:</strong> ${receipt.studentName}</div>
+            <div style="margin-top: 10px;"><strong>Course:</strong> ${receipt.courseName}</div>
+            <div style="margin-top: 10px;"><strong>Payment Mode:</strong> ${receipt.paymentMode}</div>
+            <div style="margin-top: 24px;"><strong>Amount Paid:</strong> ${formatCurrency(receipt.amountPaid)}</div>
+            <div style="margin-top: 10px;"><strong>Pending Amount:</strong> ${formatCurrency(receipt.pendingAmount)}</div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
+  receiptWindow.document.close();
+  receiptWindow.focus();
+  receiptWindow.print();
+}
+
+export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
+  const { business } = useBusiness();
+  const [students, setStudents] = useState<AcademyStudent[]>([]);
+  const [enrollments, setEnrollments] = useState<AcademyEnrollment[]>([]);
+  const [fees, setFees] = useState<AcademyFee[]>([]);
+  const [receiptsMap, setReceiptsMap] = useState<Map<string, AcademyReceipt>>(new Map());
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | AcademyFee['status']>('all');
+  const [modeFilter, setModeFilter] = useState<'all' | AcademyPaymentMode>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form, setForm] = useState<FeePaymentForm>(emptyForm);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
 
-    async function loadFees() {
-      try {
-        const data = await getFees(user.id);
+    Promise.all([getAcademyStudents(user.id), getAcademyFees(user.id), getAcademyReceipts(user.id)])
+      .then(([studentData, feeData, receiptData]) => {
         if (!active) return;
-        setFees(data as FeeRecord[]);
-      } catch {
+        setStudents(studentData);
+        setFees(feeData);
+        setReceiptsMap(new Map(receiptData.map((receipt) => [receipt.receiptId, receipt])));
+      })
+      .catch(() => {
         if (!active) return;
         toast.error('Unable to load fee records right now.');
-        setFees([]);
-      } finally {
+      })
+      .finally(() => {
         if (active) setLoading(false);
-      }
-    }
+      });
 
-    loadFees();
     return () => {
       active = false;
     };
   }, [user.id]);
 
-  const filteredFees = useMemo(() => {
-    const query = deferredSearchTerm.trim().toLowerCase();
-    if (!query) return fees;
-    return fees.filter((fee) =>
-      [fee.title, fee.description, fee.studentName, fee.status, fee.notes, fee.dueDate]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(query)
-    );
-  }, [fees, deferredSearchTerm]);
-
-  const totals = useMemo(
-    () => ({
-      invoices: fees.length,
-      totalAmount: fees.reduce((sum, fee) => sum + (fee.amount ?? 0), 0),
-      overdue: fees.filter((fee) => fee.status === 'overdue').length,
-      collected: fees.filter((fee) => fee.status === 'paid').length,
-    }),
-    [fees]
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredFees.length / rowsPerPage));
-  const paginatedFees = useMemo(() => {
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    return filteredFees.slice(startIndex, startIndex + rowsPerPage);
-  }, [currentPage, filteredFees, rowsPerPage]);
-
   useEffect(() => {
-    setCurrentPage(1);
-  }, [deferredSearchTerm, rowsPerPage]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
+    if (!form.studentId) {
+      setEnrollments([]);
+      setForm((current) => ({ ...current, enrollmentId: '' }));
+      return;
     }
-  }, [currentPage, totalPages]);
 
-  const openForm = useCallback((fee?: FeeRecord) => {
-    if (fee) {
-      setEditingFeeId(fee.id);
-      setFormValues({
-        title: fee.title,
-        description: fee.description ?? '',
-        studentName: fee.studentName,
-        amount: fee.amount,
-        dueDate: fee.dueDate,
-        status: fee.status,
-        notes: fee.notes ?? '',
-        createdAt: fee.createdAt,
+    getStudentEnrollments(user.id, form.studentId)
+      .then((data) => {
+        setEnrollments(data.filter((item) => item.status === 'active'));
+      })
+      .catch(() => {
+        toast.error('Unable to load enrollments for this student.');
       });
-    } else {
-      setEditingFeeId(null);
-      setFormValues(emptyFee);
-    }
-    setFormOpen(true);
+  }, [form.studentId, user.id]);
+
+  useEffect(() => {
+    const selectedStudentId = window.sessionStorage.getItem('academy:selectedStudentId');
+    if (!selectedStudentId) return;
+    setForm((current) => ({ ...current, studentId: selectedStudentId }));
+    window.sessionStorage.removeItem('academy:selectedStudentId');
   }, []);
 
-  const closeForm = useCallback(() => {
-    setEditingFeeId(null);
-    setFormValues(emptyFee);
-    setFormOpen(false);
-  }, []);
-
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-      const { name, value } = event.target;
-      setFormValues((current) => ({
-        ...current,
-        [name]: name === 'amount' ? Number(value) : value,
-      }));
-    },
-    []
+  const selectedStudent = useMemo(
+    () => students.find((student) => student.studentId === form.studentId) ?? null,
+    [form.studentId, students]
   );
+  const selectedEnrollment = useMemo(
+    () => enrollments.find((enrollment) => enrollment.enrollmentId === form.enrollmentId) ?? null,
+    [enrollments, form.enrollmentId]
+  );
+
+  const filteredFees = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    return fees.filter((fee) => {
+      const matchesStatus = statusFilter === 'all' || fee.status === statusFilter;
+      const matchesMode = modeFilter === 'all' || fee.paymentMode === modeFilter;
+      const matchesQuery =
+        query.length === 0 ||
+        [fee.studentName, fee.courseName, fee.status, fee.paymentMode]
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      return matchesStatus && matchesMode && matchesQuery;
+    });
+  }, [fees, modeFilter, search, statusFilter]);
+
+  const openModal = useCallback(() => {
+    setForm(emptyForm);
+    setEnrollments([]);
+    setIsModalOpen(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setForm(emptyForm);
+    setEnrollments([]);
+    setIsModalOpen(false);
+  }, []);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      setSubmitting(true);
 
-      const nextFee: Omit<FeeRecord, 'id'> = {
-        title: formValues.title.trim(),
-        description: formValues.description.trim(),
-        studentName: formValues.studentName.trim(),
-        amount: formValues.amount,
-        dueDate: formValues.dueDate,
-        status: formValues.status,
-        notes: formValues.notes?.trim() ?? '',
-        createdAt: formValues.createdAt,
-      };
+      if (!selectedStudent) {
+        toast.error('Student required.');
+        return;
+      }
+      if (!selectedEnrollment) {
+        toast.error('Course required.');
+        return;
+      }
+      const amount = Number(form.amountPaid || 0);
+      if (amount <= 0) {
+        toast.error('Amount cannot be 0.');
+        return;
+      }
+      if (amount > selectedStudent.pendingFees) {
+        toast.error('Amount cannot exceed pending amount.');
+        return;
+      }
+      if (!business) {
+        toast.error('Business profile not loaded.');
+        return;
+      }
 
+      setSaving(true);
       try {
-        if (editingFeeId) {
-          await updateFee(user.id, editingFeeId, nextFee);
-          setFees((current) =>
-            current.map((fee) => (fee.id === editingFeeId ? { id: editingFeeId, ...nextFee } : fee))
-          );
-          toast.success('Fee record updated successfully.');
-        } else {
-          const newId = await addFee(user.id, nextFee);
-          setFees((current) => [{ id: newId, ...nextFee }, ...current]);
-          toast.success('Fee record added successfully.');
+        const paymentResult = await recordAcademyFeePayment(user.id, {
+          studentId: selectedStudent.studentId,
+          courseId: selectedEnrollment.courseId,
+          enrollmentId: selectedEnrollment.enrollmentId,
+          amountPaid: amount,
+          paymentMode: form.paymentMode,
+          paymentDate: form.paymentDate,
+          notes: form.notes,
+          businessProfile: {
+            businessName: business.businessName,
+            address: business.address ?? '',
+            phone: business.phone,
+          },
+        });
+
+        const [nextFees, nextReceipts, nextStudents] = await Promise.all([
+          getAcademyFees(user.id),
+          getAcademyReceipts(user.id),
+          getAcademyStudents(user.id),
+        ]);
+        setFees(nextFees);
+        setStudents(nextStudents);
+        setReceiptsMap(new Map(nextReceipts.map((receipt) => [receipt.receiptId, receipt])));
+        toast.success('Payment saved and receipt generated.');
+        closeModal();
+
+        const receipt = await getReceiptById(user.id, paymentResult.receiptId);
+        if (receipt) {
+          printReceipt(receipt);
         }
-        closeForm();
-      } catch {
-        toast.error('Unable to save fee record right now. Please try again.');
+      } catch (caught) {
+        toast.error(caught instanceof Error ? caught.message : 'Unable to record payment.');
       } finally {
-        setSubmitting(false);
+        setSaving(false);
       }
     },
-    [closeForm, formValues, user.id]
-  );
-
-  const handleDelete = useCallback(
-    async (feeId: string) => {
-      const confirmed = window.confirm('Delete this fee record?');
-      if (!confirmed) return;
-
-      try {
-        await deleteFee(user.id, feeId);
-        setFees((current) => current.filter((fee) => fee.id !== feeId));
-        toast.success('Fee record deleted successfully.');
-      } catch {
-        toast.error('Unable to delete fee record right now.');
-      }
-    },
-    [user.id]
+    [business, closeModal, form.amountPaid, form.notes, form.paymentDate, form.paymentMode, selectedEnrollment, selectedStudent, user.id]
   );
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">Academy Fees</p>
-          <h1 className="text-2xl font-700 text-foreground mt-1">Fee Ledger</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track fee collections, payment status, and due amounts for student invoices.
+          <p className="text-xs font-700 uppercase tracking-[0.24em] text-primary">Academy Fees</p>
+          <h1 className="mt-1 text-2xl font-700 text-foreground">Fee Ledger</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Student-linked fee payments with automatic receipt generation.
           </p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onNavigate('nav-students')}
-            className="btn-outline px-4 py-2.5 rounded-xl text-sm"
-          >
-            Back to Students
-          </button>
-          <button
-            type="button"
-            onClick={() => openForm()}
-            className="btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
-          >
-            <Plus size={16} /> Add Fee
-          </button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Invoices</p>
-          <p className="text-2xl font-700 text-foreground mt-2">{totals.invoices}</p>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Collected
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">{totals.collected}</p>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Overdue</p>
-          <p className="text-2xl font-700 text-foreground mt-2">{totals.overdue}</p>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Total Fee
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">
-            {formatCurrency(totals.totalAmount)}
-          </p>
-        </div>
+        <button type="button" onClick={openModal} className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm">
+          <Plus size={16} />
+          Add Fee Payment
+        </button>
       </div>
 
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
-        <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="relative flex-1">
-            <Search
-              size={16}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
-            />
+        <div className="grid gap-4 border-b border-border p-5 lg:grid-cols-[1fr_auto_auto]">
+          <div className="relative">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
-              type="text"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search fee records by student, description, or status"
-              className="w-full bg-input border border-border rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by student, course, status, or payment mode"
+              className="w-full rounded-xl border border-border bg-input py-3 pl-11 pr-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-
-          <div className="flex items-center gap-2">
-            <select
-              value={rowsPerPage}
-              onChange={(event) => setRowsPerPage(Number(event.target.value))}
-              className="bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {[10, 20, 30].map((option) => (
-                <option key={option} value={option}>
-                  {option} rows
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as 'all' | AcademyFee['status'])}
+            className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All statuses</option>
+            <option value="paid">Paid</option>
+            <option value="partial">Partial</option>
+            <option value="pending">Pending</option>
+          </select>
+          <select
+            value={modeFilter}
+            onChange={(event) => setModeFilter(event.target.value as 'all' | AcademyPaymentMode)}
+            className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All modes</option>
+            <option value="cash">Cash</option>
+            <option value="upi">UPI</option>
+            <option value="bank">Bank</option>
+            <option value="card">Card</option>
+          </select>
         </div>
 
         {loading ? (
           <div className="p-16 text-center text-muted-foreground">Loading fee records...</div>
         ) : filteredFees.length === 0 ? (
           <div className="px-5 py-16 text-center">
-            <p className="text-sm font-600 text-foreground">No fee records found.</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Create your first invoice to track student payments.
+            <p className="text-sm font-600 text-foreground">
+              No fee records yet. Add a payment to generate receipts.
             </p>
           </div>
         ) : (
@@ -307,200 +318,155 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
             <table className="min-w-full text-left text-sm">
               <thead className="bg-muted/80 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-4">Invoice</th>
+                  <th className="px-5 py-4">Receipt No.</th>
                   <th className="px-5 py-4">Student</th>
-                  <th className="px-5 py-4">Amount</th>
-                  <th className="px-5 py-4">Due</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Actions</th>
+                  <th className="px-5 py-4">Course</th>
+                  <th className="px-5 py-4">Amount Paid</th>
+                  <th className="px-5 py-4">Pending After Payment</th>
+                  <th className="px-5 py-4">Payment Mode</th>
+                  <th className="px-5 py-4">Date</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-white">
-                {paginatedFees.map((fee) => (
-                  <tr key={fee.id}>
-                    <td className="px-5 py-4 font-600 text-foreground">{fee.title}</td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {fee.studentName || 'Student'}
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {formatCurrency(fee.amount)}
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {new Date(fee.dueDate).toLocaleDateString('en-IN')}
-                    </td>
-                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">
-                      {fee.status}
-                    </td>
-                    <td className="px-5 py-4 space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => openForm(fee)}
-                        className="btn-outline px-3 py-2 rounded-xl text-xs"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(fee.id)}
-                        className="btn-outline px-3 py-2 rounded-xl text-xs text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {filteredFees.map((fee) => {
+                  const receipt = receiptsMap.get(fee.receiptId);
+                  return (
+                    <tr key={fee.id}>
+                      <td className="px-5 py-4 text-muted-foreground">{receipt?.receiptNumber ?? '—'}</td>
+                      <td className="px-5 py-4 font-600 text-foreground">{fee.studentName}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{fee.courseName}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{formatCurrency(fee.paidAmount)}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{formatCurrency(fee.pendingAmount)}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{fee.paymentMode}</td>
+                      <td className="px-5 py-4 text-muted-foreground">{fee.paymentDate}</td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => receipt && printReceipt(receipt)}
+                            className="btn-outline rounded-xl px-3 py-2 text-xs"
+                          >
+                            <Printer size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              receipt
+                                ? toast.success(`Receipt ${receipt.receiptNumber} ready to print.`)
+                                : toast.error('Receipt not found.')
+                            }
+                            className="btn-outline rounded-xl px-3 py-2 text-xs"
+                          >
+                            <Eye size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
-
-        {!loading && filteredFees.length > 0 && (
-          <div className="px-5 py-4 border-t border-border bg-white/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p className="text-xs text-muted-foreground">
-              Showing {(currentPage - 1) * rowsPerPage + 1}-
-              {Math.min(currentPage * rowsPerPage, filteredFees.length)} of {filteredFees.length}{' '}
-              fee records
-            </p>
-            <div className="flex items-center gap-2 self-end md:self-auto">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={14} /> Prev
-              </button>
-              <span className="text-xs font-600 text-foreground px-3 py-2 rounded-lg bg-muted">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={currentPage === totalPages}
-                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {formOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 p-4 overflow-y-auto">
-          <div className="mx-auto max-w-3xl rounded-3xl bg-white p-6 md:p-8 shadow-xl">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {editingFeeId ? 'Edit fee record' : 'New Fee Record'}
-                </p>
-                <h2 className="text-2xl font-700 text-foreground mt-1">
-                  {editingFeeId ? 'Update invoice' : 'Create invoice'}
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={closeForm}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <ChevronLeft size={20} />
-              </button>
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div className="mx-auto mt-10 max-w-3xl overflow-hidden rounded-[28px] border border-border bg-white shadow-card">
+            <div className="border-b border-border px-6 py-5">
+              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">Add Fee Payment</p>
+              <h2 className="mt-1 text-xl font-700 text-foreground">Record student payment</h2>
             </div>
-
-            <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
+            <form onSubmit={handleSubmit} className="grid gap-4 p-6 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">
-                  Invoice Title
-                </label>
-                <input
-                  name="title"
-                  required
-                  value={formValues.title}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">
-                  Student Name
-                </label>
-                <input
-                  name="studentName"
-                  value={formValues.studentName}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Amount</label>
-                <input
-                  name="amount"
-                  required
-                  type="number"
-                  min="0"
-                  value={formValues.amount}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Due Date</label>
-                <input
-                  name="dueDate"
-                  required
-                  type="date"
-                  value={formValues.dueDate}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Description</label>
-                <textarea
-                  name="description"
-                  rows={4}
-                  value={formValues.description}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Status</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Select Student</label>
                 <select
-                  name="status"
-                  value={formValues.status}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  required
+                  value={form.studentId}
+                  onChange={(event) => setForm((current) => ({ ...current, studentId: event.target.value, enrollmentId: '' }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
-                  <option value="pending">Pending</option>
-                  <option value="paid">Paid</option>
-                  <option value="overdue">Overdue</option>
+                  <option value="">Choose student</option>
+                  {students.map((student) => (
+                    <option key={student.id} value={student.studentId}>
+                      {student.studentName} · {student.admissionId}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Select Course / Enrollment</label>
+                <select
+                  required
+                  value={form.enrollmentId}
+                  onChange={(event) => setForm((current) => ({ ...current, enrollmentId: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="">Choose enrollment</option>
+                  {enrollments.map((enrollment) => (
+                    <option key={enrollment.id} value={enrollment.enrollmentId}>
+                      {enrollment.courseName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Pending Amount</label>
+                <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
+                  {selectedStudent ? formatCurrency(selectedStudent.pendingFees) : 'Select student'}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Amount Paid</label>
+                <input
+                  required
+                  min="1"
+                  type="number"
+                  value={form.amountPaid}
+                  onChange={(event) => setForm((current) => ({ ...current, amountPaid: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Payment Mode</label>
+                <select
+                  required
+                  value={form.paymentMode}
+                  onChange={(event) => setForm((current) => ({ ...current, paymentMode: event.target.value as AcademyPaymentMode }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="upi">UPI</option>
+                  <option value="bank">Bank</option>
+                  <option value="card">Card</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Payment Date</label>
+                <input
+                  required
+                  type="date"
+                  value={form.paymentDate}
+                  onChange={(event) => setForm((current) => ({ ...current, paymentDate: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Notes</label>
                 <textarea
-                  name="notes"
                   rows={4}
-                  value={formValues.notes}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={form.notes}
+                  onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                  className="w-full resize-none rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="btn-outline px-5 py-3 rounded-xl text-sm"
-                >
+                <button type="button" onClick={closeModal} className="btn-outline rounded-xl px-5 py-3 text-sm">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-primary px-5 py-3 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Saving...' : editingFeeId ? 'Save changes' : 'Create Invoice'}
+                <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+                  {saving ? 'Saving...' : 'Save Payment & Print Receipt'}
                 </button>
               </div>
             </form>

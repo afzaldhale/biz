@@ -52,6 +52,20 @@ const AcademyFeesPanel = dynamic(
   }
 );
 
+const AcademyReceiptsPanel = dynamic(
+  () => import('@/app/dashboard-page/components/modules/AcademyReceiptsPanel'),
+  {
+    loading: () => <ModuleSkeleton />,
+  }
+);
+
+const AcademyAttendancePanel = dynamic(
+  () => import('@/app/dashboard-page/components/modules/AcademyAttendancePanel'),
+  {
+    loading: () => <ModuleSkeleton />,
+  }
+);
+
 const GenericBusinessModulePanel = dynamic(
   () => import('@/app/dashboard-page/components/modules/GenericBusinessModulePanel'),
   {
@@ -122,6 +136,14 @@ export default function DashboardModuleContent({ module, user }: DashboardModule
 
     if (module === 'fees') {
       return <AcademyFeesPanel user={user} onNavigate={handleNavigate} />;
+    }
+
+    if (module === 'receipts') {
+      return <AcademyReceiptsPanel user={user} onNavigate={handleNavigate} />;
+    }
+
+    if (module === 'attendance') {
+      return <AcademyAttendancePanel user={user} onNavigate={handleNavigate} />;
     }
   }
 

@@ -138,6 +138,125 @@ export interface StudentRecord {
   createdAt?: string;
 }
 
+export type AcademyStudentStatus = 'active' | 'inactive';
+export type AcademyCourseStatus = 'active' | 'inactive';
+export type AcademyEnrollmentStatus = 'active' | 'completed' | 'cancelled';
+export type AcademyPaymentMode = 'cash' | 'upi' | 'bank' | 'card';
+export type AcademyFeeStatus = 'paid' | 'partial' | 'pending';
+export type AcademyAttendanceStatus = 'present' | 'absent' | 'late';
+
+export interface AcademyStudent {
+  id: string;
+  studentId: string;
+  admissionId: string;
+  studentName: string;
+  parentName: string;
+  phone: string;
+  email: string;
+  address: string;
+  dateOfBirth: string;
+  admissionDate: string;
+  status: AcademyStudentStatus;
+  notes: string;
+  totalFees: number;
+  paidFees: number;
+  pendingFees: number;
+  enrolledCourseIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcademyCourse {
+  id: string;
+  courseId: string;
+  courseName: string;
+  duration: string;
+  fees: number;
+  description: string;
+  status: AcademyCourseStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcademyEnrollment {
+  id: string;
+  enrollmentId: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  courseName: string;
+  courseFees: number;
+  enrollmentDate: string;
+  status: AcademyEnrollmentStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcademyFee {
+  id: string;
+  feeId: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  courseName: string;
+  enrollmentId: string;
+  totalAmount: number;
+  paidAmount: number;
+  pendingAmount: number;
+  paymentMode: AcademyPaymentMode;
+  paymentDate: string;
+  status: AcademyFeeStatus;
+  receiptId: string;
+  notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcademyReceipt {
+  id: string;
+  receiptId: string;
+  receiptNumber: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  courseName: string;
+  feeId: string;
+  amountPaid: number;
+  pendingAmount: number;
+  paymentMode: AcademyPaymentMode;
+  paymentDate: string;
+  businessName: string;
+  businessAddress: string;
+  businessPhone: string;
+  createdAt: string;
+}
+
+export interface AcademyAttendance {
+  id: string;
+  attendanceId: string;
+  studentId: string;
+  studentName: string;
+  courseId: string;
+  courseName: string;
+  attendanceDate: string;
+  status: AcademyAttendanceStatus;
+  remarks: string;
+  markedBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AcademyDashboardSummary {
+  totalStudents: number;
+  activeCourses: number;
+  feesCollected: number;
+  pendingFees: number;
+  todayAttendanceCount: number;
+  todayPresentCount: number;
+  todayAbsentCount: number;
+  todayLateCount: number;
+}
+
 export interface GymMemberRecord {
   id: string;
   memberId: string;

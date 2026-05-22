@@ -21,9 +21,9 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     {
       section: 'MANAGEMENT',
       items: [
-        { id: 'nav-students', label: 'Students', icon: 'Users', badge: 284 },
-        { id: 'nav-courses', label: 'Courses', icon: 'BookOpen', badge: 18 },
-        { id: 'nav-fees', label: 'Fees', icon: 'IndianRupee', badge: 5 },
+        { id: 'nav-students', label: 'Students', icon: 'Users' },
+        { id: 'nav-courses', label: 'Courses', icon: 'BookOpen' },
+        { id: 'nav-fees', label: 'Fees', icon: 'IndianRupee' },
         { id: 'nav-receipts', label: 'Receipts', icon: 'Receipt' },
         { id: 'nav-attendance', label: 'Attendance', icon: 'ClipboardCheck' },
       ],
@@ -39,10 +39,10 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     {
       section: 'OPERATIONS',
       items: [
-        { id: 'nav-rooms', label: 'Rooms', icon: 'DoorOpen', badge: 12 },
-        { id: 'nav-bookings', label: 'Bookings', icon: 'CalendarCheck', badge: 4 },
+        { id: 'nav-rooms', label: 'Rooms', icon: 'DoorOpen' },
+        { id: 'nav-bookings', label: 'Bookings', icon: 'CalendarCheck' },
         { id: 'nav-guests', label: 'Guests', icon: 'Users' },
-        { id: 'nav-housekeeping', label: 'Housekeeping', icon: 'SprayCan', badge: 6 },
+        { id: 'nav-housekeeping', label: 'Housekeeping', icon: 'SprayCan' },
       ],
     },
     {
@@ -59,10 +59,10 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     {
       section: 'OPERATIONS',
       items: [
-        { id: 'nav-orders', label: 'Orders', icon: 'ShoppingBag', badge: 8 },
+        { id: 'nav-orders', label: 'Orders', icon: 'ShoppingBag' },
         { id: 'nav-tables', label: 'Tables', icon: 'LayoutGrid' },
         { id: 'nav-menu', label: 'Menu', icon: 'UtensilsCrossed' },
-        { id: 'nav-kitchen', label: 'Kitchen', icon: 'ChefHat', badge: 3 },
+        { id: 'nav-kitchen', label: 'Kitchen', icon: 'ChefHat' },
       ],
     },
     {
@@ -80,7 +80,7 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
       section: 'PATIENT CARE',
       items: [
         { id: 'nav-patients', label: 'Patients', icon: 'Users' },
-        { id: 'nav-appointments', label: 'Appointments', icon: 'Calendar', badge: 17 },
+        { id: 'nav-appointments', label: 'Appointments', icon: 'Calendar' },
         { id: 'nav-prescriptions', label: 'Prescriptions', icon: 'FileText' },
       ],
     },
@@ -98,7 +98,7 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     {
       section: 'OPERATIONS',
       items: [
-        { id: 'nav-tickets', label: 'Service Tickets', icon: 'Ticket', badge: 34 },
+        { id: 'nav-tickets', label: 'Service Tickets', icon: 'Ticket' },
         { id: 'nav-technicians', label: 'Technicians', icon: 'Wrench' },
         { id: 'nav-customers', label: 'Customers', icon: 'Users' },
       ],
@@ -117,7 +117,7 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     {
       section: 'MANAGEMENT',
       items: [
-        { id: 'nav-members', label: 'Members', icon: 'Users', badge: 23 },
+        { id: 'nav-members', label: 'Members', icon: 'Users' },
         { id: 'nav-classes', label: 'Classes', icon: 'Dumbbell' },
         { id: 'nav-trainers', label: 'Trainers', icon: 'UserCheck' },
         { id: 'nav-memberships', label: 'Memberships', icon: 'CreditCard' },
@@ -137,7 +137,7 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     {
       section: 'MANAGEMENT',
       items: [
-        { id: 'nav-appointments', label: 'Appointments', icon: 'Calendar', badge: 11 },
+        { id: 'nav-appointments', label: 'Appointments', icon: 'Calendar' },
         { id: 'nav-stylists', label: 'Stylists', icon: 'Scissors' },
         { id: 'nav-services', label: 'Services', icon: 'Sparkles' },
         { id: 'nav-products', label: 'Products', icon: 'Package' },

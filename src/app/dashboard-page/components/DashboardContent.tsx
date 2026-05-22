@@ -79,6 +79,26 @@ const AcademyStudentsPanel = dynamic(() => import('./modules/AcademyStudentsPane
   loading: () => <ModuleSkeleton />,
 });
 
+const AcademyOverviewPanel = dynamic(() => import('./modules/AcademyOverviewPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
+const AcademyCoursesPanel = dynamic(() => import('./modules/AcademyCoursesPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
+const AcademyFeesPanel = dynamic(() => import('./modules/AcademyFeesPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
+const AcademyReceiptsPanel = dynamic(() => import('./modules/AcademyReceiptsPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
+const AcademyAttendancePanel = dynamic(() => import('./modules/AcademyAttendancePanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
 const GenericBusinessModulePanel = dynamic(() => import('./modules/GenericBusinessModulePanel'), {
   loading: () => <ModuleSkeleton />,
 });
@@ -568,6 +588,10 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
     if (activeNav === 'nav-settings') return 'settings';
     if (activeNav === 'nav-help') return 'help';
 
+    if (activeNav === 'nav-dashboard' && user.businessType === 'academy') {
+      return 'academy-overview';
+    }
+
     if (user.businessType === 'academy') {
       if (activeNav === 'nav-students') {
         return 'academy-students';
@@ -577,6 +601,12 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
       }
       if (activeNav === 'nav-fees') {
         return 'academy-fees';
+      }
+      if (activeNav === 'nav-receipts') {
+        return 'academy-receipts';
+      }
+      if (activeNav === 'nav-attendance') {
+        return 'academy-attendance';
       }
     }
 
@@ -637,8 +667,28 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
     [user.businessType]
   );
 
+  if (selectedView === 'academy-overview') {
+    return <AcademyOverviewPanel user={user} onNavigate={onNavChange} />;
+  }
+
   if (selectedView === 'academy-students') {
     return <AcademyStudentsPanel user={user} onNavigate={onNavChange} />;
+  }
+
+  if (selectedView === 'academy-courses') {
+    return <AcademyCoursesPanel user={user} onNavigate={onNavChange} />;
+  }
+
+  if (selectedView === 'academy-fees') {
+    return <AcademyFeesPanel user={user} onNavigate={onNavChange} />;
+  }
+
+  if (selectedView === 'academy-receipts') {
+    return <AcademyReceiptsPanel user={user} onNavigate={onNavChange} />;
+  }
+
+  if (selectedView === 'academy-attendance') {
+    return <AcademyAttendancePanel user={user} onNavigate={onNavChange} />;
   }
 
   if (selectedView === 'gym-members') {

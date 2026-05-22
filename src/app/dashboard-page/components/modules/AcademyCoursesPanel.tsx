@@ -1,36 +1,30 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState, useDeferredValue } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { Plus, Search, Pencil, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { AuthUser, CourseRecord } from '@/types';
-import { addCourse, deleteCourse, getCourses, updateCourse } from '@/services/courseService';
+import { BookOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { AuthUser, AcademyCourse } from '@/types';
+import {
+  AcademyCourseInput,
+  createAcademyCourse,
+  deleteAcademyCourse,
+  getAcademyCourses,
+  getCourseEnrollmentCounts,
+  updateAcademyCourse,
+} from '@/services/academyCourseService';
 
 interface AcademyCoursesPanelProps {
   user: AuthUser;
   onNavigate: (navId: string) => void;
 }
 
-const emptyCourse: Omit<CourseRecord, 'id'> = {
-  title: '',
-  instructor: '',
-  category: '',
+const emptyCourse: AcademyCourseInput = {
+  courseName: '',
   duration: '',
-  fee: 0,
-  notes: '',
-  createdAt: undefined,
+  fees: 0,
+  description: '',
+  status: 'active',
 };
-
-function useDebouncedValue<T>(value: T, delay: number) {
-  const [debouncedValue, setDebouncedValue] = useState(value);
-
-  useEffect(() => {
-    const timeout = window.setTimeout(() => setDebouncedValue(value), delay);
-    return () => window.clearTimeout(timeout);
-  }, [delay, value]);
-
-  return debouncedValue;
-}
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', {
@@ -40,272 +34,189 @@ function formatCurrency(amount: number) {
   }).format(amount);
 }
 
-export default function AcademyCoursesPanel({ user, onNavigate }: AcademyCoursesPanelProps) {
-  const [courses, setCourses] = useState<CourseRecord[]>([]);
+export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) {
+  const [courses, setCourses] = useState<AcademyCourse[]>([]);
+  const [enrollmentCounts, setEnrollmentCounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(true);
-  const [searchInput, setSearchInput] = useState('');
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
-  const [formValues, setFormValues] = useState<Omit<CourseRecord, 'id'>>(emptyCourse);
-  const [submitting, setSubmitting] = useState(false);
-
-  const debouncedSearchTerm = useDebouncedValue(searchInput, 250);
-  const deferredSearchTerm = useDeferredValue(debouncedSearchTerm);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | AcademyCourse['status']>('all');
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingCourse, setEditingCourse] = useState<AcademyCourse | null>(null);
+  const [form, setForm] = useState<AcademyCourseInput>(emptyCourse);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
 
-    async function loadCourses() {
-      try {
-        const data = await getCourses(user.id);
+    Promise.all([getAcademyCourses(user.id), getCourseEnrollmentCounts(user.id)])
+      .then(([courseData, counts]) => {
         if (!active) return;
-        setCourses(data as CourseRecord[]);
-      } catch {
+        setCourses(courseData);
+        setEnrollmentCounts(counts);
+      })
+      .catch(() => {
         if (!active) return;
         toast.error('Unable to load courses right now.');
-        setCourses([]);
-      } finally {
+      })
+      .finally(() => {
         if (active) setLoading(false);
-      }
-    }
+      });
 
-    loadCourses();
     return () => {
       active = false;
     };
   }, [user.id]);
 
   const filteredCourses = useMemo(() => {
-    const query = deferredSearchTerm.trim().toLowerCase();
-    if (!query) return courses;
-    return courses.filter((course) =>
-      [course.title, course.category, course.instructor, course.duration, course.notes]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(query)
-    );
-  }, [courses, deferredSearchTerm]);
+    const query = search.trim().toLowerCase();
+    return courses.filter((course) => {
+      const matchesStatus = statusFilter === 'all' || course.status === statusFilter;
+      const matchesQuery =
+        query.length === 0 ||
+        [course.courseName, course.duration, course.description]
+          .join(' ')
+          .toLowerCase()
+          .includes(query);
+      return matchesStatus && matchesQuery;
+    });
+  }, [courses, search, statusFilter]);
 
-  const totals = useMemo(
-    () => ({
-      courses: courses.length,
-      totalFee: courses.reduce((sum, course) => sum + (course.fee ?? 0), 0),
-      categories: Array.from(new Set(courses.map((course) => course.category).filter(Boolean))),
-    }),
-    [courses]
-  );
-
-  const totalPages = Math.max(1, Math.ceil(filteredCourses.length / rowsPerPage));
-  const paginatedCourses = useMemo(() => {
-    const startIndex = (currentPage - 1) * rowsPerPage;
-    return filteredCourses.slice(startIndex, startIndex + rowsPerPage);
-  }, [currentPage, filteredCourses, rowsPerPage]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [deferredSearchTerm, rowsPerPage]);
-
-  useEffect(() => {
-    if (currentPage > totalPages) {
-      setCurrentPage(totalPages);
-    }
-  }, [currentPage, totalPages]);
-
-  const openForm = useCallback((course?: CourseRecord) => {
-    if (course) {
-      setEditingCourseId(course.id);
-      setFormValues({
-        title: course.title,
-        category: course.category,
-        instructor: course.instructor,
-        duration: course.duration,
-        fee: course.fee,
-        notes: course.notes ?? '',
-        createdAt: course.createdAt,
-      });
-    } else {
-      setEditingCourseId(null);
-      setFormValues(emptyCourse);
-    }
-    setFormOpen(true);
+  const openCreateModal = useCallback(() => {
+    setEditingCourse(null);
+    setForm(emptyCourse);
+    setIsModalOpen(true);
   }, []);
 
-  const closeForm = useCallback(() => {
-    setEditingCourseId(null);
-    setFormValues(emptyCourse);
-    setFormOpen(false);
+  const openEditModal = useCallback((course: AcademyCourse) => {
+    setEditingCourse(course);
+    setForm({
+      courseName: course.courseName,
+      duration: course.duration,
+      fees: course.fees,
+      description: course.description,
+      status: course.status,
+    });
+    setIsModalOpen(true);
   }, []);
 
-  const handleChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      const { name, value } = event.target;
-      setFormValues((current) => ({
-        ...current,
-        [name]: name === 'fee' ? Number(value) : value,
-      }));
-    },
-    []
-  );
+  const closeModal = useCallback(() => {
+    setEditingCourse(null);
+    setForm(emptyCourse);
+    setIsModalOpen(false);
+  }, []);
 
   const handleSubmit = useCallback(
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
-      setSubmitting(true);
-
-      const nextCourse: Omit<CourseRecord, 'id'> = {
-        title: formValues.title.trim(),
-        category: formValues.category.trim(),
-        instructor: formValues.instructor.trim(),
-        duration: formValues.duration.trim(),
-        fee: formValues.fee,
-        notes: formValues.notes?.trim() ?? '',
-        createdAt: formValues.createdAt,
-      };
+      setSaving(true);
 
       try {
-        if (editingCourseId) {
-          await updateCourse(user.id, editingCourseId, nextCourse);
+        if (editingCourse) {
+          await updateAcademyCourse(user.id, editingCourse.id, form);
           setCourses((current) =>
-            current.map((course) =>
-              course.id === editingCourseId ? { ...course, ...nextCourse } : course
-            )
+            current.map((course) => (course.id === editingCourse.id ? { ...course, ...form } : course))
           );
           toast.success('Course updated successfully.');
         } else {
-          const newId = await addCourse(user.id, nextCourse);
-          setCourses((current) => [{ id: newId, ...nextCourse }, ...current]);
-          toast.success('Course added successfully.');
+          const courseId = await createAcademyCourse(user.id, form);
+          setCourses((current) => [
+            {
+              id: courseId,
+              courseId,
+              ...form,
+              createdAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString(),
+            },
+            ...current,
+          ]);
+          toast.success('Course created successfully.');
         }
-        closeForm();
-      } catch {
-        toast.error('Unable to save course right now. Please try again.');
+        closeModal();
+      } catch (caught) {
+        toast.error(caught instanceof Error ? caught.message : 'Unable to save course.');
       } finally {
-        setSubmitting(false);
+        setSaving(false);
       }
     },
-    [closeForm, editingCourseId, formValues, user.id]
+    [closeModal, editingCourse, form, user.id]
   );
 
   const handleDelete = useCallback(
-    async (courseId: string) => {
-      const confirmed = window.confirm('Delete this course?');
+    async (course: AcademyCourse) => {
+      const enrolledCount = enrollmentCounts.get(course.courseId) ?? 0;
+      if (enrolledCount > 0) {
+        toast.error('This course has enrolled students. Mark inactive instead.');
+        return;
+      }
+
+      const confirmed = window.confirm(`Delete ${course.courseName}?`);
       if (!confirmed) return;
 
       try {
-        await deleteCourse(user.id, courseId);
-        setCourses((current) => current.filter((course) => course.id !== courseId));
+        await deleteAcademyCourse(user.id, course.id);
+        setCourses((current) => current.filter((item) => item.id !== course.id));
         toast.success('Course deleted successfully.');
       } catch {
         toast.error('Unable to delete course right now.');
       }
     },
-    [user.id]
+    [enrollmentCounts, user.id]
   );
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">
+          <p className="text-xs font-700 uppercase tracking-[0.24em] text-primary">
             Academy Courses
           </p>
-          <h1 className="text-2xl font-700 text-foreground mt-1">Courses</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Create and manage course offerings, fees, and instructor details for your academy.
+          <h1 className="mt-1 text-2xl font-700 text-foreground">Courses</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage active course offerings, fees, and enrollment availability.
           </p>
         </div>
-
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => onNavigate('nav-students')}
-            className="btn-outline px-4 py-2.5 rounded-xl text-sm"
-          >
-            Back to Students
-          </button>
-          <button
-            type="button"
-            onClick={() => openForm()}
-            className="btn-primary inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm"
-          >
-            <Plus size={16} /> Add Course
-          </button>
-        </div>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Total Courses
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">{totals.courses}</p>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Pending Offerings
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">
-            {courses.filter((course) => !course.duration).length}
-          </p>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Average Fee
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">
-            {totals.courses ? formatCurrency(Math.round(totals.totalFee / totals.courses)) : '₹0'}
-          </p>
-        </div>
-        <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Categories
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">{totals.categories.length}</p>
-        </div>
+        <button
+          type="button"
+          onClick={openCreateModal}
+          className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
+        >
+          <Plus size={16} />
+          Add Course
+        </button>
       </div>
 
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
-        <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-4 border-b border-border p-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
             <Search
               size={16}
               className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
             />
             <input
-              type="text"
-              value={searchInput}
-              onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search courses by name, category, instructor, or duration"
-              className="w-full bg-input border border-border rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search courses by name, duration, or description"
+              className="w-full rounded-xl border border-border bg-input py-3 pl-11 pr-4 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
-
-          <div className="flex items-center gap-2">
-            <select
-              value={rowsPerPage}
-              onChange={(event) => setRowsPerPage(Number(event.target.value))}
-              className="bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              {[10, 20, 30].map((option) => (
-                <option key={option} value={option}>
-                  {option} rows
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={(event) => setStatusFilter(event.target.value as 'all' | AcademyCourse['status'])}
+            className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
 
         {loading ? (
           <div className="p-16 text-center text-muted-foreground">Loading courses...</div>
         ) : filteredCourses.length === 0 ? (
           <div className="px-5 py-16 text-center">
-            <p className="text-sm font-600 text-foreground">No courses found.</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Add a new course to build your curriculum.
+            <p className="text-sm font-600 text-foreground">
+              No courses yet. Add your first course to start managing enrollments.
             </p>
           </div>
         ) : (
@@ -313,41 +224,53 @@ export default function AcademyCoursesPanel({ user, onNavigate }: AcademyCourses
             <table className="min-w-full text-left text-sm">
               <thead className="bg-muted/80 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-4">Course</th>
-                  <th className="px-5 py-4">Category</th>
-                  <th className="px-5 py-4">Instructor</th>
+                  <th className="px-5 py-4">Course Name</th>
                   <th className="px-5 py-4">Duration</th>
-                  <th className="px-5 py-4">Fee</th>
-                  <th className="px-5 py-4">Actions</th>
+                  <th className="px-5 py-4">Fees</th>
+                  <th className="px-5 py-4">Active Students</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-white">
-                {paginatedCourses.map((course) => (
+                {filteredCourses.map((course) => (
                   <tr key={course.id}>
-                    <td className="px-5 py-4 font-600 text-foreground">{course.title}</td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {course.category || 'General'}
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-50 text-primary">
+                          <BookOpen size={18} />
+                        </div>
+                        <div>
+                          <p className="font-600 text-foreground">{course.courseName}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{course.description || 'No description added'}</p>
+                        </div>
+                      </div>
                     </td>
-                    <td className="px-5 py-4 text-muted-foreground">{course.instructor || '—'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{course.duration || 'TBD'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {formatCurrency(course.fee)}
+                    <td className="px-5 py-4 text-muted-foreground">{course.duration}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(course.fees)}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{enrollmentCounts.get(course.courseId) ?? 0}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${course.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
+                        {course.status}
+                      </span>
                     </td>
-                    <td className="px-5 py-4 space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => openForm(course)}
-                        className="btn-outline px-3 py-2 rounded-xl text-xs"
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(course.id)}
-                        className="btn-outline px-3 py-2 rounded-xl text-xs text-red-600 border-red-200 hover:bg-red-50"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    <td className="px-5 py-4">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditModal(course)}
+                          className="btn-outline rounded-xl px-3 py-2 text-xs"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(course)}
+                          className="rounded-xl border border-danger/25 bg-danger/5 px-3 py-2 text-xs text-danger transition hover:bg-danger/10"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -355,134 +278,75 @@ export default function AcademyCoursesPanel({ user, onNavigate }: AcademyCourses
             </table>
           </div>
         )}
-
-        {!loading && filteredCourses.length > 0 && (
-          <div className="px-5 py-4 border-t border-border bg-white/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <p className="text-xs text-muted-foreground">
-              Showing {(currentPage - 1) * rowsPerPage + 1}-
-              {Math.min(currentPage * rowsPerPage, filteredCourses.length)} of{' '}
-              {filteredCourses.length} courses
-            </p>
-            <div className="flex items-center gap-2 self-end md:self-auto">
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
-                disabled={currentPage === 1}
-                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <ChevronLeft size={14} /> Prev
-              </button>
-              <span className="text-xs font-600 text-foreground px-3 py-2 rounded-lg bg-muted">
-                {currentPage} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCurrentPage((page) => Math.min(totalPages, page + 1))}
-                disabled={currentPage === totalPages}
-                className="btn-outline px-3 py-2 rounded-lg text-xs inline-flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next <ChevronRight size={14} />
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {formOpen && (
-        <div className="fixed inset-0 z-50 bg-black/40 p-4 overflow-y-auto">
-          <div className="mx-auto max-w-3xl rounded-3xl bg-white p-6 md:p-8 shadow-xl">
-            <div className="flex items-center justify-between gap-4 mb-6">
-              <div>
-                <p className="text-sm text-muted-foreground">
-                  {editingCourseId ? 'Edit' : 'New'} Course
-                </p>
-                <h2 className="text-2xl font-700 text-foreground mt-1">
-                  {editingCourseId ? 'Update' : 'Create'} course
-                </h2>
-              </div>
-              <button
-                type="button"
-                onClick={closeForm}
-                className="text-muted-foreground hover:text-foreground"
-              >
-                <ChevronLeft size={20} />
-              </button>
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/45 p-4 backdrop-blur-sm">
+          <div className="mx-auto mt-10 max-w-2xl overflow-hidden rounded-[28px] border border-border bg-white shadow-card">
+            <div className="border-b border-border px-6 py-5">
+              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
+                {editingCourse ? 'Edit Course' : 'New Course'}
+              </p>
+              <h2 className="mt-1 text-xl font-700 text-foreground">
+                {editingCourse ? 'Update course details' : 'Create a course'}
+              </h2>
             </div>
-
-            <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
+            <form onSubmit={handleSubmit} className="grid gap-4 p-6 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Course Name</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Course Name</label>
                 <input
-                  name="title"
                   required
-                  value={formValues.title}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={form.courseName}
+                  onChange={(event) => setForm((current) => ({ ...current, courseName: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Category</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Duration</label>
                 <input
-                  name="category"
-                  value={formValues.category}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  required
+                  value={form.duration}
+                  onChange={(event) => setForm((current) => ({ ...current, duration: event.target.value }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Instructor</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Fees</label>
                 <input
-                  name="instructor"
-                  value={formValues.instructor}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Duration</label>
-                <input
-                  name="duration"
-                  value={formValues.duration}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                  placeholder="e.g. 3 months / 5 weeks"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Fee</label>
-                <input
-                  name="fee"
-                  type="number"
+                  required
                   min="0"
-                  value={formValues.fee}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  type="number"
+                  value={form.fees}
+                  onChange={(event) => setForm((current) => ({ ...current, fees: Number(event.target.value) }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Description</label>
                 <textarea
-                  name="notes"
                   rows={4}
-                  value={formValues.notes}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                  value={form.description}
+                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                  className="w-full resize-none rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
+              </div>
+              <div className="md:col-span-2">
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Status</label>
+                <select
+                  value={form.status}
+                  onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as AcademyCourse['status'] }))}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
               <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={closeForm}
-                  className="btn-outline px-5 py-3 rounded-xl text-sm"
-                >
+                <button type="button" onClick={closeModal} className="btn-outline rounded-xl px-5 py-3 text-sm">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="btn-primary px-5 py-3 rounded-xl text-sm disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Saving...' : editingCourseId ? 'Update Course' : 'Add Course'}
+                <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+                  {saving ? 'Saving...' : editingCourse ? 'Update Course' : 'Add Course'}
                 </button>
               </div>
             </form>
