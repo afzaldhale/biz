@@ -75,11 +75,16 @@ export interface UserProfile {
   onboardingCompleted?: boolean;
   businessName?: string;
   businessType?: BusinessType;
+  estimatedRecords?: number;
+  billableRecords?: number;
   recordsLimit?: number;
   pricePerRecord?: number;
   monthlyPrice?: number;
   annualPrice?: number;
+  minimumRecords?: number;
+  pricingModel?: 'per_record' | string;
   billingModel?: 'per_record' | string;
+  selectedPlan?: 'usage_based' | string;
   createdAt: string;
   updatedAt: string;
 }

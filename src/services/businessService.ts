@@ -23,6 +23,7 @@ interface SetupBusinessForUserPayload {
   businessName: string;
   businessType: BusinessType;
   recordsLimit: number;
+  estimatedRecords?: number;
 }
 
 interface CreateBusinessForUserPayload {
@@ -81,6 +82,7 @@ export async function setupBusinessForUser(payload: SetupBusinessForUserPayload)
   }
 
   const billableRecords = Math.max(payload.recordsLimit, MIN_RECORDS);
+  const estimatedRecords = Math.max(payload.estimatedRecords ?? payload.recordsLimit, MIN_RECORDS);
   const monthlyPrice = billableRecords * INTERNAL_PRICE_PER_RECORD;
   const annualPrice = monthlyPrice * 12;
   const businessRef = doc(collection(firestore, 'businesses'));
@@ -107,11 +109,16 @@ export async function setupBusinessForUser(payload: SetupBusinessForUserPayload)
     businessId: businessRef.id,
     businessName: payload.businessName,
     businessType: payload.businessType,
+    estimatedRecords,
+    billableRecords,
     recordsLimit: billableRecords,
     pricePerRecord: INTERNAL_PRICE_PER_RECORD,
     monthlyPrice,
     annualPrice,
+    minimumRecords: MIN_RECORDS,
+    pricingModel: 'per_record',
     billingModel: 'per_record',
+    selectedPlan: 'usage_based',
     onboardingCompleted: true,
     emailVerified: true,
     updatedAt: now,
@@ -124,11 +131,16 @@ export async function setupBusinessForUser(payload: SetupBusinessForUserPayload)
       businessId: businessRef.id,
       businessName: payload.businessName,
       businessType: payload.businessType,
+      estimatedRecords,
+      billableRecords,
       recordsLimit: billableRecords,
       pricePerRecord: INTERNAL_PRICE_PER_RECORD,
       monthlyPrice,
       annualPrice,
+      minimumRecords: MIN_RECORDS,
+      pricingModel: 'per_record',
       billingModel: 'per_record',
+      selectedPlan: 'usage_based',
       onboardingCompleted: true,
       emailVerified: true,
       updatedAt: now,
