@@ -7,7 +7,7 @@ import {
   updateDoc,
   writeBatch,
 } from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { BusinessProfile, BusinessType, PlanId, UserProfile } from '@/types';
 import { INTERNAL_PRICE_PER_RECORD, MIN_RECORDS } from '@/utils/pricing';
 
@@ -50,6 +50,21 @@ function getFirestoreDb() {
   return db!;
 }
 
+async function refreshVerifiedSession(uid: string) {
+  const currentUser = auth?.currentUser;
+
+  if (!currentUser || currentUser.uid !== uid) {
+    throw new Error('Your session is out of date. Please sign in again and retry setup.');
+  }
+
+  await currentUser.reload();
+  await currentUser.getIdToken(true);
+
+  if (!currentUser.emailVerified) {
+    throw new Error('Please verify your email before completing business setup.');
+  }
+}
+
 export async function createUserProfile(payload: CreateUserProfilePayload) {
   const firestore = getFirestoreDb();
   const now = new Date().toISOString();
@@ -72,6 +87,8 @@ export async function createUserProfile(payload: CreateUserProfilePayload) {
 }
 
 export async function setupBusinessForUser(payload: SetupBusinessForUserPayload) {
+  await refreshVerifiedSession(payload.uid);
+
   const firestore = getFirestoreDb();
   const now = new Date().toISOString();
   const userRef = doc(firestore, 'users', payload.uid);
