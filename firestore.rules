@@ -27,6 +27,22 @@ service cloud.firestore {
         && userBusinessId() == businessId;
     }
 
+    function isOnboardingUserUpdate(userId) {
+      return signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role
+        && resource.data.businessId == null
+        && request.resource.data.businessId is string
+        && request.resource.data.businessName is string
+        && request.resource.data.businessType is string
+        && request.resource.data.recordsLimit is int
+        && request.resource.data.recordsLimit >= 50
+        && request.resource.data.onboardingCompleted == true
+        && request.auth.token.email_verified == true
+        && request.resource.data.emailVerified == true;
+    }
+
     match /users/{userId} {
       allow create: if signedIn()
         && request.auth.uid == userId
@@ -40,15 +56,20 @@ service cloud.firestore {
       allow update: if signedIn()
         && request.auth.uid == userId
         && request.resource.data.uid == resource.data.uid
-        && request.resource.data.businessId == resource.data.businessId
         && request.resource.data.role == resource.data.role
         && (
-          request.resource.data.emailVerified == resource.data.emailVerified
-          || (
-            request.resource.data.emailVerified == true
-            && resource.data.emailVerified == false
-            && request.auth.token.email_verified == true
+          (
+            request.resource.data.businessId == resource.data.businessId
+            && (
+              request.resource.data.emailVerified == resource.data.emailVerified
+              || (
+                request.resource.data.emailVerified == true
+                && resource.data.emailVerified == false
+                && request.auth.token.email_verified == true
+              )
+            )
           )
+          || isOnboardingUserUpdate(userId)
         );
 
       allow delete: if false;
@@ -58,7 +79,13 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.businessId == businessId
-        && request.resource.data.status == 'pending_verification';
+        && (
+          request.resource.data.status == 'pending_verification'
+          || (
+            request.resource.data.status == 'active'
+            && request.auth.token.email_verified == true
+          )
+        );
 
       allow read: if isBusinessMember(businessId);
 
