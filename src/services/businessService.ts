@@ -90,7 +90,6 @@ export async function setupBusinessForUser(payload: SetupBusinessForUserPayload)
   await refreshVerifiedSession(payload.uid);
 
   const firestore = getFirestoreDb();
-  const now = new Date().toISOString();
   const userRef = doc(firestore, 'users', payload.uid);
   const userProfile = await getUserProfile(payload.uid);
 
@@ -98,11 +97,14 @@ export async function setupBusinessForUser(payload: SetupBusinessForUserPayload)
     throw new Error('User profile not found for onboarding.');
   }
 
+  const now = new Date().toISOString();
   const billableRecords = Math.max(payload.recordsLimit, MIN_RECORDS);
   const estimatedRecords = Math.max(payload.estimatedRecords ?? payload.recordsLimit, MIN_RECORDS);
   const monthlyPrice = billableRecords * INTERNAL_PRICE_PER_RECORD;
   const annualPrice = monthlyPrice * 12;
-  const businessRef = doc(collection(firestore, 'businesses'));
+  const businessRef = userProfile.businessId
+    ? doc(firestore, 'businesses', userProfile.businessId)
+    : doc(collection(firestore, 'businesses'));
 
   const businessProfile: BusinessProfile = {
     businessId: businessRef.id,
@@ -266,23 +268,26 @@ export async function activateBusinessAfterVerification(uid: string) {
   }
 
   const now = new Date().toISOString();
-  const batch = writeBatch(getFirestoreDb());
-  batch.update(doc(getFirestoreDb(), 'users', uid), {
+  const firestore = getFirestoreDb();
+
+  await updateDoc(doc(firestore, 'users', uid), {
     emailVerified: true,
     updatedAt: now,
   });
 
   if (userProfile.businessId) {
-    const business = await getBusinessById(userProfile.businessId);
-    if (business) {
-      batch.update(doc(getFirestoreDb(), 'businesses', userProfile.businessId), {
-        status: 'active',
-        updatedAt: now,
-      });
+    try {
+      const business = await getBusinessById(userProfile.businessId);
+      if (business) {
+        await updateDoc(doc(firestore, 'businesses', userProfile.businessId), {
+          status: 'active',
+          updatedAt: now,
+        });
+      }
+    } catch {
+      // Do not block verification completion if the linked business doc is missing or unreadable.
     }
   }
-
-  await batch.commit();
 
   return {
     userProfile: {

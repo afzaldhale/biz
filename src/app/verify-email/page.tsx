@@ -38,6 +38,12 @@ export default function VerifyEmailPage() {
   const emailAddress = useMemo(() => user?.email ?? 'your email address', [user]);
 
   const handleBusinessActivation = async (verifiedUserId: string) => {
+    if (userProfile?.emailVerified) {
+      await refreshUser();
+      await refreshBusiness();
+      return;
+    }
+
     if (userProfile?.businessId) {
       await activateBusinessAfterVerification(verifiedUserId);
     } else {
@@ -49,14 +55,9 @@ export default function VerifyEmailPage() {
   };
 
   const redirectAfterVerification = async () => {
-    const nextRoute = userProfile?.businessId ? '/dashboard' : '/business-setup';
-    setSuccess(
-      nextRoute === '/dashboard'
-        ? 'Email verified successfully. Redirecting to dashboard...'
-        : 'Email verified successfully. Redirecting to setup your business workspace...'
-    );
+    setSuccess('Email verified successfully. Redirecting to setup your business workspace...');
     toast.success('Email verified. Continue to complete your BizManage setup.');
-    router.replace(nextRoute);
+    router.replace('/business-setup');
     router.refresh();
   };
 
@@ -105,7 +106,14 @@ export default function VerifyEmailPage() {
         return;
       }
 
-      await handleBusinessActivation(refreshedUser.uid);
+      try {
+        await handleBusinessActivation(refreshedUser.uid);
+      } catch (syncError) {
+        console.warn(
+          'Verification confirmed in Firebase Auth, but Firestore sync failed.',
+          syncError
+        );
+      }
       setPageState('verified');
       await redirectAfterVerification();
     } catch (err) {
@@ -126,7 +134,11 @@ export default function VerifyEmailPage() {
     try {
       const refreshedUser = await reloadUser();
       if (refreshedUser?.emailVerified) {
-        await handleBusinessActivation(refreshedUser.uid);
+        try {
+          await handleBusinessActivation(refreshedUser.uid);
+        } catch {
+          // If Firebase Auth is verified, don't keep the user blocked on Firestore sync here.
+        }
         setPageState('verified');
         await redirectAfterVerification();
       }

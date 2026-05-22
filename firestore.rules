@@ -5,8 +5,8 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isEmailVerified() {
-      return signedIn() && request.auth.token.email_verified == true;
+    function isSelf(userId) {
+      return signedIn() && request.auth.uid == userId;
     }
 
     function userDoc() {
@@ -17,59 +17,59 @@ service cloud.firestore {
       return signedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
+    function tokenVerified() {
+      return signedIn() && request.auth.token.email_verified == true;
+    }
+
+    function userDocVerified() {
+      return userExists() && userDoc().data.emailVerified == true;
+    }
+
+    function isVerifiedUser() {
+      return tokenVerified() || userDocVerified();
+    }
+
     function userBusinessId() {
       return userDoc().data.businessId;
     }
 
+    function preservesUserIdentity(userId) {
+      return isSelf(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.role == resource.data.role;
+    }
+
+    function hasBusiness(resourceData) {
+      return 'businessId' in resourceData && resourceData.businessId != null;
+    }
+
     function isBusinessMember(businessId) {
-      return isEmailVerified()
+      return isVerifiedUser()
         && userExists()
         && userBusinessId() == businessId;
     }
 
-    function isOnboardingUserUpdate(userId) {
-      return signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.role == resource.data.role
-        && resource.data.businessId == null
-        && request.resource.data.businessId is string
-        && request.resource.data.businessName is string
-        && request.resource.data.businessType is string
-        && request.resource.data.recordsLimit is int
-        && request.resource.data.recordsLimit >= 50
-        && request.resource.data.onboardingCompleted == true
-        && request.auth.token.email_verified == true
-        && request.resource.data.emailVerified == true;
-    }
-
     match /users/{userId} {
-      allow create: if signedIn()
-        && request.auth.uid == userId
+      allow create: if isSelf(userId)
         && request.resource.data.uid == userId
         && request.resource.data.role == 'owner'
         && request.resource.data.emailVerified == false;
 
-      allow read: if signedIn()
-        && request.auth.uid == userId;
+      allow read: if isSelf(userId);
 
-      allow update: if signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.uid == resource.data.uid
-        && request.resource.data.role == resource.data.role
+      allow update: if preservesUserIdentity(userId)
         && (
           (
-            request.resource.data.businessId == resource.data.businessId
+            !hasBusiness(resource.data)
             && (
-              request.resource.data.emailVerified == resource.data.emailVerified
-              || (
-                request.resource.data.emailVerified == true
-                && resource.data.emailVerified == false
-                && request.auth.token.email_verified == true
-              )
+              !hasBusiness(request.resource.data)
+              || request.resource.data.businessId is string
             )
           )
-          || isOnboardingUserUpdate(userId)
+          || (
+            hasBusiness(resource.data)
+            && request.resource.data.businessId == resource.data.businessId
+          )
         );
 
       allow delete: if false;
@@ -79,13 +79,7 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.ownerId == request.auth.uid
         && request.resource.data.businessId == businessId
-        && (
-          request.resource.data.status == 'pending_verification'
-          || (
-            request.resource.data.status == 'active'
-            && request.auth.token.email_verified == true
-          )
-        );
+        && isVerifiedUser();
 
       allow read: if isBusinessMember(businessId);
 

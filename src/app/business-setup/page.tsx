@@ -135,7 +135,7 @@ function normalizeRecordValue(value: string | number): number {
 
 export default function BusinessSetupPage() {
   const router = useRouter();
-  const { user, authLoading } = useAuth();
+  const { user, authLoading, refreshUser } = useAuth();
   const { business, userProfile, businessLoading, refreshBusiness } = useBusiness();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [recordInput, setRecordInput] = useState(String(MIN_RECORDS));
@@ -237,7 +237,14 @@ export default function BusinessSetupPage() {
         estimatedRecords: normalizeRecordValue(data.records),
       });
 
-      await refreshBusiness();
+      await refreshUser();
+
+      try {
+        await refreshBusiness();
+      } catch (refreshError) {
+        console.warn('Business setup saved, but refreshing business state failed.', refreshError);
+      }
+
       toast.success('Business workspace configured successfully. Redirecting to dashboard...');
       router.replace('/dashboard');
     } catch (error) {
