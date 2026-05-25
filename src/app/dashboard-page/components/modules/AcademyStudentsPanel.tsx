@@ -18,6 +18,7 @@ import {
 import { AcademyAttendance, AcademyCourse, AcademyPaymentMode, AcademyReceipt, AcademyStudent, AuthUser } from '@/types';
 import { useBusiness } from '@/context/BusinessContext';
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
+import RetryState from '@/components/ui/RetryState';
 import {
   AcademyStudentInput,
   createAcademyStudent,
@@ -30,6 +31,9 @@ import { addStudentPayment } from '@/services/academyFeeService';
 import { getReceiptById } from '@/services/academyReceiptService';
 import { getStudentHistory } from '@/services/academyDashboardService';
 import { getTodayAttendanceMap, markTodayAttendance } from '@/services/academyAttendanceService';
+import { useSlowLoading } from '@/hooks/useSlowLoading';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface AcademyStudentsPanelProps {
   user: AuthUser;
@@ -156,6 +160,7 @@ function StudentFormModal({
   courses,
   editingStudent,
   form,
+  isOffline,
   saving,
   onClose,
   onSubmit,
@@ -165,6 +170,7 @@ function StudentFormModal({
   courses: AcademyCourse[];
   editingStudent: AcademyStudent | null;
   form: StudentFormState;
+  isOffline: boolean;
   saving: boolean;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -287,9 +293,9 @@ function StudentFormModal({
             <button type="button" onClick={onClose} className="btn-outline rounded-xl px-5 py-3 text-sm">
               Cancel
             </button>
-            <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
-              {saving ? 'Saving...' : editingStudent ? 'Update Student' : 'Add Student'}
-            </button>
+                <button type="submit" disabled={saving || isOffline} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+              {saving ? 'Saving...' : isOffline ? 'Offline' : editingStudent ? 'Update Student' : 'Add Student'}
+                </button>
           </div>
         </form>
       </div>
@@ -300,6 +306,7 @@ function StudentFormModal({
 function PaymentModal({
   student,
   form,
+  isOffline,
   saving,
   onClose,
   onSubmit,
@@ -307,6 +314,7 @@ function PaymentModal({
 }: {
   student: AcademyStudent;
   form: PaymentFormState;
+  isOffline: boolean;
   saving: boolean;
   onClose: () => void;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
@@ -406,10 +414,10 @@ function PaymentModal({
             </button>
             <button
               type="submit"
-              disabled={saving || pendingFees === 0}
+              disabled={saving || isOffline || pendingFees === 0}
               className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving ? 'Saving...' : 'Save Payment'}
+              {saving ? 'Saving...' : isOffline ? 'Offline' : 'Save Payment'}
             </button>
           </div>
         </form>
@@ -579,6 +587,7 @@ function HistoryDrawer({
 
 export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStudentsPanelProps) {
   const { business } = useBusiness();
+  const { isOffline } = useNetworkStatus();
   const [students, setStudents] = useState<AcademyStudent[]>([]);
   const [courses, setCourses] = useState<AcademyCourse[]>([]);
   const [todayAttendanceMap, setTodayAttendanceMap] = useState<Map<string, AcademyAttendance>>(new Map());
@@ -607,6 +616,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
   const [deleteStudentTarget, setDeleteStudentTarget] = useState<AcademyStudent | null>(null);
   const [deletingStudent, setDeletingStudent] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const { showSlowMessage, showRetry } = useSlowLoading(loading);
 
   const loadStudentsWorkspace = useCallback(async () => {
     setLoading(true);
@@ -645,14 +657,14 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
   useEffect(() => {
     void loadStudentsWorkspace();
-  }, [loadStudentsWorkspace]);
+  }, [loadStudentsWorkspace, retryKey]);
 
   useEffect(() => {
     setPage(1);
   }, [attendanceFilter, rowsPerPage, search, statusFilter]);
 
   const filteredStudents = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
 
     return students.filter((student) => {
       const attendance = todayAttendanceMap.get(student.studentId);
@@ -677,7 +689,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
       return matchesStatus && matchesAttendance && matchesQuery;
     });
-  }, [attendanceFilter, search, statusFilter, students, todayAttendanceMap]);
+  }, [attendanceFilter, debouncedSearch, statusFilter, students, todayAttendanceMap]);
 
   const paginatedStudents = useMemo(() => {
     const start = (page - 1) * rowsPerPage;
@@ -746,6 +758,10 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
   const handleStudentSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (isOffline) {
+      toast.error('You are offline. Reconnect to save student changes.');
+      return;
+    }
     setSavingStudent(true);
 
     try {
@@ -767,9 +783,13 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     } finally {
       setSavingStudent(false);
     }
-  }, [closeFormModal, editingStudent, form, loadStudentsWorkspace, user.id]);
+  }, [closeFormModal, editingStudent, form, isOffline, loadStudentsWorkspace, user.id]);
 
   const handleAttendanceAction = useCallback(async (student: AcademyStudent, status: 'present' | 'absent') => {
+    if (isOffline) {
+      toast.error('You are offline. Reconnect to update attendance.');
+      return;
+    }
     const previous = todayAttendanceMap.get(student.studentId);
     const optimistic: AcademyAttendance = {
       id: previous?.id ?? `${student.studentId}_${new Date().toISOString().slice(0, 10)}`,
@@ -822,7 +842,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
       });
       toast.error('Unable to update attendance right now.');
     }
-  }, [todayAttendanceMap, user.id, user.ownerName]);
+  }, [isOffline, todayAttendanceMap, user.id, user.ownerName]);
 
   const openPaymentModal = useCallback((student: AcademyStudent) => {
     setPaymentStudent(student);
@@ -838,6 +858,10 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     event.preventDefault();
 
     if (!paymentStudent) return;
+    if (isOffline) {
+      toast.error('You are offline. Reconnect to save payments.');
+      return;
+    }
     if (!business) {
       toast.error('Business profile not loaded.');
       return;
@@ -880,7 +904,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     } finally {
       setSavingPayment(false);
     }
-  }, [business, closePaymentModal, loadStudentsWorkspace, paymentForm.amountPaid, paymentForm.notes, paymentForm.paymentDate, paymentForm.paymentMode, paymentStudent, user.id]);
+  }, [business, closePaymentModal, isOffline, loadStudentsWorkspace, paymentForm.amountPaid, paymentForm.notes, paymentForm.paymentDate, paymentForm.paymentMode, paymentStudent, user.id]);
 
   const openHistoryDrawer = useCallback(async (student: AcademyStudent) => {
     setHistoryStudent(student);
@@ -902,6 +926,10 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
   const handleDeleteStudent = useCallback(async () => {
     if (!deleteStudentTarget) return;
+    if (isOffline) {
+      toast.error('You are offline. Reconnect to update this student.');
+      return;
+    }
     setDeletingStudent(true);
 
     try {
@@ -915,7 +943,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     } finally {
       setDeletingStudent(false);
     }
-  }, [deleteStudentTarget, loadStudentsWorkspace, user.id]);
+  }, [deleteStudentTarget, isOffline, loadStudentsWorkspace, user.id]);
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
@@ -1001,8 +1029,12 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         {loading ? (
           <div className="p-16 text-center text-muted-foreground">Loading students...</div>
         ) : loadError ? (
-          <div className="p-16 text-center">
-            <p className="text-sm font-600 text-foreground">{loadError}</p>
+          <div className="p-5">
+            <RetryState
+              title="Unable to load students"
+              description="Please refresh or try again."
+              onRetry={() => setRetryKey((current) => current + 1)}
+            />
           </div>
         ) : filteredStudents.length === 0 ? (
           <div className="p-16 text-center">
@@ -1158,6 +1190,16 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
             </div>
           </>
         )}
+        {loading && showRetry && (
+          <div className="p-5">
+            <RetryState onRetry={() => setRetryKey((current) => current + 1)} />
+          </div>
+        )}
+        {loading && showSlowMessage && !showRetry && (
+          <div className="border-t border-border bg-amber-50 px-5 py-3 text-sm text-amber-800">
+            Network is slow. Trying to load your workspace.
+          </div>
+        )}
       </div>
 
       {isFormModalOpen && (
@@ -1165,6 +1207,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
           courses={courses}
           editingStudent={editingStudent}
           form={form}
+          isOffline={isOffline}
           saving={savingStudent}
           onClose={closeFormModal}
           onSubmit={handleStudentSubmit}
@@ -1177,6 +1220,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         <PaymentModal
           student={paymentStudent}
           form={paymentForm}
+          isOffline={isOffline}
           saving={savingPayment}
           onClose={closePaymentModal}
           onSubmit={handlePaymentSubmit}

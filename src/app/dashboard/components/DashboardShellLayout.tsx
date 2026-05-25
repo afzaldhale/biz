@@ -8,6 +8,8 @@ import DashboardTopbar from '@/app/dashboard-page/components/DashboardTopbar';
 import { DashboardShellSkeleton } from '@/app/dashboard-page/components/DashboardShell';
 import { getDashboardNavIdFromSegment } from './dashboardRoutes';
 import { useDashboardUser } from './useDashboardUser';
+import NetworkStatusBanner from '@/components/ui/NetworkStatusBanner';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface DashboardShellLayoutProps {
   children: React.ReactNode;
@@ -25,6 +27,7 @@ function DashboardShellFrame({ children }: DashboardShellLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { authUser, business, logout, user } = useDashboardUser();
+  const { isOffline } = useNetworkStatus();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -54,6 +57,9 @@ function DashboardShellFrame({ children }: DashboardShellLayoutProps) {
 
   return (
     <div className="min-h-screen bg-muted/30 flex">
+      <div className="fixed inset-x-0 top-0 z-50">
+        <NetworkStatusBanner isOffline={isOffline} />
+      </div>
       <DashboardSidebar
         user={user}
         collapsed={sidebarCollapsed}
@@ -80,7 +86,7 @@ function DashboardShellFrame({ children }: DashboardShellLayoutProps) {
           onMenuToggle={handleOpenMobileSidebar}
           onLogout={handleLogout}
         />
-        <main className="flex-1 overflow-auto p-4 md:p-6 xl:p-8">{children}</main>
+        <main className="flex-1 overflow-auto p-4 pt-6 md:p-6 xl:p-8">{children}</main>
       </div>
     </div>
   );

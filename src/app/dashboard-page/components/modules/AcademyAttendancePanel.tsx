@@ -16,6 +16,10 @@ import {
 } from '@/services/academyAttendanceService';
 import { getAcademyCourses } from '@/services/academyCourseService';
 import { getCourseEnrollments } from '@/services/academyEnrollmentService';
+import RetryState from '@/components/ui/RetryState';
+import { useSlowLoading } from '@/hooks/useSlowLoading';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 interface AcademyAttendancePanelProps {
   user: AuthUser;
@@ -40,6 +44,7 @@ const statusOptions: Array<{
 ];
 
 export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelProps) {
+  const { isOffline } = useNetworkStatus();
   const [courses, setCourses] = useState<AcademyCourse[]>([]);
   const [attendance, setAttendance] = useState<AcademyAttendance[]>([]);
   const [roster, setRoster] = useState<AcademyEnrollment[]>([]);
@@ -51,20 +56,32 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().slice(0, 10));
   const [drafts, setDrafts] = useState<Record<string, AttendanceDraft>>({});
   const [highlightStudentId, setHighlightStudentId] = useState('');
+  const [retryKey, setRetryKey] = useState(0);
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const { showSlowMessage, showRetry } = useSlowLoading(loading);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
 
-    Promise.all([getAcademyCourses(user.id), getAcademyAttendance(user.id)])
-      .then(([courseData, attendanceData]) => {
+    Promise.allSettled([getAcademyCourses(user.id), getAcademyAttendance(user.id)])
+      .then(([courseResult, attendanceResult]) => {
         if (!active) return;
-        setCourses(courseData.filter((course) => course.status === 'active'));
-        setAttendance(attendanceData);
-      })
-      .catch(() => {
-        if (!active) return;
-        toast.error('Unable to load attendance right now.');
+
+        if (courseResult.status === 'fulfilled') {
+          setCourses(courseResult.value.filter((course) => course.status === 'active'));
+        } else {
+          console.error('[academy-attendance] unable to load courses', courseResult.reason);
+          setCourses([]);
+        }
+
+        if (attendanceResult.status === 'fulfilled') {
+          setAttendance(attendanceResult.value);
+        } else {
+          console.error('[academy-attendance] unable to load attendance', attendanceResult.reason);
+          setAttendance([]);
+          toast.error('Unable to load attendance right now.');
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -73,7 +90,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
     return () => {
       active = false;
     };
-  }, [user.id]);
+  }, [retryKey, user.id]);
 
   useEffect(() => {
     const selectedStudentId = window.sessionStorage.getItem('academy:selectedStudentId');
@@ -113,7 +130,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
   }, [selectedCourseId, user.id]);
 
   const filteredAttendance = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     return attendance.filter((record) => {
       const matchesCourse = !selectedCourseId || record.courseId === selectedCourseId;
       const matchesDate = !selectedDate || record.attendanceDate === selectedDate;
@@ -126,7 +143,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
           .includes(query);
       return matchesCourse && matchesDate && matchesStatus && matchesQuery;
     });
-  }, [attendance, search, selectedCourseId, selectedDate, statusFilter]);
+  }, [attendance, debouncedSearch, selectedCourseId, selectedDate, statusFilter]);
 
   const selectedCourse = useMemo(
     () => courses.find((course) => course.courseId === selectedCourseId) ?? null,
@@ -159,6 +176,10 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
   const handleSave = useCallback(async () => {
     if (!selectedCourse) {
       toast.error('Course required.');
+      return;
+    }
+    if (isOffline) {
+      toast.error('You are offline. Reconnect to save attendance.');
       return;
     }
     if (!selectedDate) {
@@ -202,7 +223,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
     } finally {
       setSaving(false);
     }
-  }, [drafts, selectedCourse, selectedDate, user.id, user.ownerName]);
+  }, [drafts, isOffline, selectedCourse, selectedDate, user.id, user.ownerName]);
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
@@ -240,10 +261,10 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
             <button
               type="button"
               onClick={handleSave}
-              disabled={saving || !selectedCourseId}
+              disabled={saving || isOffline || !selectedCourseId}
               className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {saving ? 'Saving...' : 'Save Attendance'}
+              {saving ? 'Saving...' : isOffline ? 'Offline' : 'Save Attendance'}
             </button>
           </div>
 
@@ -369,7 +390,15 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
           </div>
 
           {loading ? (
-            <div className="p-16 text-center text-muted-foreground">Loading attendance...</div>
+            showRetry ? (
+              <div className="p-5">
+                <RetryState onRetry={() => setRetryKey((current) => current + 1)} />
+              </div>
+            ) : (
+              <div className="p-16 text-center text-muted-foreground">
+                {showSlowMessage ? 'Network is slow. Trying to load your workspace.' : 'Loading attendance...'}
+              </div>
+            )
           ) : filteredAttendance.length === 0 ? (
             <div className="px-5 py-16 text-center">
               <p className="text-sm font-600 text-foreground">

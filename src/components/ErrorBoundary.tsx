@@ -9,7 +9,6 @@ interface ErrorBoundaryProps {
 
 interface ErrorBoundaryState {
   hasError: boolean;
-  errorMessage: string;
 }
 
 export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -17,14 +16,12 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
     super(props);
     this.state = {
       hasError: false,
-      errorMessage: '',
     };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(_error: Error) {
     return {
       hasError: true,
-      errorMessage: error.message || 'Something went wrong.',
     };
   }
 
@@ -54,13 +51,12 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
               </button>
               <button
                 type="button"
-                onClick={() => this.setState({ hasError: false, errorMessage: '' })}
+                onClick={() => this.setState({ hasError: false })}
                 className="btn-outline px-4 py-3 rounded-xl text-sm"
               >
                 Try again
               </button>
             </div>
-            <p className="mt-6 text-xs text-muted-foreground">Error: {this.state.errorMessage}</p>
           </div>
         </div>
       );

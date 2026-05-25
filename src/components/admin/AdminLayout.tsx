@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import AdminSidebar from './AdminSidebar';
 import AdminTopbar from './AdminTopbar';
+import NetworkStatusBanner from '@/components/ui/NetworkStatusBanner';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -12,9 +14,13 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children, currentPath }: AdminLayoutProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const { isOffline } = useNetworkStatus();
 
   return (
     <div className="flex h-screen overflow-hidden admin-bg-pattern">
+      <div className="fixed inset-x-0 top-0 z-50">
+        <NetworkStatusBanner isOffline={isOffline} />
+      </div>
       {/* Mobile sidebar overlay */}
       {mobileSidebarOpen && (
         <div

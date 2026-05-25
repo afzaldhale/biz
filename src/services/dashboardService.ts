@@ -2,6 +2,11 @@ import { collection, getDocs, limit, orderBy, query } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { BusinessType, KPICard } from '@/types';
 
+const DASHBOARD_CACHE_TTL_MS = 60_000;
+const DASHBOARD_COLLECTION_LIMIT = 50;
+const collectionCache = new Map<string, { expiresAt: number; value: Array<Record<string, unknown>> }>();
+const statsCache = new Map<string, { expiresAt: number; value: DashboardStats }>();
+
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
     throw new Error(
@@ -29,19 +34,31 @@ function safeField<T extends object>(item: T, field: string) {
 }
 
 async function loadCollectionDocs(businessId: string, collectionName: string, pageSize?: number) {
+  const effectivePageSize = pageSize ?? DASHBOARD_COLLECTION_LIMIT;
+  const cacheKey = `${businessId}:${collectionName}:${effectivePageSize}`;
+  const cached = collectionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   const firestore = getFirestoreDb();
   const collectionRef = collection(firestore, 'businesses', businessId, collectionName);
-  const collectionQuery = pageSize
+  const collectionQuery = effectivePageSize
     ? query(
         collectionRef,
         orderBy('createdAt', 'desc'),
         orderBy('__name__', 'desc'),
-        limit(pageSize)
+        limit(effectivePageSize)
       )
     : query(collectionRef, orderBy('createdAt', 'desc'), orderBy('__name__', 'desc'));
 
   const docs = await getDocs(collectionQuery);
-  return docs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  const value = docs.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  collectionCache.set(cacheKey, {
+    value,
+    expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+  });
+  return value;
 }
 
 function formatCurrency(value: number) {
@@ -69,6 +86,12 @@ export async function getDashboardStats(
   businessId: string,
   businessType: BusinessType
 ): Promise<DashboardStats> {
+  const statsCacheKey = `${businessId}:${businessType}`;
+  const cachedStats = statsCache.get(statsCacheKey);
+  if (cachedStats && cachedStats.expiresAt > Date.now()) {
+    return cachedStats.value;
+  }
+
   const now = new Date();
   const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
 
@@ -128,79 +151,87 @@ export async function getDashboardStats(
   let rooms: Array<Record<string, unknown>> = [];
   let tables: Array<Record<string, unknown>> = [];
   let patients: Array<Record<string, unknown>> = [];
+  const settled = async (...promises: Array<Promise<Array<Record<string, unknown>>>>) => {
+    const results = await Promise.allSettled(promises);
+    return results.map((result) => {
+      if (result.status === 'fulfilled') return result.value;
+      console.error('[dashboard-service] collection load failed', result.reason);
+      return [] as Array<Record<string, unknown>>;
+    });
+  };
 
   switch (businessType) {
     case 'academy': {
-      [students, courses, fees, payments] = await Promise.all([
+      [students, courses, fees, payments] = await settled(
         loadCollectionDocs(businessId, 'students'),
         loadCollectionDocs(businessId, 'courses'),
         loadCollectionDocs(businessId, 'fees'),
-        loadCollectionDocs(businessId, 'payments'),
-      ]);
+        loadCollectionDocs(businessId, 'payments')
+      );
       break;
     }
     case 'gym': {
-      [members, classesData, payments, bookings] = await Promise.all([
+      [members, classesData, payments, bookings] = await settled(
         loadCollectionDocs(businessId, 'members'),
         loadCollectionDocs(businessId, 'classes'),
         loadCollectionDocs(businessId, 'payments'),
-        loadCollectionDocs(businessId, 'bookings'),
-      ]);
+        loadCollectionDocs(businessId, 'bookings')
+      );
       break;
     }
     case 'hotel': {
-      [rooms, bookings, payments] = await Promise.all([
+      [rooms, bookings, payments] = await settled(
         loadCollectionDocs(businessId, 'rooms'),
         loadCollectionDocs(businessId, 'bookings'),
-        loadCollectionDocs(businessId, 'payments'),
-      ]);
+        loadCollectionDocs(businessId, 'payments')
+      );
       break;
     }
     case 'restaurant': {
-      [orders, payments, tables] = await Promise.all([
+      [orders, payments, tables] = await settled(
         loadCollectionDocs(businessId, 'orders'),
         loadCollectionDocs(businessId, 'payments'),
-        loadCollectionDocs(businessId, 'tables'),
-      ]);
+        loadCollectionDocs(businessId, 'tables')
+      );
       break;
     }
     case 'clinic': {
-      [appointments, payments, patients] = await Promise.all([
+      [appointments, payments, patients] = await settled(
         loadCollectionDocs(businessId, 'appointments'),
         loadCollectionDocs(businessId, 'payments'),
-        loadCollectionDocs(businessId, 'patients'),
-      ]);
+        loadCollectionDocs(businessId, 'patients')
+      );
       break;
     }
     case 'service-center': {
-      [tickets, technicians, payments] = await Promise.all([
+      [tickets, technicians, payments] = await settled(
         loadCollectionDocs(businessId, 'tickets'),
         loadCollectionDocs(businessId, 'technicians'),
-        loadCollectionDocs(businessId, 'payments'),
-      ]);
+        loadCollectionDocs(businessId, 'payments')
+      );
       break;
     }
     case 'salon':
     case 'custom': {
-      [payments, fees, bookings, orders, appointments, tickets] = await Promise.all([
+      [payments, fees, bookings, orders, appointments, tickets] = await settled(
         loadCollectionDocs(businessId, 'payments'),
         loadCollectionDocs(businessId, 'fees'),
         loadCollectionDocs(businessId, 'bookings'),
         loadCollectionDocs(businessId, 'orders'),
         loadCollectionDocs(businessId, 'appointments'),
-        loadCollectionDocs(businessId, 'tickets'),
-      ]);
+        loadCollectionDocs(businessId, 'tickets')
+      );
       break;
     }
     default: {
-      [payments, fees, bookings, orders, appointments, tickets] = await Promise.all([
+      [payments, fees, bookings, orders, appointments, tickets] = await settled(
         loadCollectionDocs(businessId, 'payments'),
         loadCollectionDocs(businessId, 'fees'),
         loadCollectionDocs(businessId, 'bookings'),
         loadCollectionDocs(businessId, 'orders'),
         loadCollectionDocs(businessId, 'appointments'),
-        loadCollectionDocs(businessId, 'tickets'),
-      ]);
+        loadCollectionDocs(businessId, 'tickets')
+      );
       break;
     }
   }
@@ -396,8 +427,15 @@ export async function getDashboardStats(
     .slice(-6)
     .map(([month, revenue]) => ({ month, revenue }));
 
-  return {
+  const nextValue = {
     kpis: stats[businessType] ?? stats.custom,
     revenueTrend: revenueTrendData,
   };
+
+  statsCache.set(statsCacheKey, {
+    value: nextValue,
+    expiresAt: Date.now() + DASHBOARD_CACHE_TTL_MS,
+  });
+
+  return nextValue;
 }

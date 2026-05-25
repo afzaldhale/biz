@@ -12,6 +12,9 @@ import {
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { ActivityItem } from '@/types';
 
+const ACTIVITY_CACHE_TTL_MS = 30_000;
+const activityCache = new Map<string, { expiresAt: number; value: ActivityItem[] }>();
+
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
     throw new Error(
@@ -35,12 +38,18 @@ export async function getRecentActivities(
   businessId: string,
   limitCount = 5
 ): Promise<ActivityItem[]> {
+  const cacheKey = `${businessId}:${limitCount}`;
+  const cached = activityCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   const firestore = getFirestoreDb();
   const activitiesRef = collection(firestore, 'businesses', businessId, 'activities');
   const activitiesQuery = query(activitiesRef, orderBy('createdAt', 'desc'), limit(limitCount));
   const snapshot = await getDocs(activitiesQuery);
 
-  return snapshot.docs.map((doc) => {
+  const value = snapshot.docs.map((doc) => {
     const data = doc.data();
     return {
       id: doc.id,
@@ -56,6 +65,13 @@ export async function getRecentActivities(
           : (data.createdAt?.toDate?.()?.toISOString?.() ?? new Date().toISOString()),
     };
   });
+
+  activityCache.set(cacheKey, {
+    value,
+    expiresAt: Date.now() + ACTIVITY_CACHE_TTL_MS,
+  });
+
+  return value;
 }
 
 export async function createSupportTicket(

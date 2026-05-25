@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { AuthUser } from '@/types';
 import { getAcademyOverviewData } from '@/services/academyDashboardService';
+import RetryState from '@/components/ui/RetryState';
+import { CardSkeleton, Skeleton } from '@/components/ui/Skeleton';
+import { useSlowLoading } from '@/hooks/useSlowLoading';
 
 interface AcademyOverviewPanelProps {
   user: AuthUser;
@@ -31,6 +34,8 @@ export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOvervi
     null
   );
   const [warning, setWarning] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const { showSlowMessage, showRetry } = useSlowLoading(loading);
 
   useEffect(() => {
     let active = true;
@@ -71,7 +76,7 @@ export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOvervi
     return () => {
       active = false;
     };
-  }, [user.id]);
+  }, [retryKey, user.id]);
 
   const cards = useMemo(() => {
     const summary = overview?.summary;
@@ -104,16 +109,21 @@ export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOvervi
   }, [overview]);
 
   if (loading) {
+    if (showRetry) {
+      return <RetryState onRetry={() => setRetryKey((current) => current + 1)} />;
+    }
+
     return (
       <div className="max-w-screen-2xl mx-auto space-y-6">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, index) => (
-            <div key={index} className="h-36 rounded-2xl bg-muted animate-pulse" />
-          ))}
-        </div>
+        {showSlowMessage && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Network is slow. Trying to load your workspace.
+          </div>
+        )}
+        <CardSkeleton />
         <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
-          <div className="h-80 rounded-2xl bg-muted animate-pulse" />
-          <div className="h-80 rounded-2xl bg-muted animate-pulse" />
+          <Skeleton className="h-80 w-full rounded-2xl" />
+          <Skeleton className="h-80 w-full rounded-2xl" />
         </div>
       </div>
     );

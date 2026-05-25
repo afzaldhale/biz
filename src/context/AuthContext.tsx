@@ -11,6 +11,7 @@ import {
   resendVerificationEmail,
   reloadCurrentUser,
 } from '@/services/authService';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 
 interface AuthContextType {
   user: SessionUser | null;
@@ -24,11 +25,13 @@ interface AuthContextType {
   refreshUser: () => Promise<SessionUser | null>;
   refreshAuthState: () => Promise<SessionUser | null>;
   isEmailVerified: boolean;
+  isOnline: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const { isOnline } = useNetworkStatus();
   const [user, setUser] = useState<SessionUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -76,8 +79,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       refreshUser,
       refreshAuthState,
       isEmailVerified: Boolean(user?.emailVerified),
+      isOnline,
     }),
-    [authLoading, isRefreshing, user, refreshUser, refreshAuthState]
+    [authLoading, isOnline, isRefreshing, user, refreshUser, refreshAuthState]
   );
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;

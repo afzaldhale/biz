@@ -9,6 +9,8 @@ import { getIndustryById } from '@/data/industries';
 import { getPlanById } from '@/data/plans';
 import { getDashboardStats, DashboardStats } from '@/services/dashboardService';
 import { getRecentActivities } from '@/services/activityService';
+import RetryState from '@/components/ui/RetryState';
+import { useSlowLoading } from '@/hooks/useSlowLoading';
 
 interface DashboardContentProps {
   user: AuthUser;
@@ -554,34 +556,7 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
   const [recentActivities, setRecentActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    setError(null);
-
-    Promise.all([getDashboardStats(user.id, user.businessType), getRecentActivities(user.id, 5)])
-      .then(([stats, activities]) => {
-        if (!cancelled) {
-          setDashboardStats(stats);
-          setRecentActivities(activities);
-        }
-      })
-      .catch((caught) => {
-        if (!cancelled) {
-          setError(caught instanceof Error ? caught.message : 'Unable to load dashboard data.');
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user.businessType, user.id]);
+  const [retryKey, setRetryKey] = useState(0);
 
   const selectedView = useMemo(() => {
     if (activeNav === 'nav-profile') return 'profile';
@@ -623,6 +598,44 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
 
     return 'dashboard-overview';
   }, [activeNav, user.businessType]);
+  const { showSlowMessage, showRetry } = useSlowLoading(loading);
+
+  useEffect(() => {
+    if (selectedView !== 'dashboard-overview') {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    Promise.allSettled([getDashboardStats(user.id, user.businessType), getRecentActivities(user.id, 5)])
+      .then(([statsResult, activitiesResult]) => {
+        if (!cancelled) {
+          if (statsResult.status === 'fulfilled') {
+            setDashboardStats(statsResult.value);
+          } else {
+            console.error('[dashboard-content] unable to load dashboard stats', statsResult.reason);
+            setDashboardStats(null);
+            setError('Unable to load dashboard data right now.');
+          }
+
+          if (activitiesResult.status === 'fulfilled') {
+            setRecentActivities(activitiesResult.value);
+          } else {
+            console.error('[dashboard-content] unable to load recent activities', activitiesResult.reason);
+            setRecentActivities([]);
+          }
+
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [retryKey, selectedView, user.businessType, user.id]);
 
   const overviewData = useMemo(() => {
     const kpis = dashboardStats?.kpis ?? defaultKpis[user.businessType] ?? defaultKpis.custom;
@@ -701,15 +714,29 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
   }
 
   if (loading && selectedView === 'dashboard-overview') {
-    return <ModuleSkeleton />;
+    if (showRetry) {
+      return <RetryState onRetry={() => setRetryKey((current) => current + 1)} />;
+    }
+
+    return (
+      <div className="space-y-4">
+        {showSlowMessage && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Network is slow. Trying to load your workspace.
+          </div>
+        )}
+        <ModuleSkeleton />
+      </div>
+    );
   }
 
   if (error && selectedView === 'dashboard-overview') {
     return (
-      <div className="glass-card rounded-2xl p-6 border border-red-200 bg-red-50 text-red-700">
-        <h2 className="text-lg font-semibold">Unable to load dashboard</h2>
-        <p className="text-sm mt-2">{error}</p>
-      </div>
+      <RetryState
+        title="Unable to load dashboard"
+        description="We could not load your dashboard right now. Please try again."
+        onRetry={() => setRetryKey((current) => current + 1)}
+      />
     );
   }
 

@@ -9,6 +9,10 @@ import { getStudentCourseOptions, StudentCourseOption } from '@/services/academy
 import { getAcademyFees, recordAcademyFeePayment } from '@/services/academyFeeService';
 import { getAcademyReceipts, getReceiptById } from '@/services/academyReceiptService';
 import { useBusiness } from '@/context/BusinessContext';
+import RetryState from '@/components/ui/RetryState';
+import { useSlowLoading } from '@/hooks/useSlowLoading';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 interface AcademyFeesPanelProps {
   user: AuthUser;
@@ -93,6 +97,7 @@ function printReceipt(receipt: AcademyReceipt) {
 
 export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelProps) {
   const { business } = useBusiness();
+  const { isOffline } = useNetworkStatus();
   const [students, setStudents] = useState<AcademyStudent[]>([]);
   const [enrollmentOptions, setEnrollmentOptions] = useState<StudentCourseOption[]>([]);
   const [fees, setFees] = useState<AcademyFee[]>([]);
@@ -106,21 +111,46 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
   const [saving, setSaving] = useState(false);
   const [loadingEnrollments, setLoadingEnrollments] = useState(false);
   const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const { showSlowMessage, showRetry } = useSlowLoading(loading);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
 
-    Promise.all([getAcademyStudents(user.id), getAcademyFees(user.id), getAcademyReceipts(user.id)])
-      .then(([studentData, feeData, receiptData]) => {
+    Promise.allSettled([getAcademyStudents(user.id), getAcademyFees(user.id), getAcademyReceipts(user.id)])
+      .then(([studentResult, feeResult, receiptResult]) => {
         if (!active) return;
-        setStudents(studentData);
-        setFees(feeData);
-        setReceiptsMap(new Map(receiptData.map((receipt) => [receipt.receiptId, receipt])));
-      })
-      .catch(() => {
-        if (!active) return;
-        toast.error('Unable to load fee records right now.');
+
+        if (studentResult.status === 'fulfilled') {
+          setStudents(studentResult.value);
+        } else {
+          console.error('[academy-fees] unable to load students', studentResult.reason);
+          setStudents([]);
+        }
+
+        if (feeResult.status === 'fulfilled') {
+          setFees(feeResult.value);
+        } else {
+          console.error('[academy-fees] unable to load fees', feeResult.reason);
+          setFees([]);
+        }
+
+        if (receiptResult.status === 'fulfilled') {
+          setReceiptsMap(new Map(receiptResult.value.map((receipt) => [receipt.receiptId, receipt])));
+        } else {
+          console.error('[academy-fees] unable to load receipts', receiptResult.reason);
+          setReceiptsMap(new Map());
+        }
+
+        if (
+          studentResult.status === 'rejected' &&
+          feeResult.status === 'rejected' &&
+          receiptResult.status === 'rejected'
+        ) {
+          toast.error('Unable to load fee records right now.');
+        }
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -129,7 +159,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
     return () => {
       active = false;
     };
-  }, [user.id]);
+  }, [retryKey, user.id]);
 
   useEffect(() => {
     if (!form.studentId) {
@@ -216,7 +246,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
   }, [selectedEnrollment, selectedEnrollmentPaid]);
 
   const filteredFees = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     return fees.filter((fee) => {
       const matchesStatus = statusFilter === 'all' || fee.status === statusFilter;
       const matchesMode = modeFilter === 'all' || fee.paymentMode === modeFilter;
@@ -228,7 +258,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
           .includes(query);
       return matchesStatus && matchesMode && matchesQuery;
     });
-  }, [fees, modeFilter, search, statusFilter]);
+  }, [debouncedSearch, fees, modeFilter, statusFilter]);
 
   const openModal = useCallback(() => {
     setForm(emptyForm);
@@ -252,6 +282,10 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
 
       if (!selectedStudent) {
         toast.error('Student required.');
+        return;
+      }
+      if (isOffline) {
+        toast.error('You are offline. Reconnect to save payments.');
         return;
       }
       if (!selectedEnrollment) {
@@ -316,7 +350,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         setSaving(false);
       }
     },
-    [business, closeModal, form.amountPaid, form.notes, form.paymentDate, form.paymentMode, selectedEnrollment, selectedEnrollmentPending, selectedStudent, user.id]
+    [business, closeModal, form.amountPaid, form.notes, form.paymentDate, form.paymentMode, isOffline, selectedEnrollment, selectedEnrollmentPending, selectedStudent, user.id]
   );
 
   return (
@@ -370,7 +404,15 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         </div>
 
         {loading ? (
-          <div className="p-16 text-center text-muted-foreground">Loading fee records...</div>
+          showRetry ? (
+            <div className="p-5">
+              <RetryState onRetry={() => setRetryKey((current) => current + 1)} />
+            </div>
+          ) : (
+            <div className="p-16 text-center text-muted-foreground">
+              {showSlowMessage ? 'Network is slow. Trying to load your workspace.' : 'Loading fee records...'}
+            </div>
+          )
         ) : filteredFees.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <p className="text-sm font-600 text-foreground">
@@ -590,10 +632,10 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || !selectedEnrollment || selectedEnrollmentPending <= 0}
+                  disabled={saving || isOffline || !selectedEnrollment || selectedEnrollmentPending <= 0}
                   className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {saving ? 'Saving...' : 'Save Payment & Print Receipt'}
+                  {saving ? 'Saving...' : isOffline ? 'Offline' : 'Save Payment & Print Receipt'}
                 </button>
               </div>
             </form>

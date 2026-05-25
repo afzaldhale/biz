@@ -17,6 +17,10 @@ import {
   sumNumber,
 } from './academyShared';
 
+const ACADEMY_DASHBOARD_CACHE_TTL_MS = 30_000;
+const overviewCache = new Map<string, { expiresAt: number; value: AcademyOverviewData }>();
+const sidebarCache = new Map<string, { expiresAt: number; value: AcademySidebarCounts }>();
+
 function normalizeStudent(data: Record<string, unknown>, id: string): AcademyStudent {
   return {
     id,
@@ -177,6 +181,11 @@ export async function getAcademyDashboardStats(
 }
 
 export async function getAcademyOverviewData(businessId: string): Promise<AcademyOverviewData> {
+  const cached = overviewCache.get(businessId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const [studentsResult, coursesResult, feesResult, attendanceResult] = await Promise.all([
     runDashboardQuery(
@@ -237,7 +246,7 @@ export async function getAcademyOverviewData(businessId: string): Promise<Academ
     (result) => result.failed
   );
 
-  return {
+  const nextValue = {
     summary: {
       totalStudents: students.length,
       activeCourses: courses.filter((course) => course.status === 'active').length,
@@ -257,9 +266,21 @@ export async function getAcademyOverviewData(businessId: string): Promise<Academ
         ? 'Dashboard insights are being prepared. Please try again shortly.'
         : null,
   };
+
+  overviewCache.set(businessId, {
+    value: nextValue,
+    expiresAt: Date.now() + ACADEMY_DASHBOARD_CACHE_TTL_MS,
+  });
+
+  return nextValue;
 }
 
 export async function getAcademySidebarCounts(businessId: string): Promise<AcademySidebarCounts> {
+  const cached = sidebarCache.get(businessId);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   const today = new Date().toISOString().slice(0, 10);
   const [students, courses, fees, receipts, attendance] = await Promise.all([
     getDocs(academyCollection(businessId, 'students')),
@@ -271,13 +292,20 @@ export async function getAcademySidebarCounts(businessId: string): Promise<Acade
     getDocs(query(academyCollection(businessId, 'attendance'), where('attendanceDate', '==', today))),
   ]);
 
-  return {
+  const nextValue = {
     students: students.size,
     courses: courses.size,
     fees: fees.size,
     receipts: receipts.size,
     attendance: attendance.size,
   };
+
+  sidebarCache.set(businessId, {
+    value: nextValue,
+    expiresAt: Date.now() + ACADEMY_DASHBOARD_CACHE_TTL_MS,
+  });
+
+  return nextValue;
 }
 
 export async function getStudentHistory(

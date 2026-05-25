@@ -5,6 +5,9 @@ import { toast } from 'sonner';
 import { Download, Eye, Printer, Search } from 'lucide-react';
 import { AcademyPaymentMode, AcademyReceipt, AuthUser } from '@/types';
 import { getAcademyReceipts } from '@/services/academyReceiptService';
+import RetryState from '@/components/ui/RetryState';
+import { useSlowLoading } from '@/hooks/useSlowLoading';
+import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 
 interface AcademyReceiptsPanelProps {
   user: AuthUser;
@@ -98,6 +101,9 @@ export default function AcademyReceiptsPanel({ user }: AcademyReceiptsPanelProps
   const [search, setSearch] = useState('');
   const [modeFilter, setModeFilter] = useState<'all' | AcademyPaymentMode>('all');
   const [selectedReceipt, setSelectedReceipt] = useState<AcademyReceipt | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const { showSlowMessage, showRetry } = useSlowLoading(loading);
 
   useEffect(() => {
     let active = true;
@@ -119,10 +125,10 @@ export default function AcademyReceiptsPanel({ user }: AcademyReceiptsPanelProps
     return () => {
       active = false;
     };
-  }, [user.id]);
+  }, [retryKey, user.id]);
 
   const filteredReceipts = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const query = debouncedSearch.trim().toLowerCase();
     return receipts.filter((receipt) => {
       const matchesMode = modeFilter === 'all' || receipt.paymentMode === modeFilter;
       const matchesQuery =
@@ -139,7 +145,7 @@ export default function AcademyReceiptsPanel({ user }: AcademyReceiptsPanelProps
           .includes(query);
       return matchesMode && matchesQuery;
     });
-  }, [modeFilter, receipts, search]);
+  }, [debouncedSearch, modeFilter, receipts]);
 
   const handleDownloadPlaceholder = useCallback((receipt: AcademyReceipt) => {
     toast.success(`PDF download placeholder for ${receipt.receiptNumber}.`);
@@ -187,7 +193,15 @@ export default function AcademyReceiptsPanel({ user }: AcademyReceiptsPanelProps
         </div>
 
         {loading ? (
-          <div className="p-16 text-center text-muted-foreground">Loading receipts...</div>
+          showRetry ? (
+            <div className="p-5">
+              <RetryState onRetry={() => setRetryKey((current) => current + 1)} />
+            </div>
+          ) : (
+            <div className="p-16 text-center text-muted-foreground">
+              {showSlowMessage ? 'Network is slow. Trying to load your workspace.' : 'Loading receipts...'}
+            </div>
+          )
         ) : filteredReceipts.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <p className="text-sm font-600 text-foreground">

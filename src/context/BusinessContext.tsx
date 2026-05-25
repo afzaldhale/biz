@@ -26,12 +26,13 @@ interface BusinessContextType {
   businessReady: boolean;
   hasBusinessAccess: boolean;
   refreshBusiness: () => Promise<void>;
+  isOnline: boolean;
 }
 
 const BusinessContext = createContext<BusinessContextType | undefined>(undefined);
 
 export const BusinessProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth();
+  const { user, isOnline } = useAuth();
   const [business, setBusiness] = useState<BusinessProfile | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [businessLoading, setBusinessLoading] = useState(true);
@@ -47,6 +48,11 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       if (!activeUser) {
         setBusiness(null);
         setUserProfile(null);
+        setBusinessLoading(false);
+        return;
+      }
+
+      if (!isOnline && (business || userProfile)) {
         setBusinessLoading(false);
         return;
       }
@@ -73,7 +79,7 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
         setBusinessLoading(false);
       }
     },
-    [user]
+    [business, isOnline, user, userProfile]
   );
 
   useEffect(() => {
@@ -103,6 +109,7 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       businessReady,
       hasBusinessAccess,
       refreshBusiness,
+      isOnline,
     }),
     [
       business,
@@ -110,6 +117,7 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       businessLoading,
       businessReady,
       hasBusinessAccess,
+      isOnline,
       refreshBusiness,
       userProfile,
     ]
