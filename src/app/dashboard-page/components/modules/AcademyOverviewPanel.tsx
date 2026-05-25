@@ -27,24 +27,42 @@ function formatCurrency(amount: number) {
 
 export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOverviewPanelProps) {
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [overview, setOverview] = useState<Awaited<ReturnType<typeof getAcademyOverviewData>> | null>(
     null
   );
+  const [warning, setWarning] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
     setLoading(true);
-    setError(null);
+    setWarning(null);
 
     getAcademyOverviewData(user.id)
       .then((data) => {
         if (!active) return;
         setOverview(data);
+        setWarning(data.warningMessage);
       })
       .catch((caught) => {
         if (!active) return;
-        setError(caught instanceof Error ? caught.message : 'Unable to load academy dashboard.');
+        console.error('[academy-overview] unable to load dashboard', caught);
+        setOverview({
+          summary: {
+            totalStudents: 0,
+            activeCourses: 0,
+            feesCollected: 0,
+            pendingFees: 0,
+            todayAttendanceCount: 0,
+            todayPresentCount: 0,
+            todayAbsentCount: 0,
+            todayLateCount: 0,
+          },
+          recentStudents: [],
+          recentPayments: [],
+          todayAttendance: [],
+          warningMessage: 'Dashboard insights are being prepared. Please try again shortly.',
+        });
+        setWarning('Dashboard insights are being prepared. Please try again shortly.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -101,15 +119,6 @@ export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOvervi
     );
   }
 
-  if (error) {
-    return (
-      <div className="glass-card rounded-2xl border border-red-200 bg-red-50 p-6 text-red-700">
-        <h2 className="text-lg font-semibold">Unable to load academy dashboard</h2>
-        <p className="mt-2 text-sm">{error}</p>
-      </div>
-    );
-  }
-
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
@@ -140,6 +149,12 @@ export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOvervi
           </button>
         </div>
       </div>
+
+      {warning && (
+        <div className="glass-card rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          {warning}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => {

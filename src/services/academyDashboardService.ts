@@ -8,7 +8,14 @@ import {
   AcademyReceipt,
   AcademyStudent,
 } from '@/types';
-import { academyCollection, mapSnapshot, normalizeDateValue, sumNumber } from './academyShared';
+import {
+  academyCollection,
+  isFirestoreIndexError,
+  mapSnapshot,
+  normalizeDateValue,
+  sortByCreatedAtDesc,
+  sumNumber,
+} from './academyShared';
 
 function normalizeStudent(data: Record<string, unknown>, id: string): AcademyStudent {
   return {
@@ -125,11 +132,25 @@ function normalizeEnrollment(data: Record<string, unknown>, id: string): Academy
   };
 }
 
+async function runDashboardQuery<T>(
+  label: string,
+  load: () => Promise<T>,
+  fallback: T
+): Promise<{ value: T; indexError: boolean; failed: boolean }> {
+  try {
+    return { value: await load(), indexError: false, failed: false };
+  } catch (error) {
+    console.error(`[academy-dashboard] ${label} query failed`, error);
+    return { value: fallback, indexError: isFirestoreIndexError(error), failed: true };
+  }
+}
+
 export interface AcademyOverviewData {
   summary: AcademyDashboardSummary;
   recentStudents: AcademyStudent[];
   recentPayments: AcademyFee[];
   todayAttendance: AcademyAttendance[];
+  warningMessage: string | null;
 }
 
 export interface AcademySidebarCounts {
@@ -140,26 +161,80 @@ export interface AcademySidebarCounts {
   attendance: number;
 }
 
+export interface AcademyStudentHistory {
+  student: AcademyStudent | null;
+  enrollments: AcademyEnrollment[];
+  fees: AcademyFee[];
+  receipts: AcademyReceipt[];
+  attendance: AcademyAttendance[];
+}
+
+export async function getAcademyDashboardStats(
+  businessId: string
+): Promise<AcademyOverviewData['summary']> {
+  const overview = await getAcademyOverviewData(businessId);
+  return overview.summary;
+}
+
 export async function getAcademyOverviewData(businessId: string): Promise<AcademyOverviewData> {
   const today = new Date().toISOString().slice(0, 10);
-  const [studentsSnap, coursesSnap, feesSnap, attendanceSnap] = await Promise.all([
-    getDocs(query(academyCollection(businessId, 'students'), orderBy('createdAt', 'desc'))),
-    getDocs(query(academyCollection(businessId, 'courses'), orderBy('createdAt', 'desc'))),
-    getDocs(query(academyCollection(businessId, 'fees'), orderBy('createdAt', 'desc'))),
-    getDocs(
-      query(
-        academyCollection(businessId, 'attendance'),
-        where('attendanceDate', '==', today),
-        orderBy('createdAt', 'desc')
-      )
+  const [studentsResult, coursesResult, feesResult, attendanceResult] = await Promise.all([
+    runDashboardQuery(
+      'students',
+      async () => {
+        const snapshot = await getDocs(
+          query(academyCollection(businessId, 'students'), orderBy('createdAt', 'desc'))
+        );
+        return snapshot.docs.map((doc) => mapSnapshot<AcademyStudent>(doc, normalizeStudent));
+      },
+      [] as AcademyStudent[]
+    ),
+    runDashboardQuery(
+      'courses',
+      async () => {
+        const snapshot = await getDocs(
+          query(academyCollection(businessId, 'courses'), orderBy('createdAt', 'desc'))
+        );
+        return snapshot.docs.map((doc) => mapSnapshot<AcademyCourse>(doc, normalizeCourse));
+      },
+      [] as AcademyCourse[]
+    ),
+    runDashboardQuery(
+      'fees',
+      async () => {
+        const snapshot = await getDocs(
+          query(academyCollection(businessId, 'fees'), orderBy('createdAt', 'desc'))
+        );
+        return snapshot.docs.map((doc) => mapSnapshot<AcademyFee>(doc, normalizeFee));
+      },
+      [] as AcademyFee[]
+    ),
+    runDashboardQuery(
+      'attendance',
+      async () => {
+        const snapshot = await getDocs(
+          query(academyCollection(businessId, 'attendance'), where('attendanceDate', '==', today))
+        );
+        return sortByCreatedAtDesc(
+          snapshot.docs.map((doc) => mapSnapshot<AcademyAttendance>(doc, normalizeAttendance))
+        );
+      },
+      [] as AcademyAttendance[]
     ),
   ]);
 
-  const students = studentsSnap.docs.map((doc) => mapSnapshot<AcademyStudent>(doc, normalizeStudent));
-  const courses = coursesSnap.docs.map((doc) => mapSnapshot<AcademyCourse>(doc, normalizeCourse));
-  const fees = feesSnap.docs.map((doc) => mapSnapshot<AcademyFee>(doc, normalizeFee));
-  const attendance = attendanceSnap.docs.map((doc) =>
-    mapSnapshot<AcademyAttendance>(doc, normalizeAttendance)
+  const students = studentsResult.value;
+  const courses = coursesResult.value;
+  const fees = feesResult.value;
+  const attendance = attendanceResult.value;
+  const hasIndexError = [
+    studentsResult,
+    coursesResult,
+    feesResult,
+    attendanceResult,
+  ].some((result) => result.indexError);
+  const hasAnyFailure = [studentsResult, coursesResult, feesResult, attendanceResult].some(
+    (result) => result.failed
   );
 
   return {
@@ -176,6 +251,11 @@ export async function getAcademyOverviewData(businessId: string): Promise<Academ
     recentStudents: students.slice(0, 5),
     recentPayments: fees.slice(0, 5),
     todayAttendance: attendance,
+    warningMessage: hasIndexError
+      ? 'Dashboard data needs a Firestore index. Please deploy indexes or simplify the query.'
+      : hasAnyFailure
+        ? 'Dashboard insights are being prepared. Please try again shortly.'
+        : null,
   };
 }
 
@@ -184,7 +264,9 @@ export async function getAcademySidebarCounts(businessId: string): Promise<Acade
   const [students, courses, fees, receipts, attendance] = await Promise.all([
     getDocs(academyCollection(businessId, 'students')),
     getDocs(query(academyCollection(businessId, 'courses'), where('status', '==', 'active'))),
-    getDocs(query(academyCollection(businessId, 'fees'), where('status', 'in', ['pending', 'partial']))),
+    getDocs(
+      query(academyCollection(businessId, 'fees'), where('status', 'in', ['pending', 'partial']))
+    ),
     getDocs(academyCollection(businessId, 'receipts')),
     getDocs(query(academyCollection(businessId, 'attendance'), where('attendanceDate', '==', today))),
   ]);
@@ -198,26 +280,39 @@ export async function getAcademySidebarCounts(businessId: string): Promise<Acade
   };
 }
 
-export async function getStudentProfileData(businessId: string, studentId: string) {
+export async function getStudentHistory(
+  businessId: string,
+  studentId: string
+): Promise<AcademyStudentHistory> {
   const [studentSnap, enrollmentsSnap, feesSnap, receiptsSnap, attendanceSnap] = await Promise.all([
     getDocs(query(academyCollection(businessId, 'students'), where('studentId', '==', studentId), limit(1))),
-    getDocs(query(academyCollection(businessId, 'enrollments'), where('studentId', '==', studentId), orderBy('createdAt', 'desc'))),
-    getDocs(query(academyCollection(businessId, 'fees'), where('studentId', '==', studentId), orderBy('createdAt', 'desc'))),
-    getDocs(query(academyCollection(businessId, 'receipts'), where('studentId', '==', studentId), orderBy('createdAt', 'desc'))),
-    getDocs(query(academyCollection(businessId, 'attendance'), where('studentId', '==', studentId), orderBy('createdAt', 'desc'))),
+    getDocs(query(academyCollection(businessId, 'enrollments'), where('studentId', '==', studentId))),
+    getDocs(query(academyCollection(businessId, 'fees'), where('studentId', '==', studentId))),
+    getDocs(query(academyCollection(businessId, 'receipts'), where('studentId', '==', studentId))),
+    getDocs(query(academyCollection(businessId, 'attendance'), where('studentId', '==', studentId))),
   ]);
 
   const student = studentSnap.docs[0]
     ? mapSnapshot<AcademyStudent>(studentSnap.docs[0], normalizeStudent)
     : null;
-  const enrollments = enrollmentsSnap.docs.map((doc) =>
-    mapSnapshot<AcademyEnrollment>(doc, normalizeEnrollment)
-  );
-  const fees = feesSnap.docs.map((doc) => mapSnapshot<AcademyFee>(doc, normalizeFee));
-  const receipts = receiptsSnap.docs.map((doc) => mapSnapshot<AcademyReceipt>(doc, normalizeReceipt));
-  const attendance = attendanceSnap.docs.map((doc) =>
-    mapSnapshot<AcademyAttendance>(doc, normalizeAttendance)
-  );
 
-  return { student, enrollments, fees, receipts, attendance };
+  return {
+    student,
+    enrollments: sortByCreatedAtDesc(
+      enrollmentsSnap.docs.map((doc) => mapSnapshot<AcademyEnrollment>(doc, normalizeEnrollment))
+    ),
+    fees: sortByCreatedAtDesc(
+      feesSnap.docs.map((doc) => mapSnapshot<AcademyFee>(doc, normalizeFee))
+    ),
+    receipts: sortByCreatedAtDesc(
+      receiptsSnap.docs.map((doc) => mapSnapshot<AcademyReceipt>(doc, normalizeReceipt))
+    ),
+    attendance: sortByCreatedAtDesc(
+      attendanceSnap.docs.map((doc) => mapSnapshot<AcademyAttendance>(doc, normalizeAttendance))
+    ),
+  };
+}
+
+export async function getStudentProfileData(businessId: string, studentId: string) {
+  return getStudentHistory(businessId, studentId);
 }

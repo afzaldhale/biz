@@ -1,6 +1,12 @@
-import { getDoc, getDocs, orderBy, query } from 'firebase/firestore';
+import { getDoc, getDocs, orderBy, query, where } from 'firebase/firestore';
 import { AcademyReceipt } from '@/types';
-import { academyCollection, academyDoc, mapSnapshot, normalizeDateValue } from './academyShared';
+import {
+  academyCollection,
+  academyDoc,
+  mapSnapshot,
+  normalizeDateValue,
+  sortByCreatedAtDesc,
+} from './academyShared';
 
 function normalizeReceipt(data: Record<string, unknown>, id: string): AcademyReceipt {
   return {
@@ -27,12 +33,18 @@ export async function getAcademyReceipts(businessId: string) {
   const snapshot = await getDocs(
     query(academyCollection(businessId, 'receipts'), orderBy('createdAt', 'desc'))
   );
-  return snapshot.docs.map((doc) => mapSnapshot<AcademyReceipt>(doc, normalizeReceipt));
+  return snapshot.docs.map((docSnapshot) =>
+    mapSnapshot<AcademyReceipt>(docSnapshot, normalizeReceipt)
+  );
 }
 
 export async function getStudentReceipts(businessId: string, studentId: string) {
-  const receipts = await getAcademyReceipts(businessId);
-  return receipts.filter((receipt) => receipt.studentId === studentId);
+  const snapshot = await getDocs(
+    query(academyCollection(businessId, 'receipts'), where('studentId', '==', studentId))
+  );
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnapshot) => mapSnapshot<AcademyReceipt>(docSnapshot, normalizeReceipt))
+  );
 }
 
 export async function getReceiptById(businessId: string, receiptId: string) {

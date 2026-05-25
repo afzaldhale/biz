@@ -3,9 +3,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Eye, Plus, Printer, Search } from 'lucide-react';
-import { AcademyEnrollment, AcademyFee, AcademyPaymentMode, AcademyReceipt, AcademyStudent, AuthUser } from '@/types';
+import { AcademyFee, AcademyPaymentMode, AcademyReceipt, AcademyStudent, AuthUser } from '@/types';
 import { getAcademyStudents } from '@/services/academyStudentService';
-import { getStudentEnrollments } from '@/services/academyEnrollmentService';
+import { getStudentCourseOptions, StudentCourseOption } from '@/services/academyEnrollmentService';
 import { getAcademyFees, recordAcademyFeePayment } from '@/services/academyFeeService';
 import { getAcademyReceipts, getReceiptById } from '@/services/academyReceiptService';
 import { useBusiness } from '@/context/BusinessContext';
@@ -91,10 +91,10 @@ function printReceipt(receipt: AcademyReceipt) {
   receiptWindow.print();
 }
 
-export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
+export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelProps) {
   const { business } = useBusiness();
   const [students, setStudents] = useState<AcademyStudent[]>([]);
-  const [enrollments, setEnrollments] = useState<AcademyEnrollment[]>([]);
+  const [enrollmentOptions, setEnrollmentOptions] = useState<StudentCourseOption[]>([]);
   const [fees, setFees] = useState<AcademyFee[]>([]);
   const [receiptsMap, setReceiptsMap] = useState<Map<string, AcademyReceipt>>(new Map());
   const [loading, setLoading] = useState(true);
@@ -104,6 +104,8 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<FeePaymentForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [enrollmentError, setEnrollmentError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -131,19 +133,53 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
 
   useEffect(() => {
     if (!form.studentId) {
-      setEnrollments([]);
+      setEnrollmentOptions([]);
+      setEnrollmentError(null);
+      setLoadingEnrollments(false);
       setForm((current) => ({ ...current, enrollmentId: '' }));
       return;
     }
 
-    getStudentEnrollments(user.id, form.studentId)
-      .then((data) => {
-        setEnrollments(data.filter((item) => item.status === 'active'));
+    const student = students.find((item) => item.studentId === form.studentId);
+    if (!student) {
+      setEnrollmentOptions([]);
+      setEnrollmentError('Unable to find this student record.');
+      return;
+    }
+
+    setLoadingEnrollments(true);
+    setEnrollmentError(null);
+    setEnrollmentOptions([]);
+
+    getStudentCourseOptions(user.id, student)
+      .then((options) => {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[academy-fees] selected student', student);
+          console.log('[academy-fees] loaded course options', options);
+        }
+
+        const activeOptions = options.filter((item) => item.status === 'active');
+        setEnrollmentOptions(activeOptions);
+        setForm((current) => ({
+          ...current,
+          enrollmentId: activeOptions.length === 1 ? activeOptions[0].enrollmentId : '',
+          amountPaid: '',
+        }));
+
+        if (activeOptions.length === 0) {
+          setEnrollmentError('This student is not enrolled in any course. Please enroll the student in a course first.');
+        }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('[academy-fees] unable to load enrollments', error);
+        setEnrollmentOptions([]);
+        setEnrollmentError('Unable to load enrollments for this student.');
         toast.error('Unable to load enrollments for this student.');
+      })
+      .finally(() => {
+        setLoadingEnrollments(false);
       });
-  }, [form.studentId, user.id]);
+  }, [form.studentId, students, user.id]);
 
   useEffect(() => {
     const selectedStudentId = window.sessionStorage.getItem('academy:selectedStudentId');
@@ -157,9 +193,27 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
     [form.studentId, students]
   );
   const selectedEnrollment = useMemo(
-    () => enrollments.find((enrollment) => enrollment.enrollmentId === form.enrollmentId) ?? null,
-    [enrollments, form.enrollmentId]
+    () => enrollmentOptions.find((enrollment) => enrollment.enrollmentId === form.enrollmentId) ?? null,
+    [enrollmentOptions, form.enrollmentId]
   );
+  const selectedEnrollmentPaid = useMemo(() => {
+    if (!selectedStudent || !selectedEnrollment) return 0;
+
+    return fees
+      .filter((fee) => {
+        if (fee.studentId !== selectedStudent.studentId) return false;
+        if (selectedEnrollment.isVirtual) {
+          return fee.courseId === selectedEnrollment.courseId;
+        }
+        return fee.enrollmentId === selectedEnrollment.enrollmentId || fee.courseId === selectedEnrollment.courseId;
+      })
+      .reduce((sum, fee) => sum + Number(fee.paidAmount || 0), 0);
+  }, [fees, selectedEnrollment, selectedStudent]);
+
+  const selectedEnrollmentPending = useMemo(() => {
+    if (!selectedEnrollment) return 0;
+    return Math.max(0, Number(selectedEnrollment.courseFees || 0) - selectedEnrollmentPaid);
+  }, [selectedEnrollment, selectedEnrollmentPaid]);
 
   const filteredFees = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -178,13 +232,17 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
 
   const openModal = useCallback(() => {
     setForm(emptyForm);
-    setEnrollments([]);
+    setEnrollmentOptions([]);
+    setLoadingEnrollments(false);
+    setEnrollmentError(null);
     setIsModalOpen(true);
   }, []);
 
   const closeModal = useCallback(() => {
     setForm(emptyForm);
-    setEnrollments([]);
+    setEnrollmentOptions([]);
+    setLoadingEnrollments(false);
+    setEnrollmentError(null);
     setIsModalOpen(false);
   }, []);
 
@@ -205,8 +263,12 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
         toast.error('Amount cannot be 0.');
         return;
       }
-      if (amount > selectedStudent.pendingFees) {
+      if (amount > selectedEnrollmentPending) {
         toast.error('Amount cannot exceed pending amount.');
+        return;
+      }
+      if (selectedEnrollmentPending <= 0) {
+        toast.error('This course fee is fully paid.');
         return;
       }
       if (!business) {
@@ -220,6 +282,8 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
           studentId: selectedStudent.studentId,
           courseId: selectedEnrollment.courseId,
           enrollmentId: selectedEnrollment.enrollmentId,
+          courseFees: selectedEnrollment.courseFees,
+          courseName: selectedEnrollment.courseName,
           amountPaid: amount,
           paymentMode: form.paymentMode,
           paymentDate: form.paymentDate,
@@ -252,7 +316,7 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
         setSaving(false);
       }
     },
-    [business, closeModal, form.amountPaid, form.notes, form.paymentDate, form.paymentMode, selectedEnrollment, selectedStudent, user.id]
+    [business, closeModal, form.amountPaid, form.notes, form.paymentDate, form.paymentMode, selectedEnrollment, selectedEnrollmentPending, selectedStudent, user.id]
   );
 
   return (
@@ -384,7 +448,14 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
                 <select
                   required
                   value={form.studentId}
-                  onChange={(event) => setForm((current) => ({ ...current, studentId: event.target.value, enrollmentId: '' }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      studentId: event.target.value,
+                      enrollmentId: '',
+                      amountPaid: '',
+                    }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="">Choose student</option>
@@ -400,21 +471,54 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
                 <select
                   required
                   value={form.enrollmentId}
-                  onChange={(event) => setForm((current) => ({ ...current, enrollmentId: event.target.value }))}
-                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  onChange={(event) => {
+                    const nextEnrollmentId = event.target.value;
+                    setForm((current) => ({ ...current, enrollmentId: nextEnrollmentId, amountPaid: '' }));
+                    if (process.env.NODE_ENV === 'development') {
+                      const chosen = enrollmentOptions.find((option) => option.enrollmentId === nextEnrollmentId) ?? null;
+                      console.log('[academy-fees] selected enrollment', chosen);
+                    }
+                  }}
+                  disabled={!form.studentId || loadingEnrollments}
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <option value="">Choose enrollment</option>
-                  {enrollments.map((enrollment) => (
-                    <option key={enrollment.id} value={enrollment.enrollmentId}>
-                      {enrollment.courseName}
+                  {enrollmentOptions.map((enrollment) => (
+                    <option key={enrollment.enrollmentId} value={enrollment.enrollmentId}>
+                      {enrollment.courseName} — {formatCurrency(enrollment.courseFees)} — {enrollment.status}
                     </option>
                   ))}
                 </select>
+                {loadingEnrollments && (
+                  <p className="mt-2 text-xs text-muted-foreground">Loading enrolled courses...</p>
+                )}
+                {!loadingEnrollments && enrollmentError && (
+                  <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    {enrollmentError}
+                  </div>
+                )}
+                {!loadingEnrollments && !enrollmentError && form.studentId && enrollmentOptions.length === 0 && (
+                  <div className="mt-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    No course enrollment found for this student. Enroll the student in a course first.
+                  </div>
+                )}
+                {!loadingEnrollments && !enrollmentError && form.studentId && enrollmentOptions.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      closeModal();
+                      onNavigate('nav-students');
+                    }}
+                    className="mt-2 text-xs font-600 text-primary"
+                  >
+                    Go to Students or Courses to enroll this student
+                  </button>
+                )}
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-600 text-foreground">Pending Amount</label>
                 <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
-                  {selectedStudent ? formatCurrency(selectedStudent.pendingFees) : 'Select student'}
+                  {selectedEnrollment ? formatCurrency(selectedEnrollmentPending) : 'Select enrollment'}
                 </div>
               </div>
               <div>
@@ -422,11 +526,25 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
                 <input
                   required
                   min="1"
+                  max={selectedEnrollmentPending || undefined}
                   type="number"
+                  disabled={!selectedEnrollment || selectedEnrollmentPending <= 0}
                   value={form.amountPaid}
                   onChange={(event) => setForm((current) => ({ ...current, amountPaid: event.target.value }))}
-                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                 />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Course Fee</label>
+                <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
+                  {selectedEnrollment ? formatCurrency(selectedEnrollment.courseFees) : 'Select enrollment'}
+                </div>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">Already Paid</label>
+                <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
+                  {selectedEnrollment ? formatCurrency(selectedEnrollmentPaid) : 'Select enrollment'}
+                </div>
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-600 text-foreground">Payment Mode</label>
@@ -461,11 +579,20 @@ export default function AcademyFeesPanel({ user }: AcademyFeesPanelProps) {
                   className="w-full resize-none rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
+              {selectedEnrollment && selectedEnrollmentPending <= 0 && (
+                <div className="md:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                  This course fee is fully paid.
+                </div>
+              )}
               <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button type="button" onClick={closeModal} className="btn-outline rounded-xl px-5 py-3 text-sm">
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+                <button
+                  type="submit"
+                  disabled={saving || !selectedEnrollment || selectedEnrollmentPending <= 0}
+                  className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   {saving ? 'Saving...' : 'Save Payment & Print Receipt'}
                 </button>
               </div>

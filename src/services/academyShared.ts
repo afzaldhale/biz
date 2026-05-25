@@ -68,3 +68,17 @@ export function mapSnapshot<T>(
 export function sumNumber(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
 }
+
+export function sortByCreatedAtDesc<T extends { createdAt?: string }>(records: T[]) {
+  return [...records].sort((left, right) => {
+    const leftTime = left.createdAt ? new Date(left.createdAt).getTime() : 0;
+    const rightTime = right.createdAt ? new Date(right.createdAt).getTime() : 0;
+    return rightTime - leftTime;
+  });
+}
+
+export function isFirestoreIndexError(error: unknown) {
+  if (!(error instanceof Error)) return false;
+  const message = error.message.toLowerCase();
+  return message.includes('requires an index') || message.includes('failed-precondition');
+}

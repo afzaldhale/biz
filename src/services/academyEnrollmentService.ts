@@ -14,15 +14,21 @@ import {
   firestoreTimestamp,
   mapSnapshot,
   normalizeDateValue,
+  sortByCreatedAtDesc,
 } from './academyShared';
 import { canAddRecord } from '@/utils/planLimits';
 import { safeIncrementBusinessUsage } from './businessService';
+import { getAcademyCourses } from './academyCourseService';
 
 export interface EnrollmentInput {
   student: Pick<AcademyStudent, 'studentId' | 'studentName'>;
   course: Pick<AcademyCourse, 'courseId' | 'courseName' | 'fees'>;
   enrollmentDate: string;
   status?: AcademyEnrollment['status'];
+}
+
+export interface StudentCourseOption extends AcademyEnrollment {
+  isVirtual?: boolean;
 }
 
 function normalizeEnrollment(data: Record<string, unknown>, id: string): AcademyEnrollment {
@@ -50,24 +56,67 @@ export async function getAcademyEnrollments(businessId: string) {
 
 export async function getStudentEnrollments(businessId: string, studentId: string) {
   const snapshot = await getDocs(
-    query(
-      academyCollection(businessId, 'enrollments'),
-      where('studentId', '==', studentId),
-      orderBy('createdAt', 'desc')
-    )
+    query(academyCollection(businessId, 'enrollments'), where('studentId', '==', studentId))
   );
-  return snapshot.docs.map((doc) => mapSnapshot<AcademyEnrollment>(doc, normalizeEnrollment));
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((doc) => mapSnapshot<AcademyEnrollment>(doc, normalizeEnrollment))
+  );
 }
 
 export async function getCourseEnrollments(businessId: string, courseId: string) {
   const snapshot = await getDocs(
-    query(
-      academyCollection(businessId, 'enrollments'),
-      where('courseId', '==', courseId),
-      orderBy('createdAt', 'desc')
-    )
+    query(academyCollection(businessId, 'enrollments'), where('courseId', '==', courseId))
   );
-  return snapshot.docs.map((doc) => mapSnapshot<AcademyEnrollment>(doc, normalizeEnrollment));
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((doc) => mapSnapshot<AcademyEnrollment>(doc, normalizeEnrollment))
+  );
+}
+
+export async function getStudentCourseOptions(
+  businessId: string,
+  student: Pick<AcademyStudent, 'studentId' | 'studentName' | 'admissionDate' | 'enrolledCourseIds'>
+): Promise<StudentCourseOption[]> {
+  const enrollments = await getStudentEnrollments(businessId, student.studentId);
+  const activeEnrollments = enrollments.filter((item) => item.status === 'active');
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[academy-enrollments] selected student', student);
+    console.log('[academy-enrollments] loaded enrollments', activeEnrollments);
+  }
+
+  if (activeEnrollments.length > 0) {
+    return activeEnrollments;
+  }
+
+  if (!student.enrolledCourseIds.length) {
+    return [];
+  }
+
+  const courses = await getAcademyCourses(businessId);
+  const courseMap = new Map(courses.map((course) => [course.courseId, course]));
+  const fallbackOptions = student.enrolledCourseIds
+    .map((courseId) => courseMap.get(courseId))
+    .filter((course): course is AcademyCourse => Boolean(course))
+    .map<StudentCourseOption>((course) => ({
+      id: `virtual-${course.courseId}`,
+      enrollmentId: `virtual-${course.courseId}`,
+      studentId: student.studentId,
+      studentName: student.studentName,
+      courseId: course.courseId,
+      courseName: course.courseName,
+      courseFees: Number(course.fees) || 0,
+      enrollmentDate: student.admissionDate || '',
+      status: 'active',
+      createdAt: '',
+      updatedAt: '',
+      isVirtual: true,
+    }));
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[academy-enrollments] fallback course options', fallbackOptions);
+  }
+
+  return fallbackOptions;
 }
 
 export async function createEnrollment(businessId: string, input: EnrollmentInput) {

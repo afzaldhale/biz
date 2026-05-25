@@ -1,6 +1,5 @@
 import {
   addDoc,
-  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -18,9 +17,11 @@ import {
   getFirestoreDb,
   mapSnapshot,
   normalizeDateValue,
+  sortByCreatedAtDesc,
 } from './academyShared';
 import { canAddRecord } from '@/utils/planLimits';
-import { decrementBusinessUsage, safeIncrementBusinessUsage } from './businessService';
+import { safeIncrementBusinessUsage } from './businessService';
+import { getStudentHistory } from './academyDashboardService';
 
 export interface AcademyStudentInput {
   studentName: string;
@@ -64,11 +65,15 @@ function buildAdmissionId(studentDocId: string) {
   return `ADM-${studentDocId.slice(0, 6).toUpperCase()}`;
 }
 
+export async function getStudents(businessId: string) {
+  return getAcademyStudents(businessId);
+}
+
 export async function getAcademyStudents(businessId: string) {
   const snapshot = await getDocs(
     query(academyCollection(businessId, 'students'), orderBy('createdAt', 'desc'))
   );
-  return snapshot.docs.map((doc) => mapSnapshot<AcademyStudent>(doc, normalizeStudent));
+  return snapshot.docs.map((docSnapshot) => mapSnapshot<AcademyStudent>(docSnapshot, normalizeStudent));
 }
 
 export async function getAcademyStudent(businessId: string, studentId: string) {
@@ -77,11 +82,20 @@ export async function getAcademyStudent(businessId: string, studentId: string) {
   return normalizeStudent(snapshot.data() as Record<string, unknown>, snapshot.id);
 }
 
+export async function getStudentByBusinessStudentId(businessId: string, studentId: string) {
+  const snapshot = await getDocs(
+    query(academyCollection(businessId, 'students'), where('studentId', '==', studentId))
+  );
+  const first = snapshot.docs[0];
+  return first ? mapSnapshot<AcademyStudent>(first, normalizeStudent) : null;
+}
+
 export async function createAcademyStudent(businessId: string, input: AcademyStudentInput) {
   await canAddRecord(businessId, 'students');
   const firestore = getFirestoreDb();
   const studentsCollection = academyCollection(businessId, 'students');
   const totalFees = input.selectedCourses.reduce((sum, course) => sum + Number(course.fees || 0), 0);
+
   const studentRef = await addDoc(studentsCollection, {
     studentName: input.studentName.trim(),
     parentName: input.parentName.trim(),
@@ -134,6 +148,34 @@ export async function createAcademyStudent(businessId: string, input: AcademyStu
   return studentRef.id;
 }
 
+export async function updateStudent(
+  businessId: string,
+  studentId: string,
+  data: Partial<AcademyStudentInput> & { paidFees?: number; pendingFees?: number; totalFees?: number }
+) {
+  const updates: Record<string, unknown> = {
+    updatedAt: firestoreTimestamp(),
+  };
+
+  if (typeof data.studentName === 'string') updates.studentName = data.studentName.trim();
+  if (typeof data.parentName === 'string') updates.parentName = data.parentName.trim();
+  if (typeof data.phone === 'string') updates.phone = data.phone.trim();
+  if (typeof data.email === 'string') updates.email = data.email.trim();
+  if (typeof data.address === 'string') updates.address = data.address.trim();
+  if (typeof data.dateOfBirth === 'string') updates.dateOfBirth = data.dateOfBirth;
+  if (typeof data.admissionDate === 'string') updates.admissionDate = data.admissionDate;
+  if (typeof data.notes === 'string') updates.notes = data.notes.trim();
+  if (typeof data.status === 'string') updates.status = data.status;
+  if (typeof data.totalFees === 'number') updates.totalFees = data.totalFees;
+  if (typeof data.paidFees === 'number') updates.paidFees = data.paidFees;
+  if (typeof data.pendingFees === 'number') updates.pendingFees = data.pendingFees;
+  if (Array.isArray(data.selectedCourses)) {
+    updates.enrolledCourseIds = data.selectedCourses.map((course) => course.courseId);
+  }
+
+  await updateDoc(academyDoc(businessId, 'students', studentId), updates);
+}
+
 export async function updateAcademyStudent(
   businessId: string,
   studentId: string,
@@ -150,21 +192,11 @@ export async function updateAcademyStudent(
   const totalFees = input.selectedCourses.reduce((sum, course) => sum + Number(course.fees || 0), 0);
   const nextPendingFees = Math.max(0, totalFees - Number(input.paidFees || 0));
 
-  await updateDoc(academyDoc(businessId, 'students', studentId), {
-    studentName: input.studentName.trim(),
-    parentName: input.parentName.trim(),
-    phone: input.phone.trim(),
-    email: input.email.trim(),
-    address: input.address.trim(),
-    dateOfBirth: input.dateOfBirth,
-    admissionDate: input.admissionDate,
-    status: input.status,
-    notes: input.notes.trim(),
-    enrolledCourseIds: input.selectedCourses.map((course) => course.courseId),
+  await updateStudent(businessId, studentId, {
+    ...input,
     totalFees,
     paidFees: Number(input.paidFees) || 0,
     pendingFees: nextPendingFees,
-    updatedAt: firestoreTimestamp(),
   });
 
   const existingEnrollments = await getDocs(
@@ -210,33 +242,21 @@ export async function updateAcademyStudent(
 }
 
 export async function deleteAcademyStudent(businessId: string, studentId: string) {
-  const firestore = getFirestoreDb();
-  const enrollments = await getDocs(
-    query(academyCollection(businessId, 'enrollments'), where('studentId', '==', studentId))
-  );
-  const fees = await getDocs(
-    query(academyCollection(businessId, 'fees'), where('studentId', '==', studentId))
-  );
-  const receipts = await getDocs(
-    query(academyCollection(businessId, 'receipts'), where('studentId', '==', studentId))
-  );
-  const attendance = await getDocs(
-    query(academyCollection(businessId, 'attendance'), where('studentId', '==', studentId))
-  );
+  await updateDoc(academyDoc(businessId, 'students', studentId), {
+    status: 'inactive',
+    updatedAt: firestoreTimestamp(),
+  });
+}
 
-  const batch = writeBatch(firestore);
-  batch.delete(academyDoc(businessId, 'students', studentId));
-  enrollments.docs.forEach((doc) => batch.delete(doc.ref));
-  fees.docs.forEach((doc) => batch.delete(doc.ref));
-  receipts.docs.forEach((doc) => batch.delete(doc.ref));
-  attendance.docs.forEach((doc) => batch.delete(doc.ref));
-  await batch.commit();
-  await decrementBusinessUsage(businessId);
+export async function getStudentHistorySummary(businessId: string, studentId: string) {
+  return getStudentHistory(businessId, studentId);
 }
 
 export async function searchStudentByCourse(businessId: string, courseId: string) {
   const snapshot = await getDocs(
     query(academyCollection(businessId, 'students'), where('enrolledCourseIds', 'array-contains', courseId))
   );
-  return snapshot.docs.map((doc) => mapSnapshot<AcademyStudent>(doc, normalizeStudent));
+  return sortByCreatedAtDesc(
+    snapshot.docs.map((docSnapshot) => mapSnapshot<AcademyStudent>(docSnapshot, normalizeStudent))
+  );
 }
