@@ -25,7 +25,7 @@ interface BusinessContextType {
   businessError: string | null;
   businessReady: boolean;
   hasBusinessAccess: boolean;
-  refreshBusiness: () => Promise<void>;
+  refreshBusiness: (firebaseUser?: SessionUser | null) => Promise<void>;
   isOnline: boolean;
 }
 
@@ -37,39 +37,36 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [businessLoading, setBusinessLoading] = useState(true);
   const [businessError, setBusinessError] = useState<string | null>(null);
+  const [businessReady, setBusinessReady] = useState(false);
 
   const refreshBusiness = useCallback(
     async (firebaseUser?: SessionUser | null) => {
       const activeUser = firebaseUser ?? user;
 
       setBusinessError(null);
+      setBusinessReady(false);
       setBusinessLoading(true);
 
       if (!activeUser) {
         setBusiness(null);
         setUserProfile(null);
-        setBusinessLoading(false);
-        return;
-      }
-
-      if (!isOnline && (business || userProfile)) {
-        setBusinessLoading(false);
         return;
       }
 
       try {
         const profile = await getUserProfile(activeUser.uid);
+        setUserProfile(profile);
 
         if (!profile?.businessId) {
-          setUserProfile(profile);
           setBusiness(null);
           return;
         }
 
         const businessProfile = await getBusinessById(profile.businessId);
-        setUserProfile(profile);
         setBusiness(businessProfile);
+        setBusinessReady(Boolean(businessProfile));
       } catch (error) {
+        console.error('[business-context] failed to load business state', error);
         setUserProfile(null);
         setBusiness(null);
         setBusinessError(
@@ -79,12 +76,34 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
         setBusinessLoading(false);
       }
     },
-    [business, isOnline, user, userProfile]
+    [user]
   );
 
   useEffect(() => {
     void refreshBusiness();
   }, [refreshBusiness]);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[business-context]', {
+        businessLoading,
+        businessReady,
+        user: user
+          ? {
+              uid: user.uid,
+              emailVerified: user.emailVerified,
+            }
+          : null,
+        business: business
+          ? {
+              businessId: business.businessId,
+              status: business.status,
+            }
+          : null,
+        businessError,
+      });
+    }
+  }, [business, businessError, businessLoading, businessReady, user]);
 
   const hasBusinessAccess = Boolean(
     user &&
@@ -93,8 +112,6 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
     business &&
     business.status === 'active'
   );
-
-  const businessReady = !businessLoading && Boolean(business);
 
   const contextValue = useMemo<BusinessContextType>(
     () => ({

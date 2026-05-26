@@ -20,7 +20,7 @@ interface LoginFormProps {
 
 export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
   const router = useRouter();
-  const { login, reloadUser } = useAuth();
+  const { login, refreshAuthState } = useAuth();
   const { refreshBusiness } = useBusiness();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,8 +39,10 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
     setAuthError('');
 
     try {
-      await login(data.email, data.password);
-      const refreshedUser = await reloadUser();
+      const credential = await login(data.email, data.password);
+      await credential.user.reload();
+      await credential.user.getIdToken(true);
+      const refreshedUser = await refreshAuthState();
 
       if (!refreshedUser?.emailVerified) {
         toast.info('Please verify your email before accessing the dashboard.');
@@ -48,13 +50,13 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
         return;
       }
 
-      await refreshBusiness();
+      await refreshBusiness(refreshedUser);
       toast.success('Welcome back! Redirecting to your dashboard...');
       router.replace('/dashboard');
-      router.refresh();
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unable to sign in right now';
       setAuthError(message);
+    } finally {
       setIsLoading(false);
     }
   };

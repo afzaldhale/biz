@@ -43,13 +43,39 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    const unsubscribe = onIdTokenChanged(auth, (firebaseUser) => {
-      setUser(firebaseUser);
-      setAuthLoading(false);
-    });
+    const unsubscribe = onIdTokenChanged(
+      auth,
+      async (firebaseUser) => {
+        try {
+          setUser(firebaseUser);
+        } finally {
+          setAuthLoading(false);
+        }
+      },
+      (error) => {
+        console.error('[auth-context] failed to observe auth state', error);
+        setUser(null);
+        setAuthLoading(false);
+      }
+    );
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[auth-context]', {
+        authLoading,
+        user: user
+          ? {
+              uid: user.uid,
+              email: user.email,
+              emailVerified: user.emailVerified,
+            }
+          : null,
+      });
+    }
+  }, [authLoading, user]);
 
   const refreshUser = React.useCallback(async () => {
     setIsRefreshing(true);
