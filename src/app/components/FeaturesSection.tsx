@@ -46,9 +46,9 @@ const features = [
   {
     id: 'feat-5',
     icon: Shield,
-    title: 'Plan-Based Access Control',
+    title: 'Record Capacity Control',
     description:
-      "Record limits enforced per plan tier. Upgrade prompts appear when you approach limits. Clear usage tracking so you're never surprised.",
+      "Record limits are enforced against your selected capacity. Upgrade prompts appear when you approach limits, with clear usage tracking so you're never surprised.",
     color: '#0891B2',
   },
   {
@@ -64,15 +64,15 @@ const features = [
     icon: Users,
     title: 'Multi-Staff Support',
     description:
-      'Add staff accounts based on your plan. Role-based access ensures each team member only sees what they need.',
+      'Add staff accounts and manage access by role. Each team member only sees what they need.',
     color: '#EC4899',
   },
   {
     id: 'feat-8',
     icon: RefreshCw,
-    title: 'Seamless Plan Upgrades',
+    title: 'Seamless Capacity Upgrades',
     description:
-      'Outgrowing your current plan? Upgrade in one click without losing any data. Your business grows, your plan grows with it.',
+      'Outgrowing your current record capacity? Increase it without losing any data. Your business grows, and your subscription scales with it.',
     color: '#38BDF8',
   },
 ];

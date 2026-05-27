@@ -6,7 +6,7 @@ import {
   calculateMonthlyPrice,
   normalizeSubscriptionBusinessData,
 } from '@/utils/subscription';
-import { Business, BusinessStatus, PlanType } from '@/lib/mockData';
+import { Business, BusinessStatus, CapacityTier } from '@/lib/mockData';
 
 const INDUSTRY_MAP: Record<string, Business['industry']> = {
   academy: 'education',
@@ -33,7 +33,7 @@ function mapBusinessToAdminRow(profile: BusinessProfile): Business {
     phone: normalized.phone,
     industry: INDUSTRY_MAP[normalized.businessType] ?? 'consulting',
     businessType: normalized.businessType,
-    plan: 'custom' as PlanType,
+    capacityTier: 'custom' as CapacityTier,
     status: normalized.status as BusinessStatus,
     createdAt: normalized.createdAt,
     usageCount: normalized.currentUsage ?? 0,

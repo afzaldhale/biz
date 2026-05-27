@@ -16,23 +16,21 @@ export default function AdminDashboardContent() {
   const { admin } = useAdminAuth();
   const router = useRouter();
 
-  // BACKEND INTEGRATION POINT: Check admin auth from Firebase + Firestore admins/{uid}
-  // If not authenticated, redirect to /admin-login
   if (!admin) {
     return (
-      <div className="min-h-screen flex items-center justify-center admin-bg-pattern">
-        <div className="text-center p-8 bg-card border border-border rounded-2xl shadow-card max-w-sm">
-          <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto mb-4">
-            <span className="text-2xl">🔒</span>
+      <div className="admin-bg-pattern flex min-h-screen items-center justify-center">
+        <div className="max-w-sm rounded-2xl border border-border bg-card p-8 text-center shadow-card">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
+            <span className="text-2xl">Locked</span>
           </div>
-          <h2 className="text-lg font-700 text-foreground mb-2">Access Denied</h2>
-          <p className="text-sm text-muted-foreground mb-5">
+          <h2 className="mb-2 text-lg font-700 text-foreground">Access Denied</h2>
+          <p className="mb-5 text-sm text-muted-foreground">
             This area is restricted to BizManage administrators. Please sign in with an admin
             account.
           </p>
           <button
-            onClick={() => router?.push('/')}
-            className="btn-primary px-5 py-2.5 rounded-xl text-sm font-600 w-full"
+            onClick={() => router.push('/')}
+            className="btn-primary w-full rounded-xl px-5 py-2.5 text-sm font-600"
           >
             Go to Admin Login
           </button>
@@ -43,47 +41,39 @@ export default function AdminDashboardContent() {
 
   return (
     <AdminLayout currentPath="/admin-dashboard">
-      {/* Page header */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-800 text-foreground mb-1">Platform Overview</h1>
+          <h1 className="mb-1 text-2xl font-800 text-foreground">Platform Overview</h1>
           <p className="text-sm text-muted-foreground">
             Last updated: 15 May 2026, 8:27 PM IST
             <span className="ml-2 inline-flex items-center gap-1 text-emerald-600">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500" />
               Live
             </span>
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 text-sm font-600 text-primary bg-primary/8 border border-primary/20 rounded-xl hover:bg-primary/15 transition-colors">
+        <button className="flex items-center gap-2 rounded-xl border border-primary/20 bg-primary/8 px-4 py-2.5 text-sm font-600 text-primary transition-colors hover:bg-primary/15">
           <RefreshCw size={14} />
           Refresh
         </button>
       </div>
 
-      {/* KPI Cards Bento Grid */}
       <DashboardKPIGrid />
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5 gap-6 mt-6">
-        {/* MRR Trend — spans 3 cols */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5">
         <div className="lg:col-span-3">
           <MRRTrendChart />
         </div>
-        {/* Plan Distribution — spans 2 cols */}
         <div className="lg:col-span-2">
           <PlanDistributionChart />
         </div>
       </div>
 
-      {/* Bottom Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5 gap-6 mt-6">
-        {/* Recent Businesses — spans 3 cols */}
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-5 xl:grid-cols-5 2xl:grid-cols-5">
         <div className="lg:col-span-3">
           <RecentBusinessesTable />
         </div>
-        {/* Industry Distribution + Tickets — spans 2 cols */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="flex flex-col gap-6 lg:col-span-2">
           <IndustryDistributionChart />
           <RecentTicketsFeed />
         </div>

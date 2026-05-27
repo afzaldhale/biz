@@ -35,7 +35,7 @@ const NOTIFICATIONS = [
   {
     id: 'notif-004',
     type: 'payment',
-    message: 'StyleCraft plan upgrade request',
+    message: 'StyleCraft record-capacity upgrade request',
     time: '3 hr ago',
     unread: false,
   },

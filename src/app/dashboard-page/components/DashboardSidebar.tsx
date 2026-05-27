@@ -238,8 +238,8 @@ function DashboardSidebar({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-600 text-foreground truncate">{user.ownerName}</div>
-                <div className="text-2xs text-muted-foreground truncate capitalize">
-                  {user.plan} Plan
+                <div className="text-2xs text-muted-foreground truncate">
+                  {user.subscriptionLabel}
                 </div>
               </div>
             </div>
@@ -334,7 +334,7 @@ function DashboardSidebar({
             </div>
             <div className="min-w-0">
               <div className="text-xs font-600 text-foreground truncate">{user.ownerName}</div>
-              <div className="text-2xs text-muted-foreground capitalize">{user.plan} Plan</div>
+              <div className="text-2xs text-muted-foreground">{user.subscriptionLabel}</div>
             </div>
           </div>
         </div>

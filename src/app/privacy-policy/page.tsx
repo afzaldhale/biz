@@ -12,7 +12,7 @@ export default function PrivacyPolicyPage() {
         {
           title: 'Information we collect',
           body: [
-            'BizManage collects account and business information you provide during signup, such as owner name, business name, email address, phone number, selected business type, and chosen plan.',
+            'BizManage collects account and business information you provide during signup, such as owner name, business name, email address, phone number, selected business type, and chosen record capacity.',
             'The platform also stores operational records you create inside the product, including items such as student records, gym member records, payment history, and similar business workflow data.',
           ],
         },

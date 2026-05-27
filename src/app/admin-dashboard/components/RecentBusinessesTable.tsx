@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { MOCK_BUSINESSES } from '@/lib/mockData';
-import { StatusBadge, PlanBadge } from '@/components/admin/AdminBadge';
+import { CapacityBadge, StatusBadge } from '@/components/admin/AdminBadge';
 import { ArrowRight } from 'lucide-react';
 
 // BACKEND INTEGRATION POINT: Replace with getAllBusinesses({ limit: 5, orderBy: 'createdAt' }) from adminBusinessService.ts
@@ -32,7 +32,7 @@ export default function RecentBusinessesTable() {
                 Business
               </th>
               <th className="text-left px-4 py-3 text-[11px] font-700 text-muted-foreground uppercase tracking-wide">
-                Plan
+                Capacity
               </th>
               <th className="text-left px-4 py-3 text-[11px] font-700 text-muted-foreground uppercase tracking-wide">
                 Status
@@ -50,7 +50,7 @@ export default function RecentBusinessesTable() {
                   <p className="text-[11px] text-muted-foreground">{biz?.ownerName}</p>
                 </td>
                 <td className="px-4 py-3.5">
-                  <PlanBadge plan={biz?.plan} />
+                  <CapacityBadge capacityTier={biz?.capacityTier} />
                 </td>
                 <td className="px-4 py-3.5">
                   <StatusBadge status={biz?.status} />

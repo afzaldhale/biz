@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Business } from '@/lib/mockData';
-import { StatusBadge, PlanBadge } from '@/components/admin/AdminBadge';
+import { CapacityBadge, StatusBadge } from '@/components/admin/AdminBadge';
 import AdminEmptyState from '@/components/admin/AdminEmptyState';
 import {
   ChevronUp,
@@ -162,7 +162,7 @@ export default function BusinessTable({
             <th className="text-left px-4 py-3.5 text-[11px] font-700 text-muted-foreground uppercase tracking-wide hidden xl:table-cell">
               Industry
             </th>
-            <SortableHeader field="plan" label="Plan" />
+            <SortableHeader field="capacityTier" label="Capacity" />
             <SortableHeader field="status" label="Status" />
             <th className="text-left px-4 py-3.5 text-[11px] font-700 text-muted-foreground uppercase tracking-wide">
               Usage
@@ -233,10 +233,10 @@ export default function BusinessTable({
                   </span>
                 </td>
 
-                {/* Plan */}
+                {/* Capacity */}
                 <td className="px-4 py-4">
                   <div className="space-y-1">
-                    <PlanBadge plan={biz.plan} />
+                    <CapacityBadge capacityTier={biz.capacityTier} />
                     <p className="text-[11px] text-muted-foreground">
                       {biz.recordLimit ?? biz.usageLimit} records
                     </p>
@@ -311,7 +311,7 @@ export default function BusinessTable({
                     />
                     <ActionButton
                       icon={CreditCard}
-                      label="Change plan"
+                      label="Change capacity"
                       onClick={() => onChangePlan(biz)}
                       color={canManageSubscription ? 'text-blue-600' : 'text-slate-300'}
                       disabled={!canManageSubscription}

@@ -12,7 +12,7 @@ import {
 import { formatINR } from '@/utils/pricing';
 import { calculateMonthlyPrice } from '@/utils/subscription';
 
-const PLAN_OPTIONS = [50, 100, 250, 500, 1000];
+const CAPACITY_OPTIONS = [50, 100, 250, 500, 1000];
 
 function getUsageColor(usagePercent: number) {
   if (usagePercent >= 100) return 'bg-rose-500';
@@ -52,7 +52,7 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
     return Math.min(100, Math.round((currentUsage / recordLimit) * 100));
   }, [currentUsage, recordLimit]);
   const daysRemaining = getDaysRemaining(nextBillingDate);
-  const upgradeOptions = PLAN_OPTIONS.filter((option) => option >= Math.max(currentUsage, 50));
+  const upgradeOptions = CAPACITY_OPTIONS.filter((option) => option >= Math.max(currentUsage, 50));
 
   const handleUpgrade = async () => {
     if (!business || !recordLimit) return;
@@ -100,11 +100,11 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
       <div className="grid gap-5 xl:grid-cols-[1.25fr_1fr]">
         <section className="rounded-[28px] border border-border bg-white p-6 shadow-sm">
           <p className="text-xs font-700 uppercase tracking-[0.18em] text-primary">
-            Current plan
+            Current subscription
           </p>
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
-              <h2 className="text-xl font-700 text-foreground">Usage-based Plan</h2>
+              <h2 className="text-xl font-700 text-foreground">Usage-based subscription</h2>
               <p className="mt-1 text-sm text-muted-foreground capitalize">
                 {business.businessType.replace('-', ' ')}
               </p>
@@ -194,7 +194,7 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
         </section>
 
         <section className="rounded-[28px] border border-border bg-white p-6 shadow-sm">
-          <p className="text-xs font-700 uppercase tracking-[0.18em] text-primary">Upgrade plan</p>
+          <p className="text-xs font-700 uppercase tracking-[0.18em] text-primary">Upgrade capacity</p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {upgradeOptions.map((option) => (
               <button

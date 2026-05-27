@@ -13,13 +13,13 @@ import {
 } from 'recharts';
 import { MOCK_PLATFORM_STATS } from '@/lib/mockData';
 
-// BACKEND INTEGRATION POINT: Replace with getPlanDistribution() from adminSubscriptionService.ts
+// BACKEND INTEGRATION POINT: Replace with getCapacityDistribution() from adminSubscriptionService.ts
 
-const PLAN_COLORS = ['#6366f1', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
+const CAPACITY_COLORS = ['#6366f1', '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981'];
 
 interface TooltipPayloadItem {
   value: number;
-  payload: { plan: string; count: number; revenue: number };
+  payload: { capacityLabel: string; count: number; revenue: number };
 }
 
 interface CustomTooltipProps {
@@ -32,7 +32,7 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
   const d = payload[0].payload;
   return (
     <div className="bg-card border border-border rounded-xl shadow-card p-3 text-xs">
-      <p className="font-700 text-foreground mb-1">{d.plan} Plan</p>
+      <p className="font-700 text-foreground mb-1">{d.capacityLabel}</p>
       <p className="text-muted-foreground">
         Businesses: <span className="font-700 text-foreground">{d.count}</span>
       </p>
@@ -45,20 +45,20 @@ function CustomTooltip({ active, payload }: CustomTooltipProps) {
 }
 
 export default function PlanDistributionChart() {
-  const data = MOCK_PLATFORM_STATS.planDistribution;
+  const data = MOCK_PLATFORM_STATS.capacityDistribution;
 
   return (
     <div className="bg-card border border-border rounded-2xl p-6 shadow-card h-full">
       <div className="mb-5">
-        <h3 className="text-sm font-700 text-foreground mb-1">Plan Distribution</h3>
-        <p className="text-xs text-muted-foreground">Businesses per subscription tier</p>
+        <h3 className="text-sm font-700 text-foreground mb-1">Capacity Distribution</h3>
+        <p className="text-xs text-muted-foreground">Businesses by selected record capacity</p>
       </div>
 
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
           <XAxis
-            dataKey="plan"
+            dataKey="capacityLabel"
             tick={{
               fontSize: 10,
               fill: 'var(--muted-foreground)',
@@ -81,8 +81,8 @@ export default function PlanDistributionChart() {
           <Bar dataKey="count" radius={[6, 6, 0, 0]}>
             {data.map((entry, index) => (
               <Cell
-                key={`cell-plan-${entry.plan}`}
-                fill={PLAN_COLORS[index % PLAN_COLORS.length]}
+                key={`cell-capacity-${entry.capacityLabel}`}
+                fill={CAPACITY_COLORS[index % CAPACITY_COLORS.length]}
               />
             ))}
           </Bar>
@@ -92,12 +92,12 @@ export default function PlanDistributionChart() {
       {/* Legend */}
       <div className="mt-4 grid grid-cols-3 gap-2">
         {data.map((d, i) => (
-          <div key={`legend-plan-${d.plan}`} className="flex items-center gap-1.5">
+          <div key={`legend-capacity-${d.capacityLabel}`} className="flex items-center gap-1.5">
             <div
               className="w-2.5 h-2.5 rounded-sm flex-shrink-0"
-              style={{ backgroundColor: PLAN_COLORS[i % PLAN_COLORS.length] }}
+              style={{ backgroundColor: CAPACITY_COLORS[i % CAPACITY_COLORS.length] }}
             />
-            <span className="text-[10px] text-muted-foreground truncate">{d.plan}</span>
+            <span className="text-[10px] text-muted-foreground truncate">{d.capacityLabel}</span>
             <span className="text-[10px] font-700 text-foreground ml-auto">{d.count}</span>
           </div>
         ))}

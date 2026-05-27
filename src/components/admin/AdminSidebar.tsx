@@ -81,7 +81,7 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     id: 'nav-plans',
-    label: 'Plans',
+    label: 'Capacities',
     icon: PackageOpen,
     href: '/admin-dashboard',
     group: 'Operations',

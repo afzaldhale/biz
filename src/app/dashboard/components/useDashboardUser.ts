@@ -3,7 +3,7 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { useBusiness } from '@/context/BusinessContext';
-import { AuthUser, BusinessType, PlanId } from '@/types';
+import { AuthUser, BusinessType } from '@/types';
 
 export function useDashboardUser() {
   const { user: authUser, logout } = useAuth();
@@ -20,8 +20,7 @@ export function useDashboardUser() {
       businessName: business.businessName,
       email: business.email,
       phone: business.phone,
-      plan: ((business.selectedPlan === 'usage_based' ? 'custom' : business.selectedPlan) ??
-        'custom') as PlanId,
+      subscriptionLabel: 'Record-based subscription',
       businessType: (business.businessType ?? 'academy') as BusinessType,
       recordsUsed: business.currentUsage ?? 0,
       recordLimit: business.recordLimit ?? business.planLimit ?? 50,

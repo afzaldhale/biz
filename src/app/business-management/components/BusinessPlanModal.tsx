@@ -53,7 +53,7 @@ export default function BusinessPlanModal({
           )}
 
           <div className="mb-5 rounded-xl bg-muted/40 p-3">
-            <span className="text-xs text-muted-foreground">Current limit:</span>
+            <span className="text-xs text-muted-foreground">Current capacity:</span>
             <span className="ml-2 text-sm font-700 text-foreground">{currentLimit} records</span>
           </div>
 

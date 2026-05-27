@@ -10,7 +10,7 @@ import BusinessDetailDrawer from './BusinessDetailDrawer';
 import BusinessStatusModal from './BusinessStatusModal';
 import BusinessPlanModal from './BusinessPlanModal';
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
-import { Business, BusinessStatus, PlanType } from '@/lib/mockData';
+import { Business, BusinessStatus, CapacityTier } from '@/lib/mockData';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
 import {
@@ -20,7 +20,7 @@ import {
   getAdminBusinesses,
 } from '@/services/adminBusinessService';
 
-export type SortField = 'businessName' | 'createdAt' | 'plan' | 'status' | 'usageCount';
+export type SortField = 'businessName' | 'createdAt' | 'capacityTier' | 'status' | 'usageCount';
 export type SortDir = 'asc' | 'desc';
 
 export default function BusinessManagementContent() {
@@ -31,7 +31,7 @@ export default function BusinessManagementContent() {
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<BusinessStatus | 'all'>('all');
-  const [planFilter, setPlanFilter] = React.useState<PlanType | 'all'>('all');
+  const [capacityFilter, setCapacityFilter] = React.useState<CapacityTier | 'all'>('all');
   const [industryFilter, setIndustryFilter] = React.useState<string>('all');
   const [sortField, setSortField] = React.useState<SortField>('createdAt');
   const [sortDir, setSortDir] = React.useState<SortDir>('desc');
@@ -100,9 +100,9 @@ export default function BusinessManagementContent() {
       b.email.toLowerCase().includes(search.toLowerCase()) ||
       b.city.toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === 'all' || b.status === statusFilter;
-    const matchPlan = planFilter === 'all' || b.plan === planFilter;
+    const matchCapacity = capacityFilter === 'all' || b.capacityTier === capacityFilter;
     const matchIndustry = industryFilter === 'all' || b.industry === industryFilter;
-    return matchSearch && matchStatus && matchPlan && matchIndustry;
+    return matchSearch && matchStatus && matchCapacity && matchIndustry;
   });
 
   // Sorting
@@ -115,9 +115,9 @@ export default function BusinessManagementContent() {
     } else if (sortField === 'createdAt') {
       av = a.createdAt;
       bv = b.createdAt;
-    } else if (sortField === 'plan') {
-      av = a.plan;
-      bv = b.plan;
+    } else if (sortField === 'capacityTier') {
+      av = a.capacityTier;
+      bv = b.capacityTier;
     } else if (sortField === 'status') {
       av = a.status;
       bv = b.status;
@@ -168,7 +168,7 @@ export default function BusinessManagementContent() {
           b.id === biz.id
             ? {
                 ...b,
-                plan: 'custom',
+                capacityTier: 'custom',
                 usageLimit: nextLimit,
                 recordLimit: nextLimit,
                 remainingRecords: Math.max(0, nextLimit - (b.currentUsage ?? b.usageCount)),
@@ -247,9 +247,9 @@ export default function BusinessManagementContent() {
             setStatusFilter(v as BusinessStatus | 'all');
             setPage(1);
           }}
-          planFilter={planFilter}
+          planFilter={capacityFilter}
           onPlanChange={(v) => {
-            setPlanFilter(v as PlanType | 'all');
+            setCapacityFilter(v as CapacityTier | 'all');
             setPage(1);
           }}
           industryFilter={industryFilter}
@@ -262,7 +262,7 @@ export default function BusinessManagementContent() {
           onClearFilters={() => {
             setSearch('');
             setStatusFilter('all');
-            setPlanFilter('all');
+            setCapacityFilter('all');
             setIndustryFilter('all');
             setPage(1);
           }}

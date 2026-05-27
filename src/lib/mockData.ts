@@ -15,7 +15,7 @@ export interface Admin {
 }
 
 export type BusinessStatus = 'active' | 'pending_verification' | 'suspended' | 'cancelled';
-export type PlanType = 'basic' | 'medium' | 'advance' | 'premium' | 'pro' | 'custom';
+export type CapacityTier = 'basic' | 'medium' | 'advance' | 'premium' | 'pro' | 'custom';
 export type IndustryType =
   | 'restaurant'
   | 'retail'
@@ -38,7 +38,7 @@ export interface Business {
   phone: string;
   industry: IndustryType;
   businessType?: string;
-  plan: PlanType;
+  capacityTier: CapacityTier;
   status: BusinessStatus;
   createdAt: string;
   usageCount: number;
@@ -76,7 +76,7 @@ export interface PlatformStats {
   openTickets: number;
   customEnquiries: number;
   mrrTrend: { month: string; mrr: number; businesses: number }[];
-  planDistribution: { plan: string; count: number; revenue: number }[];
+  capacityDistribution: { capacityLabel: string; count: number; revenue: number }[];
   industryDistribution: { industry: string; count: number }[];
 }
 
@@ -107,7 +107,7 @@ export const MOCK_ADMINS: Admin[] = [
   },
 ];
 
-export const PLAN_PRICES: Record<PlanType, number> = {
+export const CAPACITY_PRICES: Record<CapacityTier, number> = {
   basic: 499,
   medium: 999,
   advance: 1499,
@@ -116,7 +116,7 @@ export const PLAN_PRICES: Record<PlanType, number> = {
   custom: 4999,
 };
 
-export const PLAN_LIMITS: Record<PlanType, number> = {
+export const CAPACITY_LIMITS: Record<CapacityTier, number> = {
   basic: 50,
   medium: 150,
   advance: 250,
@@ -133,7 +133,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'kavita@spicegarden.com',
     phone: '+91 98765 43210',
     industry: 'restaurant',
-    plan: 'premium',
+    capacityTier: 'premium',
     status: 'active',
     createdAt: '2025-11-12',
     usageCount: 387,
@@ -149,7 +149,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'suresh@brightminds.in',
     phone: '+91 87654 32109',
     industry: 'education',
-    plan: 'pro',
+    capacityTier: 'pro',
     status: 'active',
     createdAt: '2025-10-03',
     usageCount: 812,
@@ -165,7 +165,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'ankit@fitzone.co.in',
     phone: '+91 76543 21098',
     industry: 'gym',
-    plan: 'advance',
+    capacityTier: 'advance',
     status: 'pending_verification',
     createdAt: '2026-05-10',
     usageCount: 0,
@@ -181,7 +181,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'deepa@stylecraft.in',
     phone: '+91 65432 10987',
     industry: 'salon',
-    plan: 'medium',
+    capacityTier: 'medium',
     status: 'active',
     createdAt: '2025-12-20',
     usageCount: 134,
@@ -197,7 +197,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'rajesh@medicare-clinic.in',
     phone: '+91 54321 09876',
     industry: 'healthcare',
-    plan: 'premium',
+    capacityTier: 'premium',
     status: 'suspended',
     createdAt: '2025-09-15',
     usageCount: 211,
@@ -213,7 +213,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'vikram@homenest.in',
     phone: '+91 43210 98765',
     industry: 'real_estate',
-    plan: 'advance',
+    capacityTier: 'advance',
     status: 'active',
     createdAt: '2025-11-28',
     usageCount: 198,
@@ -229,7 +229,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'mohan@quickship.in',
     phone: '+91 32109 87654',
     industry: 'logistics',
-    plan: 'pro',
+    capacityTier: 'pro',
     status: 'active',
     createdAt: '2025-08-22',
     usageCount: 743,
@@ -245,7 +245,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'neha@trendhub.shop',
     phone: '+91 21098 76543',
     industry: 'ecommerce',
-    plan: 'basic',
+    capacityTier: 'basic',
     status: 'active',
     createdAt: '2026-01-08',
     usageCount: 42,
@@ -261,7 +261,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'aditya@growthedge.in',
     phone: '+91 10987 65432',
     industry: 'consulting',
-    plan: 'custom',
+    capacityTier: 'custom',
     status: 'active',
     createdAt: '2025-07-14',
     usageCount: 1240,
@@ -277,7 +277,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'sanjay@freshmart.co.in',
     phone: '+91 99887 76655',
     industry: 'retail',
-    plan: 'medium',
+    capacityTier: 'medium',
     status: 'pending_verification',
     createdAt: '2026-05-13',
     usageCount: 0,
@@ -293,7 +293,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'priyanka@zenithyoga.in',
     phone: '+91 88776 65544',
     industry: 'gym',
-    plan: 'basic',
+    capacityTier: 'basic',
     status: 'cancelled',
     createdAt: '2025-06-01',
     usageCount: 12,
@@ -309,7 +309,7 @@ export const MOCK_BUSINESSES: Business[] = [
     email: 'rahul@clearpath.in',
     phone: '+91 77665 54433',
     industry: 'consulting',
-    plan: 'advance',
+    capacityTier: 'advance',
     status: 'pending_verification',
     createdAt: '2026-05-14',
     usageCount: 0,
@@ -325,7 +325,7 @@ export const MOCK_SUPPORT_TICKETS: SupportTicket[] = [
     id: 'ticket-001',
     businessId: 'biz-004',
     businessName: 'StyleCraft Salon',
-    subject: 'Billing cycle not updating after plan upgrade',
+    subject: 'Billing cycle not updating after record-capacity upgrade',
     category: 'Billing',
     status: 'open',
     createdAt: '2026-05-15',
@@ -397,13 +397,13 @@ export const MOCK_PLATFORM_STATS: PlatformStats = {
     { month: 'Apr 26', mrr: 25600, businesses: 10 },
     { month: 'May 26', mrr: 28941, businesses: 12 },
   ],
-  planDistribution: [
-    { plan: 'Basic', count: 2, revenue: 998 },
-    { plan: 'Medium', count: 2, revenue: 1998 },
-    { plan: 'Advance', count: 3, revenue: 4497 },
-    { plan: 'Premium', count: 2, revenue: 3998 },
-    { plan: 'Pro', count: 2, revenue: 5998 },
-    { plan: 'Custom', count: 1, revenue: 4999 },
+  capacityDistribution: [
+    { capacityLabel: '50 records', count: 2, revenue: 998 },
+    { capacityLabel: '100-150 records', count: 2, revenue: 1998 },
+    { capacityLabel: '250 records', count: 3, revenue: 4497 },
+    { capacityLabel: '500 records', count: 2, revenue: 3998 },
+    { capacityLabel: '1000 records', count: 2, revenue: 5998 },
+    { capacityLabel: 'Custom capacity', count: 1, revenue: 4999 },
   ],
   industryDistribution: [
     { industry: 'Restaurant', count: 1 },

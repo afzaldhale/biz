@@ -283,7 +283,7 @@ export async function safeIncrementBusinessUsage(businessId: string, delta = 1) 
     const recordLimit = businessProfile?.recordLimit ?? businessProfile?.planLimit ?? MIN_RECORDS;
 
     if (currentUsage + delta > recordLimit) {
-      throw new Error('You have reached your plan limit. Please upgrade to add more records.');
+      throw new Error('You have reached your record limit. Please upgrade to add more records.');
     }
 
     const nextUsage = currentUsage + delta;

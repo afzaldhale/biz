@@ -117,10 +117,7 @@ export default function SettingsPanel({ businessId }: SettingsPanelProps) {
           </p>
         </div>
         <div className="text-xs text-muted-foreground">
-          Current plan:{' '}
-          <span className="font-600 text-foreground capitalize">
-            {profile?.selectedPlan ?? 'custom'}
-          </span>
+          Subscription model: <span className="font-600 text-foreground">Record-based billing</span>
         </div>
       </div>
 

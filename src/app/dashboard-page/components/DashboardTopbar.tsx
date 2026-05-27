@@ -127,7 +127,7 @@ function DashboardTopbar({ user, onMenuToggle, onLogout }: TopbarProps) {
                 {user.ownerName.split(' ')[0]}
               </div>
               <div className="text-2xs text-muted-foreground capitalize leading-tight">
-                {user.plan}
+                {user.subscriptionLabel}
               </div>
             </div>
             <ChevronDown

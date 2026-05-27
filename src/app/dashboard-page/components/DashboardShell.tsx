@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { AuthUser, BusinessType, PlanId } from '@/types';
+import { AuthUser, BusinessType } from '@/types';
 import { useAuth } from '@/context/AuthContext';
 import { useBusiness } from '@/context/BusinessContext';
 import DashboardSidebar from './DashboardSidebar';
@@ -37,8 +37,7 @@ export default function DashboardShell() {
       businessName: business.businessName,
       email: business.email,
       phone: business.phone,
-      plan: ((business.selectedPlan === 'usage_based' ? 'custom' : business.selectedPlan) ??
-        'custom') as PlanId,
+      subscriptionLabel: 'Record-based subscription',
       businessType: (business.businessType ?? 'academy') as BusinessType,
       recordsUsed: business.currentUsage ?? 0,
       recordLimit: business.recordLimit ?? business.planLimit ?? 50,

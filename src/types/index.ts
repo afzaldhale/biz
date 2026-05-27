@@ -38,7 +38,7 @@ export interface AuthUser {
   businessName: string;
   email: string;
   phone: string;
-  plan: PlanId | 'usage_based';
+  subscriptionLabel: string;
   businessType: BusinessType;
   recordsUsed: number;
   recordLimit?: number | null;

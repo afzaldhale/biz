@@ -7,19 +7,19 @@ export default function BillingPolicyPage() {
       badge="Billing"
       updatedAt="May 14, 2026"
       title="Billing Policy"
-      description="This Billing Policy explains how BizManage plans, subscription charges, renewals, cancellations, and billing questions should be handled."
+      description="This Billing Policy explains how BizManage record-capacity subscriptions, renewals, cancellations, and billing questions should be handled."
       sections={[
         {
-          title: 'Plan charges',
+          title: 'Subscription charges',
           body: [
-            'BizManage may offer monthly or custom subscription plans depending on your selected package and business requirements. Charges should be presented clearly at the time of signup or upgrade.',
+            'BizManage uses a monthly record-capacity subscription model. Businesses select how many records they want to manage, with a minimum of 50 records, and the final monthly amount should be presented clearly at signup or upgrade.',
             'If you enable production billing later, keep this page aligned with the actual billing provider, invoice timing, taxes, and renewal intervals you configure.',
           ],
         },
         {
           title: 'Renewals and cancellations',
           body: [
-            'Unless otherwise agreed in writing for a custom plan, subscriptions typically renew at the end of each billing cycle until cancelled. Customers should cancel before the next renewal date to avoid a new cycle being charged.',
+            'Unless otherwise agreed in writing for a custom capacity arrangement, subscriptions typically renew at the end of each billing cycle until cancelled. Customers should cancel before the next renewal date to avoid a new cycle being charged.',
             'Cancellation stops future renewal charges, but does not automatically erase existing business records unless your data retention process says otherwise.',
           ],
         },

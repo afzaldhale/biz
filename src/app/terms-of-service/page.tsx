@@ -19,7 +19,7 @@ export default function TermsOfServicePage() {
         {
           title: 'Subscriptions and accounts',
           body: [
-            'Access to some features may depend on your selected plan, usage limits, or future billing terms. We may change plans, limits, or features over time, provided such changes are reflected clearly in the product or related documentation.',
+            'Access to some features may depend on your selected record capacity, usage limits, or future billing terms. We may change subscription terms, limits, or features over time, provided such changes are reflected clearly in the product or related documentation.',
             'You remain responsible for all activity that occurs under your account unless caused directly by our own unauthorized actions.',
           ],
         },

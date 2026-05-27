@@ -35,7 +35,7 @@ export default function UpgradeRequiredModal({
 
         <div className="space-y-5 px-6 py-6">
           <p className="text-sm text-muted-foreground">
-            You have used all available records in your current plan. Upgrade your record
+            You have used all available records in your current subscription. Upgrade your record
             capacity to continue adding more.
           </p>
 

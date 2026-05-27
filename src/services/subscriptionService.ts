@@ -25,7 +25,7 @@ export class SubscriptionLimitError extends Error {
   recordLimit: number;
 
   constructor(currentUsage: number, recordLimit: number) {
-    super('You have used all available records in your current plan. Upgrade to continue.');
+    super('You have used all available records in your current subscription. Upgrade to continue.');
     this.currentUsage = currentUsage;
     this.recordLimit = recordLimit;
   }

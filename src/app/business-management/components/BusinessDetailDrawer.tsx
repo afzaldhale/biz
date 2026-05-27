@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import { Business, PLAN_LIMITS, PLAN_PRICES } from '@/lib/mockData';
-import { StatusBadge, PlanBadge } from '@/components/admin/AdminBadge';
+import { Business, CAPACITY_LIMITS, CAPACITY_PRICES } from '@/lib/mockData';
+import { StatusBadge } from '@/components/admin/AdminBadge';
 import {
   X,
   Building2,
@@ -57,10 +57,10 @@ export default function BusinessDetailDrawer({
     };
   }, []);
 
-  const planLimit = biz.recordLimit ?? biz.usageLimit ?? PLAN_LIMITS[biz.plan];
+  const capacityLimit = biz.recordLimit ?? biz.usageLimit ?? CAPACITY_LIMITS[biz.capacityTier];
   const usageCount = biz.currentUsage ?? biz.usageCount;
-  const usagePct = planLimit > 0 ? Math.round((usageCount / planLimit) * 100) : 0;
-  const planPrice = biz.monthlyPrice ?? PLAN_PRICES[biz.plan];
+  const usagePct = capacityLimit > 0 ? Math.round((usageCount / capacityLimit) * 100) : 0;
+  const monthlyPriceDisplay = biz.monthlyPrice ?? CAPACITY_PRICES[biz.capacityTier];
   const businessItems: Array<{ label: string; value: string; icon: LucideIcon }> = [
     { label: 'Business Name', value: biz.businessName, icon: Building2 },
     { label: 'Industry', value: INDUSTRY_LABELS[biz.industry] ?? biz.industry, icon: Activity },
@@ -101,7 +101,9 @@ export default function BusinessDetailDrawer({
         <div className="space-y-6 p-6">
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge status={biz.status} />
-            <PlanBadge plan={biz.plan} />
+            <span className="inline-flex items-center rounded-full border border-primary/20 bg-primary/8 px-2.5 py-1 text-[11px] font-700 text-primary">
+              Record-based
+            </span>
             {biz.emailVerified ? (
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-600 text-emerald-600">
                 <CheckCircle2 size={11} />
@@ -129,7 +131,7 @@ export default function BusinessDetailDrawer({
               className="flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/8 py-2.5 text-sm font-600 text-primary transition-colors hover:bg-primary/15 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <CreditCard size={14} />
-              Change Plan
+              Change Capacity
             </button>
             <button
               onClick={onSyncUsage}
@@ -198,11 +200,11 @@ export default function BusinessDetailDrawer({
             <div className="p-4">
               <div className="mb-4 grid grid-cols-2 gap-3">
                 {[
-                  ['Current Plan', biz.plan.charAt(0).toUpperCase() + biz.plan.slice(1)],
-                  ['Monthly Price', `₹${planPrice.toLocaleString('en-IN')}/mo`],
-                  ['Record Limit', planLimit === 9999 ? 'Unlimited' : planLimit.toLocaleString('en-IN')],
+                  ['Billing Model', 'Per-record subscription'],
+                  ['Monthly Price', `₹${monthlyPriceDisplay.toLocaleString('en-IN')}/mo`],
+                  ['Record Limit', capacityLimit === 9999 ? 'Unlimited' : capacityLimit.toLocaleString('en-IN')],
                   ['Current Usage', usageCount.toLocaleString('en-IN')],
-                  ['Remaining', (biz.remainingRecords ?? Math.max(0, planLimit - usageCount)).toLocaleString('en-IN')],
+                  ['Remaining', (biz.remainingRecords ?? Math.max(0, capacityLimit - usageCount)).toLocaleString('en-IN')],
                   ['Subscription Status', biz.subscriptionStatus ?? 'active'],
                   [
                     'Next Billing',
@@ -222,7 +224,7 @@ export default function BusinessDetailDrawer({
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-600 text-foreground">Usage progress</p>
                   <span className={`text-xs font-700 ${usagePct >= 85 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                    {usageCount} / {planLimit === 9999 ? '∞' : planLimit} ({usagePct}%)
+                    {usageCount} / {capacityLimit === 9999 ? '∞' : capacityLimit} ({usagePct}%)
                   </span>
                 </div>
                 <div className="h-2.5 overflow-hidden rounded-full bg-muted">

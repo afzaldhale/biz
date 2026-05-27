@@ -6,7 +6,6 @@ import { ArrowUpRight } from 'lucide-react';
 import { AuthUser, ActivityItem, BusinessType, KPICard } from '@/types';
 import { getQuickActions, getSidebarNavItems } from '@/utils/dashboardResolver';
 import { getIndustryById } from '@/data/industries';
-import { getPlanById } from '@/data/plans';
 import { getDashboardStats, DashboardStats } from '@/services/dashboardService';
 import { getRecentActivities } from '@/services/activityService';
 import RetryState from '@/components/ui/RetryState';
@@ -439,7 +438,6 @@ interface OverviewContentProps {
   industryName: string;
   kpis: KPICard[];
   nearLimit: boolean;
-  plan: ReturnType<typeof getPlanById>;
   quickActions: { id: string; label: string; icon: string; color: string }[];
   recordLimit: number;
   recordsUsed: number;
@@ -455,7 +453,6 @@ const DashboardOverview = memo(function DashboardOverview({
   industryName,
   kpis,
   nearLimit,
-  plan,
   quickActions,
   recordLimit,
   recordsUsed,
@@ -472,7 +469,7 @@ const DashboardOverview = memo(function DashboardOverview({
         </div>
         <div className="flex items-center gap-2">
           <span className="text-xs badge-neutral px-3 py-1.5 rounded-full font-500 capitalize">
-            {plan?.name ?? 'Business'} Plan
+            Usage-based billing
           </span>
           {nearLimit && (
             <span className="text-xs badge-warning px-3 py-1.5 rounded-full font-600 flex items-center gap-1">
@@ -494,12 +491,12 @@ const DashboardOverview = memo(function DashboardOverview({
                 You've used {recordsUsed} of {recordLimit} records ({usagePct}%)
               </p>
               <p className="text-xs text-muted-foreground">
-                Upgrade your plan to add more records without interruption.
+                Increase your record capacity to keep adding records without interruption.
               </p>
             </div>
           </div>
           <button className="btn-primary text-xs px-4 py-2 rounded-lg flex-shrink-0">
-            Upgrade Plan
+            Increase Capacity
           </button>
         </div>
       )}
@@ -523,7 +520,6 @@ const DashboardOverview = memo(function DashboardOverview({
         <div className="space-y-5">
           <QuickActions actions={quickActions} />
           <PlanUsageCard
-            plan={plan}
             recordsUsed={recordsUsed}
             recordLimit={recordLimit}
             usagePct={usagePct}
@@ -647,9 +643,8 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
     const activities = recentActivities;
     const quickActions = getQuickActions(user.businessType);
     const industry = getIndustryById(user.businessType);
-    const plan = getPlanById(user.plan);
     const recordsUsed = user.recordsUsed ?? 0;
-    const recordLimit = user.recordLimit ?? plan?.recordLimit ?? 50;
+    const recordLimit = user.recordLimit ?? 50;
     const usagePct = recordLimit ? Math.round((recordsUsed / recordLimit) * 100) : 0;
     const revenueData = dashboardStats?.revenueTrend ?? [];
     const weeklyData = activities.length ? formatWeeklyData(activities) : [];
@@ -659,7 +654,6 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
       activities,
       quickActions,
       industryName: industry?.name ?? 'Business',
-      plan,
       recordsUsed,
       recordLimit,
       usagePct,
@@ -673,7 +667,7 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
       revenueData,
       weeklyData,
     };
-  }, [dashboardStats, recentActivities, user.businessType, user.plan, user.recordLimit, user.recordsUsed]);
+  }, [dashboardStats, recentActivities, user.businessType, user.recordLimit, user.recordsUsed]);
 
   const navLabelMap = useMemo(
     () =>
@@ -779,7 +773,6 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
       industryName={overviewData.industryName}
       kpis={overviewData.kpis}
       nearLimit={overviewData.nearLimit}
-      plan={overviewData.plan}
       quickActions={overviewData.quickActions}
       recordLimit={overviewData.recordLimit}
       recordsUsed={overviewData.recordsUsed}

@@ -1,12 +1,12 @@
 import React from 'react';
-import { BusinessStatus, PlanType } from '@/lib/mockData';
+import { BusinessStatus, CapacityTier } from '@/lib/mockData';
 
 interface StatusBadgeProps {
   status: BusinessStatus;
 }
 
-interface PlanBadgeProps {
-  plan: PlanType;
+interface CapacityBadgeProps {
+  capacityTier: CapacityTier;
 }
 
 const STATUS_LABELS: Record<BusinessStatus, string> = {
@@ -16,13 +16,13 @@ const STATUS_LABELS: Record<BusinessStatus, string> = {
   cancelled: 'Cancelled',
 };
 
-const PLAN_LABELS: Record<PlanType, string> = {
-  basic: 'Basic',
-  medium: 'Medium',
-  advance: 'Advance',
-  premium: 'Premium',
-  pro: 'Pro',
-  custom: 'Custom',
+const CAPACITY_LABELS: Record<CapacityTier, string> = {
+  basic: '50 records',
+  medium: '100-150 records',
+  advance: '250 records',
+  premium: '500 records',
+  pro: '1000 records',
+  custom: 'Custom capacity',
 };
 
 export function StatusBadge({ status }: StatusBadgeProps) {
@@ -53,8 +53,8 @@ export function StatusBadge({ status }: StatusBadgeProps) {
   );
 }
 
-export function PlanBadge({ plan }: PlanBadgeProps) {
-  const classMap: Record<PlanType, string> = {
+export function CapacityBadge({ capacityTier }: CapacityBadgeProps) {
+  const classMap: Record<CapacityTier, string> = {
     basic: 'plan-basic',
     medium: 'plan-medium',
     advance: 'plan-advance',
@@ -65,9 +65,9 @@ export function PlanBadge({ plan }: PlanBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-700 ${classMap[plan]}`}
+      className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-700 ${classMap[capacityTier]}`}
     >
-      {PLAN_LABELS[plan]}
+      {CAPACITY_LABELS[capacityTier]}
     </span>
   );
 }

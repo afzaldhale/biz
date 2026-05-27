@@ -12,7 +12,7 @@ const faqs = [
   },
   {
     id: 'faq-2',
-    question: 'What counts as a "record" for plan limits?',
+    question: 'What counts as a "record" for record limits?',
     answer:
       'A record is one primary entity in your business — one student, one patient, one booking, one service ticket. Supporting data (fees, appointments, bills) attached to a record do not count separately.',
   },
@@ -25,25 +25,25 @@ const faqs = [
     id: 'faq-4',
     question: 'Can I add staff members to my account?',
     answer:
-      'Yes — depending on your plan, you can add 1 (Basic), 3 (Medium), 5 (Advance), 10 (Premium), or 25 (Pro) staff accounts. Each staff member can be assigned specific module access.',
+      'Yes — staff support is available, and each staff member can be assigned specific module access based on your business setup.',
   },
   {
     id: 'faq-5',
     question: 'Do you support multi-branch businesses?',
     answer:
-      'Multi-branch support is available on the Pro and Custom plans. Each branch gets its own dashboard with separate records, while the owner can view consolidated reports across all branches.',
+      'Multi-branch support can be enabled for suitable business setups. Each branch gets its own dashboard with separate records, while the owner can view consolidated reports across all branches.',
   },
   {
     id: 'faq-6',
     question: 'How does billing work? Is it monthly or annual?',
     answer:
-      'Plans are billed monthly in INR. Annual billing is available at a 20% discount. All billing is GST-inclusive and you receive a proper GST invoice each month.',
+      'Subscriptions are billed monthly in INR based on selected record capacity, with a minimum of 50 records. Billing details and invoices should follow your production billing setup.',
   },
   {
     id: 'faq-7',
     question: 'What happens when I reach my record limit?',
     answer:
-      "You'll see a warning at 80% usage and a hard limit at 100%. You can still view and edit existing records, but adding new ones requires upgrading your plan. Upgrades are instant.",
+      "You'll see a warning at 80% usage and a hard limit at 100%. You can still view and edit existing records, but adding new ones requires increasing your record capacity. Upgrades are instant.",
   },
   {
     id: 'faq-8',
