@@ -88,6 +88,10 @@ const SettingsPanel = dynamic(() => import('@/components/dashboard/SettingsPanel
   loading: () => <ModuleSkeleton />,
 });
 
+const SubscriptionPanel = dynamic(() => import('@/components/subscription/SubscriptionPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
 const HelpSupportPanel = dynamic(() => import('@/components/dashboard/HelpSupportPanel'), {
   loading: () => <ModuleSkeleton />,
 });
@@ -119,6 +123,10 @@ export default function DashboardModuleContent({ module, user }: DashboardModule
 
   if (module === 'settings') {
     return <SettingsPanel businessId={user.id} />;
+  }
+
+  if (module === 'subscription') {
+    return <SubscriptionPanel />;
   }
 
   if (module === 'help') {

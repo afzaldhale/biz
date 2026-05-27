@@ -13,6 +13,16 @@ import { formatINR } from '@/utils/pricing';
 import { calculateMonthlyPrice } from '@/utils/subscription';
 
 const CAPACITY_OPTIONS = [50, 100, 250, 500, 1000];
+const BUSINESS_TYPE_LABELS: Record<string, string> = {
+  academy: 'Academy / Coaching',
+  gym: 'Gym',
+  hotel: 'Hotel',
+  clinic: 'Clinic',
+  restaurant: 'Restaurant',
+  'service-center': 'Service Center',
+  salon: 'Salon',
+  custom: 'Custom Business',
+};
 
 function getUsageColor(usagePercent: number) {
   if (usagePercent >= 100) return 'bg-rose-500';
@@ -47,6 +57,8 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
   }, [recordLimit]);
 
   const recordLabel = getRecordLabelByBusinessType(business?.businessType ?? 'custom');
+  const businessTypeLabel =
+    BUSINESS_TYPE_LABELS[business?.businessType ?? 'custom'] ?? 'Business';
   const usagePercent = useMemo(() => {
     if (!recordLimit || recordLimit <= 0) return 0;
     return Math.min(100, Math.round((currentUsage / recordLimit) * 100));
@@ -105,9 +117,7 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
           <div className="mt-4 grid gap-4 md:grid-cols-2">
             <div>
               <h2 className="text-xl font-700 text-foreground">Usage-based subscription</h2>
-              <p className="mt-1 text-sm text-muted-foreground capitalize">
-                {business.businessType.replace('-', ' ')}
-              </p>
+              <p className="mt-1 text-sm text-muted-foreground">{businessTypeLabel}</p>
             </div>
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
               <p className="text-xs uppercase tracking-wide text-muted-foreground">Status</p>
@@ -215,7 +225,7 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
             ))}
             <button
               type="button"
-              onClick={() => setSelectedLimit(Math.max(currentUsage, 1000))}
+              onClick={() => toast.info('Contact Sales for custom record capacity.')}
               className="rounded-2xl border border-dashed border-border bg-muted/20 p-4 text-left transition hover:bg-muted/30"
             >
               <p className="text-sm font-700 text-foreground">Custom</p>
@@ -230,7 +240,14 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
               disabled={selectedLimit === recordLimit}
               className="btn-primary rounded-xl px-4 py-2.5 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {selectedLimit >= 1000 ? 'Contact Sales for Custom' : `Upgrade to ${selectedLimit}`}
+              {`Upgrade to ${selectedLimit}`}
+            </button>
+            <button
+              type="button"
+              onClick={() => toast.info('Contact Sales for custom record capacity.')}
+              className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+            >
+              Contact Sales for Custom
             </button>
           </div>
 
