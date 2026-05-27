@@ -10,8 +10,6 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { canAddRecord } from '@/utils/planLimits';
-import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
 
 export interface FeeRecord {
   id: string;
@@ -39,12 +37,10 @@ function getFirestoreDb() {
 }
 
 export async function addFee(businessId: string, fee: Omit<FeeRecord, 'id'>) {
-  await canAddRecord(businessId, 'fees');
   const docRef = await addDoc(collection(getFirestoreDb(), `businesses/${businessId}/fees`), {
     ...fee,
     createdAt: fee.createdAt ?? new Date().toISOString(),
   });
-  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 
@@ -71,5 +67,4 @@ export async function updateFee(businessId: string, feeId: string, fee: Omit<Fee
 
 export async function deleteFee(businessId: string, feeId: string) {
   await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/fees`, feeId));
-  await decrementBusinessUsage(businessId);
 }

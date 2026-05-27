@@ -30,16 +30,25 @@ export type IndustryType =
 
 export interface Business {
   id: string;
+  businessId?: string;
+  ownerId?: string;
   businessName: string;
   ownerName: string;
   email: string;
   phone: string;
   industry: IndustryType;
+  businessType?: string;
   plan: PlanType;
   status: BusinessStatus;
   createdAt: string;
   usageCount: number;
   usageLimit: number;
+  recordLimit?: number;
+  currentUsage?: number;
+  remainingRecords?: number;
+  monthlyPrice?: number;
+  subscriptionStatus?: string;
+  nextBillingDate?: string | null;
   city: string;
   emailVerified: boolean;
   lastActive: string;

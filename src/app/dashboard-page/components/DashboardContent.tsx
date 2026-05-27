@@ -117,6 +117,10 @@ const SettingsPanel = dynamic(() => import('@/components/dashboard/SettingsPanel
   loading: () => <ModuleSkeleton />,
 });
 
+const SubscriptionPanel = dynamic(() => import('@/components/subscription/SubscriptionPanel'), {
+  loading: () => <ModuleSkeleton />,
+});
+
 const HelpSupportPanel = dynamic(() => import('@/components/dashboard/HelpSupportPanel'), {
   loading: () => <ModuleSkeleton />,
 });
@@ -560,6 +564,7 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
 
   const selectedView = useMemo(() => {
     if (activeNav === 'nav-profile') return 'profile';
+    if (activeNav === 'nav-subscription') return 'subscription';
     if (activeNav === 'nav-settings') return 'settings';
     if (activeNav === 'nav-help') return 'help';
 
@@ -644,7 +649,7 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
     const industry = getIndustryById(user.businessType);
     const plan = getPlanById(user.plan);
     const recordsUsed = user.recordsUsed ?? 0;
-    const recordLimit = plan?.recordLimit ?? 50;
+    const recordLimit = user.recordLimit ?? plan?.recordLimit ?? 50;
     const usagePct = recordLimit ? Math.round((recordsUsed / recordLimit) * 100) : 0;
     const revenueData = dashboardStats?.revenueTrend ?? [];
     const weeklyData = activities.length ? formatWeeklyData(activities) : [];
@@ -668,7 +673,7 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
       revenueData,
       weeklyData,
     };
-  }, [dashboardStats, recentActivities, user.businessType, user.plan, user.recordsUsed]);
+  }, [dashboardStats, recentActivities, user.businessType, user.plan, user.recordLimit, user.recordsUsed]);
 
   const navLabelMap = useMemo(
     () =>
@@ -756,6 +761,10 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
 
   if (selectedView === 'settings') {
     return <SettingsPanel businessId={user.id} />;
+  }
+
+  if (selectedView === 'subscription') {
+    return <SubscriptionPanel onUpgradeComplete={() => onNavChange('nav-subscription')} />;
   }
 
   if (selectedView === 'help') {

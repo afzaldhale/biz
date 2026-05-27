@@ -10,9 +10,15 @@ import BusinessDetailDrawer from './BusinessDetailDrawer';
 import BusinessStatusModal from './BusinessStatusModal';
 import BusinessPlanModal from './BusinessPlanModal';
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
-import { MOCK_BUSINESSES, Business, BusinessStatus, PlanType } from '@/lib/mockData';
+import { Business, BusinessStatus, PlanType } from '@/lib/mockData';
 import { toast } from 'sonner';
 import { Plus } from 'lucide-react';
+import {
+  adminSyncBusinessUsage,
+  adminUpdateBusinessRecordLimit,
+  adminUpdateBusinessStatus,
+  getAdminBusinesses,
+} from '@/services/adminBusinessService';
 
 export type SortField = 'businessName' | 'createdAt' | 'plan' | 'status' | 'usageCount';
 export type SortDir = 'asc' | 'desc';
@@ -21,7 +27,8 @@ export default function BusinessManagementContent() {
   const { admin } = useAdminAuth();
   const router = useRouter();
 
-  const [businesses, setBusinesses] = React.useState<Business[]>(MOCK_BUSINESSES);
+  const [businesses, setBusinesses] = React.useState<Business[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState<BusinessStatus | 'all'>('all');
   const [planFilter, setPlanFilter] = React.useState<PlanType | 'all'>('all');
@@ -40,7 +47,28 @@ export default function BusinessManagementContent() {
   const [deleteConfirm, setDeleteConfirm] = React.useState<Business | null>(null);
   const [actionLoading, setActionLoading] = React.useState(false);
 
-  // BACKEND INTEGRATION POINT: Replace local state with getAllBusinesses() from adminBusinessService.ts
+  React.useEffect(() => {
+    let active = true;
+    setLoading(true);
+
+    getAdminBusinesses()
+      .then((rows) => {
+        if (!active) return;
+        setBusinesses(rows);
+      })
+      .catch((error) => {
+        if (!active) return;
+        console.error('[business-management] unable to load businesses', error);
+        toast.error(error instanceof Error ? error.message : 'Unable to load businesses.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   if (!admin) {
     return (
@@ -60,6 +88,8 @@ export default function BusinessManagementContent() {
       </div>
     );
   }
+
+  const canManageSubscription = admin.role === 'super_admin';
 
   // Filtering
   const filtered = businesses.filter((b) => {
@@ -113,44 +143,69 @@ export default function BusinessManagementContent() {
 
   const handleStatusChange = async (biz: Business, newStatus: BusinessStatus) => {
     setActionLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    // BACKEND INTEGRATION POINT: updateBusinessStatus(biz.id, newStatus) from adminBusinessService.ts
-    setBusinesses((prev) => prev.map((b) => (b.id === biz.id ? { ...b, status: newStatus } : b)));
-    setActionLoading(false);
-    setStatusModalBiz(null);
-    toast.success(`${biz.businessName} status updated to ${newStatus.replace('_', ' ')}`);
+    try {
+      await adminUpdateBusinessStatus(biz.id, newStatus);
+      setBusinesses((prev) => prev.map((b) => (b.id === biz.id ? { ...b, status: newStatus } : b)));
+      setStatusModalBiz(null);
+      toast.success(`${biz.businessName} status updated to ${newStatus.replace('_', ' ')}`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to update business status.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handlePlanChange = async (biz: Business, newPlan: PlanType) => {
+  const handlePlanChange = async (biz: Business, nextLimit: number) => {
+    if (!canManageSubscription) {
+      toast.error('Only super admins can edit subscription limits.');
+      return;
+    }
     setActionLoading(true);
-    await new Promise((r) => setTimeout(r, 900));
-    // BACKEND INTEGRATION POINT: updateBusinessPlan(biz.id, newPlan) from adminBusinessService.ts
-    setBusinesses((prev) => prev.map((b) => (b.id === biz.id ? { ...b, plan: newPlan } : b)));
-    setActionLoading(false);
-    setPlanModalBiz(null);
-    toast.success(`${biz.businessName} plan updated to ${newPlan}`);
+    try {
+      await adminUpdateBusinessRecordLimit(biz.id, nextLimit);
+      setBusinesses((prev) =>
+        prev.map((b) =>
+          b.id === biz.id
+            ? {
+                ...b,
+                plan: 'custom',
+                usageLimit: nextLimit,
+                recordLimit: nextLimit,
+                remainingRecords: Math.max(0, nextLimit - (b.currentUsage ?? b.usageCount)),
+              }
+            : b
+        )
+      );
+      setPlanModalBiz(null);
+      toast.success(`${biz.businessName} record limit updated.`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to update record limit.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleSuspend = async () => {
     if (!suspendConfirm) return;
     setActionLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setBusinesses((prev) =>
-      prev.map((b) => (b.id === suspendConfirm.id ? { ...b, status: 'suspended' } : b))
-    );
-    setActionLoading(false);
-    setSuspendConfirm(null);
-    toast.success(`${suspendConfirm.businessName} has been suspended`);
+    try {
+      await adminUpdateBusinessStatus(suspendConfirm.id, 'suspended');
+      setBusinesses((prev) =>
+        prev.map((b) => (b.id === suspendConfirm.id ? { ...b, status: 'suspended' } : b))
+      );
+      setSuspendConfirm(null);
+      toast.success(`${suspendConfirm.businessName} has been suspended`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Unable to suspend business.');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteConfirm) return;
-    setActionLoading(true);
-    await new Promise((r) => setTimeout(r, 1000));
-    setBusinesses((prev) => prev.filter((b) => b.id !== deleteConfirm.id));
-    setActionLoading(false);
+    toast.error('Archiving is not enabled for live Firestore businesses in this MVP.');
     setDeleteConfirm(null);
-    toast.success(`${deleteConfirm.businessName} archived successfully`);
   };
 
   const pendingCount = businesses.filter((b) => b.status === 'pending_verification').length;
@@ -214,20 +269,25 @@ export default function BusinessManagementContent() {
         />
 
         {/* Table */}
-        <BusinessTable
-          businesses={paginated}
-          allBusinesses={sorted}
-          selectedIds={selectedIds}
-          onSelectIds={setSelectedIds}
-          sortField={sortField}
-          sortDir={sortDir}
-          onSort={handleSort}
-          onViewDetail={setDrawerBiz}
-          onChangeStatus={setStatusModalBiz}
-          onChangePlan={setPlanModalBiz}
-          onSuspend={setSuspendConfirm}
-          onDelete={setDeleteConfirm}
-        />
+        {loading ? (
+          <div className="p-10 text-sm text-muted-foreground">Loading businesses...</div>
+        ) : (
+          <BusinessTable
+            businesses={paginated}
+            allBusinesses={sorted}
+            selectedIds={selectedIds}
+            onSelectIds={setSelectedIds}
+            sortField={sortField}
+            sortDir={sortDir}
+            onSort={handleSort}
+            onViewDetail={setDrawerBiz}
+            onChangeStatus={setStatusModalBiz}
+            onChangePlan={setPlanModalBiz}
+            onSuspend={setSuspendConfirm}
+            onDelete={setDeleteConfirm}
+            canManageSubscription={canManageSubscription}
+          />
+        )}
 
         {/* Pagination */}
         <BusinessPagination
@@ -247,6 +307,7 @@ export default function BusinessManagementContent() {
       {drawerBiz && (
         <BusinessDetailDrawer
           business={drawerBiz}
+          canManageSubscription={canManageSubscription}
           onClose={() => setDrawerBiz(null)}
           onChangeStatus={() => {
             setStatusModalBiz(drawerBiz);
@@ -255,6 +316,16 @@ export default function BusinessManagementContent() {
           onChangePlan={() => {
             setPlanModalBiz(drawerBiz);
             setDrawerBiz(null);
+          }}
+          onSyncUsage={async () => {
+            try {
+              await adminSyncBusinessUsage(drawerBiz.id, drawerBiz.businessType ?? 'custom');
+              const rows = await getAdminBusinesses();
+              setBusinesses(rows);
+              toast.success('Business usage synced successfully.');
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : 'Unable to sync usage.');
+            }
           }}
         />
       )}
@@ -271,6 +342,7 @@ export default function BusinessManagementContent() {
       {planModalBiz && (
         <BusinessPlanModal
           business={planModalBiz}
+          canManageSubscription={canManageSubscription}
           loading={actionLoading}
           onConfirm={(newPlan) => handlePlanChange(planModalBiz, newPlan)}
           onClose={() => setPlanModalBiz(null)}

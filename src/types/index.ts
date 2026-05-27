@@ -9,6 +9,8 @@ export type BusinessType =
   | 'custom';
 
 export type PlanId = 'basic' | 'medium' | 'advance' | 'premium' | 'pro' | 'custom';
+export type SubscriptionStatus = 'active' | 'past_due' | 'paused' | 'cancelled';
+export type BillingCycle = 'monthly';
 
 export interface Plan {
   id: PlanId;
@@ -36,9 +38,10 @@ export interface AuthUser {
   businessName: string;
   email: string;
   phone: string;
-  plan: PlanId;
+  plan: PlanId | 'usage_based';
   businessType: BusinessType;
   recordsUsed: number;
+  recordLimit?: number | null;
   createdAt: string;
 }
 
@@ -49,9 +52,22 @@ export interface BusinessProfile {
   ownerName: string;
   businessName: string;
   businessType: BusinessType;
-  selectedPlan: PlanId;
+  pricingModel?: 'per_record' | string;
+  selectedPlan: PlanId | 'usage_based' | string;
   planLimit?: number | null;
+  recordLimit?: number | null;
   currentUsage?: number;
+  remainingRecords?: number;
+  minimumRecords?: number;
+  estimatedRecords?: number;
+  billableRecords?: number;
+  monthlyPrice?: number;
+  billingCycle?: BillingCycle | string;
+  subscriptionStatus?: SubscriptionStatus | string;
+  subscriptionStartDate?: string;
+  currentPeriodStart?: string;
+  nextBillingDate?: string;
+  lastPaymentDate?: string | null;
   email: string;
   phone: string;
   address?: string;

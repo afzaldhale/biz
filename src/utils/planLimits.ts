@@ -1,12 +1,29 @@
-import { getBusinessProfile, updateBusinessUsage } from '../services/businessService';
+import { getSubscriptionOverview, SubscriptionLimitError } from '@/services/subscriptionService';
+import { canAddRecord as canAddRecordToPlan } from '@/utils/subscription';
+
+const MAIN_RECORD_COLLECTIONS = new Set([
+  'students',
+  'gymMembers',
+  'patients',
+  'customers',
+  'guests',
+  'bookings',
+  'tickets',
+  'records',
+]);
 
 export async function canAddRecord(businessId: string, collectionName: string) {
-  const business = await getBusinessProfile(businessId);
-  if (!business) throw new Error('Business profile not found');
-  const { planLimit, currentUsage, selectedPlan } = business;
-  if (selectedPlan === 'custom') return true;
-  if (typeof planLimit === 'number' && (currentUsage ?? 0) >= planLimit) {
-    throw new Error('You have reached your plan limit. Please upgrade your plan to continue.');
+  if (!MAIN_RECORD_COLLECTIONS.has(collectionName)) {
+    return true;
   }
+
+  const business = await getSubscriptionOverview(businessId);
+  const recordLimit = business.recordLimit ?? business.planLimit ?? 0;
+  const currentUsage = business.currentUsage ?? 0;
+
+  if (!canAddRecordToPlan(recordLimit, currentUsage)) {
+    throw new SubscriptionLimitError(currentUsage, recordLimit);
+  }
+
   return true;
 }

@@ -16,8 +16,6 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymPaymentRecord } from '@/types';
-import { canAddRecord } from '@/utils/planLimits';
-import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -33,7 +31,6 @@ function getFirestoreDb() {
 }
 
 export async function addGymPayment(businessId: string, payment: GymPaymentRecord) {
-  await canAddRecord(businessId, 'gymPayments');
   const docRef = await addDoc(
     collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`),
     {
@@ -41,14 +38,11 @@ export async function addGymPayment(businessId: string, payment: GymPaymentRecor
       createdAt: payment.createdAt ?? new Date().toISOString(),
     }
   );
-
-  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 
 export async function deleteGymPayment(businessId: string, paymentId: string) {
   await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymPayments`, paymentId));
-  await decrementBusinessUsage(businessId);
 }
 
 export interface PaginationOptions {

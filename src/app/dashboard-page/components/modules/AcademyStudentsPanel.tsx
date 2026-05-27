@@ -19,6 +19,7 @@ import { AcademyAttendance, AcademyCourse, AcademyPaymentMode, AcademyReceipt, A
 import { useBusiness } from '@/context/BusinessContext';
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
 import RetryState from '@/components/ui/RetryState';
+import UpgradeRequiredModal from '@/components/subscription/UpgradeRequiredModal';
 import {
   AcademyStudentInput,
   createAcademyStudent,
@@ -34,6 +35,7 @@ import { getTodayAttendanceMap, markTodayAttendance } from '@/services/academyAt
 import { useSlowLoading } from '@/hooks/useSlowLoading';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { SubscriptionLimitError } from '@/services/subscriptionService';
 
 interface AcademyStudentsPanelProps {
   user: AuthUser;
@@ -586,7 +588,7 @@ function HistoryDrawer({
 }
 
 export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStudentsPanelProps) {
-  const { business } = useBusiness();
+  const { business, refreshBusiness } = useBusiness();
   const { isOffline } = useNetworkStatus();
   const [students, setStudents] = useState<AcademyStudent[]>([]);
   const [courses, setCourses] = useState<AcademyCourse[]>([]);
@@ -616,6 +618,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
   const [deleteStudentTarget, setDeleteStudentTarget] = useState<AcademyStudent | null>(null);
   const [deletingStudent, setDeletingStudent] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
+  const [limitModalUsage, setLimitModalUsage] = useState(0);
+  const [limitModalLimit, setLimitModalLimit] = useState(0);
   const [retryKey, setRetryKey] = useState(0);
   const debouncedSearch = useDebouncedValue(search, 250);
   const { showSlowMessage, showRetry } = useSlowLoading(loading);
@@ -777,13 +782,19 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
       }
 
       await loadStudentsWorkspace();
+      await refreshBusiness();
       closeFormModal();
     } catch (error) {
+      if (error instanceof SubscriptionLimitError) {
+        setLimitModalUsage(error.currentUsage);
+        setLimitModalLimit(error.recordLimit);
+        setLimitModalOpen(true);
+      }
       toast.error(error instanceof Error ? error.message : 'Unable to save student.');
     } finally {
       setSavingStudent(false);
     }
-  }, [closeFormModal, editingStudent, form, isOffline, loadStudentsWorkspace, user.id]);
+  }, [closeFormModal, editingStudent, form, isOffline, loadStudentsWorkspace, refreshBusiness, user.id]);
 
   const handleAttendanceAction = useCallback(async (student: AcademyStudent, status: 'present' | 'absent') => {
     if (isOffline) {
@@ -935,6 +946,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     try {
       await deleteAcademyStudent(user.id, deleteStudentTarget.id);
       await loadStudentsWorkspace();
+      await refreshBusiness();
       toast.success('Student moved to inactive status.');
       setDeleteStudentTarget(null);
     } catch (error) {
@@ -943,7 +955,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     } finally {
       setDeletingStudent(false);
     }
-  }, [deleteStudentTarget, isOffline, loadStudentsWorkspace, user.id]);
+  }, [deleteStudentTarget, isOffline, loadStudentsWorkspace, refreshBusiness, user.id]);
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
@@ -1252,6 +1264,17 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         loading={deletingStudent}
         onCancel={() => setDeleteStudentTarget(null)}
         onConfirm={() => void handleDeleteStudent()}
+      />
+
+      <UpgradeRequiredModal
+        open={limitModalOpen}
+        currentUsage={limitModalUsage || business?.currentUsage || 0}
+        recordLimit={limitModalLimit || business?.recordLimit || business?.planLimit || 0}
+        onClose={() => setLimitModalOpen(false)}
+        onUpgrade={() => {
+          setLimitModalOpen(false);
+          onNavigate('nav-subscription');
+        }}
       />
     </div>
   );

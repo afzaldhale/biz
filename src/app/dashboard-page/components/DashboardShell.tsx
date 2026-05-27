@@ -37,9 +37,11 @@ export default function DashboardShell() {
       businessName: business.businessName,
       email: business.email,
       phone: business.phone,
-      plan: (business.selectedPlan ?? 'advance') as PlanId,
+      plan: ((business.selectedPlan === 'usage_based' ? 'custom' : business.selectedPlan) ??
+        'custom') as PlanId,
       businessType: (business.businessType ?? 'academy') as BusinessType,
       recordsUsed: business.currentUsage ?? 0,
+      recordLimit: business.recordLimit ?? business.planLimit ?? 50,
       createdAt: business.createdAt ?? new Date().toISOString(),
     };
   }, [authUser, business]);

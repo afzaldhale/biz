@@ -15,8 +15,6 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { canAddRecord } from '@/utils/planLimits';
-import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
 
 export interface PaginationOptions {
   pageSize?: number;
@@ -79,7 +77,6 @@ export async function addCourse(businessId: string, course: Omit<CourseRecord, '
     ...course,
     createdAt: course.createdAt ?? new Date().toISOString(),
   });
-  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 
@@ -93,7 +90,6 @@ export async function updateCourse(
 
 export async function deleteCourse(businessId: string, courseId: string) {
   await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/courses`, courseId));
-  await decrementBusinessUsage(businessId);
 }
 
 export async function getCourses(businessId: string): Promise<CourseRecord[]>;

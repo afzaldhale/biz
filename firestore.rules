@@ -43,6 +43,19 @@ service cloud.firestore {
       return 'businessId' in resourceData && resourceData.businessId != null;
     }
 
+    function preservesBusinessSubscriptionGuards() {
+      return request.resource.data.ownerId == resource.data.ownerId
+        && request.resource.data.businessId == resource.data.businessId
+        && (
+          !('pricingModel' in resource.data)
+          || request.resource.data.pricingModel == resource.data.pricingModel
+        )
+        && (
+          !('subscriptionStartDate' in resource.data)
+          || request.resource.data.subscriptionStartDate == resource.data.subscriptionStartDate
+        );
+    }
+
     function isBusinessMember(businessId) {
       return isVerifiedUser()
         && userExists()
@@ -84,8 +97,7 @@ service cloud.firestore {
       allow read: if isBusinessMember(businessId);
 
       allow update: if isBusinessMember(businessId)
-        && request.resource.data.ownerId == resource.data.ownerId
-        && request.resource.data.businessId == resource.data.businessId;
+        && preservesBusinessSubscriptionGuards();
 
       allow delete: if false;
 

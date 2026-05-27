@@ -16,8 +16,6 @@ import {
   mapSnapshot,
   normalizeDateValue,
 } from './academyShared';
-import { canAddRecord } from '@/utils/planLimits';
-import { decrementBusinessUsage, safeIncrementBusinessUsage } from './businessService';
 
 export interface AcademyCourseInput {
   courseName: string;
@@ -49,7 +47,6 @@ export async function getAcademyCourses(businessId: string) {
 }
 
 export async function createAcademyCourse(businessId: string, input: AcademyCourseInput) {
-  await canAddRecord(businessId, 'courses');
   const collectionRef = academyCollection(businessId, 'courses');
   const docRef = await addDoc(collectionRef, {
     courseName: input.courseName.trim(),
@@ -68,7 +65,6 @@ export async function createAcademyCourse(businessId: string, input: AcademyCour
     },
     { merge: true }
   );
-  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 
@@ -89,7 +85,6 @@ export async function updateAcademyCourse(
 
 export async function deleteAcademyCourse(businessId: string, courseId: string) {
   await deleteDoc(academyDoc(businessId, 'courses', courseId));
-  await decrementBusinessUsage(businessId);
 }
 
 export async function getCourseEnrollmentCounts(businessId: string) {

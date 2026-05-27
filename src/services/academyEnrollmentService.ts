@@ -16,8 +16,6 @@ import {
   normalizeDateValue,
   sortByCreatedAtDesc,
 } from './academyShared';
-import { canAddRecord } from '@/utils/planLimits';
-import { safeIncrementBusinessUsage } from './businessService';
 import { getAcademyCourses } from './academyCourseService';
 
 export interface EnrollmentInput {
@@ -120,7 +118,6 @@ export async function getStudentCourseOptions(
 }
 
 export async function createEnrollment(businessId: string, input: EnrollmentInput) {
-  await canAddRecord(businessId, 'enrollments');
   const docRef = await addDoc(academyCollection(businessId, 'enrollments'), {
     studentId: input.student.studentId,
     studentName: input.student.studentName,
@@ -134,7 +131,6 @@ export async function createEnrollment(businessId: string, input: EnrollmentInpu
   });
 
   await setDoc(docRef, { enrollmentId: docRef.id }, { merge: true });
-  await safeIncrementBusinessUsage(businessId);
   return docRef.id;
 }
 

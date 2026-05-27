@@ -17,8 +17,6 @@ import {
   normalizeDateValue,
   sortByCreatedAtDesc,
 } from './academyShared';
-import { canAddRecord } from '@/utils/planLimits';
-import { safeIncrementBusinessUsage } from './businessService';
 
 export interface AttendanceMarkInput {
   courseId: string;
@@ -111,10 +109,6 @@ export async function markTodayAttendance(
   const attendanceRef = academyDoc(businessId, 'attendance', attendanceId);
   const existingSnap = await getDoc(attendanceRef);
 
-  if (!existingSnap.exists()) {
-    await canAddRecord(businessId, 'attendance');
-  }
-
   const existingData = existingSnap.exists() ? (existingSnap.data() as Record<string, unknown>) : null;
   const courseId =
     options?.courseId ?? student.courseId ?? String(existingData?.courseId ?? '');
@@ -138,10 +132,6 @@ export async function markTodayAttendance(
     },
     { merge: true }
   );
-
-  if (!existingSnap.exists()) {
-    await safeIncrementBusinessUsage(businessId);
-  }
 
   const updatedSnap = await getDoc(attendanceRef);
   return updatedSnap.exists()

@@ -33,6 +33,7 @@ interface BusinessTableProps {
   onChangePlan: (biz: Business) => void;
   onSuspend: (biz: Business) => void;
   onDelete: (biz: Business) => void;
+  canManageSubscription: boolean;
 }
 
 function SortIcon({
@@ -78,6 +79,7 @@ export default function BusinessTable({
   onChangePlan,
   onSuspend,
   onDelete,
+  canManageSubscription,
 }: BusinessTableProps) {
   const allPageIds = businesses.map((b) => b.id);
   const allSelected = allPageIds.length > 0 && allPageIds.every((id) => selectedIds.has(id));
@@ -165,6 +167,9 @@ export default function BusinessTable({
             <th className="text-left px-4 py-3.5 text-[11px] font-700 text-muted-foreground uppercase tracking-wide">
               Usage
             </th>
+            <th className="text-left px-4 py-3.5 text-[11px] font-700 text-muted-foreground uppercase tracking-wide hidden xl:table-cell">
+              Billing
+            </th>
             <SortableHeader field="createdAt" label="Created" className="hidden lg:table-cell" />
             <th className="text-right px-4 py-3.5 text-[11px] font-700 text-muted-foreground uppercase tracking-wide">
               Actions
@@ -230,7 +235,12 @@ export default function BusinessTable({
 
                 {/* Plan */}
                 <td className="px-4 py-4">
-                  <PlanBadge plan={biz.plan} />
+                  <div className="space-y-1">
+                    <PlanBadge plan={biz.plan} />
+                    <p className="text-[11px] text-muted-foreground">
+                      {biz.recordLimit ?? biz.usageLimit} records
+                    </p>
+                  </div>
                 </td>
 
                 {/* Status */}
@@ -265,6 +275,20 @@ export default function BusinessTable({
                   </div>
                 </td>
 
+                <td className="px-4 py-4 hidden xl:table-cell">
+                  <p className="text-sm font-700 text-foreground">
+                    ₹{(biz.monthlyPrice ?? 0).toLocaleString('en-IN')}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground capitalize">
+                    {biz.subscriptionStatus ?? 'active'}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {biz.nextBillingDate
+                      ? new Date(biz.nextBillingDate).toLocaleDateString('en-IN')
+                      : 'No billing date'}
+                  </p>
+                </td>
+
                 {/* Created date */}
                 <td className="px-4 py-4 hidden lg:table-cell">
                   <span className="text-xs text-muted-foreground font-500">{biz.createdAt}</span>
@@ -289,7 +313,8 @@ export default function BusinessTable({
                       icon={CreditCard}
                       label="Change plan"
                       onClick={() => onChangePlan(biz)}
-                      color="text-blue-600"
+                      color={canManageSubscription ? 'text-blue-600' : 'text-slate-300'}
+                      disabled={!canManageSubscription}
                     />
                     {biz.status !== 'suspended' && (
                       <ActionButton
@@ -331,15 +356,17 @@ interface ActionButtonProps {
   label: string;
   onClick: () => void;
   color: string;
+  disabled?: boolean;
 }
 
-function ActionButton({ icon: Icon, label, onClick, color }: ActionButtonProps) {
+function ActionButton({ icon: Icon, label, onClick, color, disabled = false }: ActionButtonProps) {
   return (
     <button
       onClick={onClick}
       title={label}
       aria-label={label}
-      className={`p-1.5 rounded-lg hover:bg-muted transition-all duration-150 active:scale-95 ${color}`}
+      disabled={disabled}
+      className={`p-1.5 rounded-lg hover:bg-muted transition-all duration-150 active:scale-95 disabled:cursor-not-allowed ${color}`}
     >
       <Icon size={14} />
     </button>

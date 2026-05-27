@@ -16,8 +16,6 @@ import {
   normalizeDateValue,
   sortByCreatedAtDesc,
 } from './academyShared';
-import { canAddRecord } from '@/utils/planLimits';
-import { safeIncrementBusinessUsage } from './businessService';
 import { createEnrollment } from './academyEnrollmentService';
 import { getStudentByBusinessStudentId } from './academyStudentService';
 
@@ -140,7 +138,6 @@ export async function addStudentPayment(
 }
 
 export async function recordAcademyFeePayment(businessId: string, input: RecordFeePaymentInput) {
-  await canAddRecord(businessId, 'fees');
   const firestore = getFirestoreDb();
   const feesCollection = academyCollection(businessId, 'fees');
   const receiptsCollection = academyCollection(businessId, 'receipts');
@@ -254,6 +251,5 @@ export async function recordAcademyFeePayment(businessId: string, input: RecordF
     };
   });
 
-  await safeIncrementBusinessUsage(businessId, 2);
   return result;
 }

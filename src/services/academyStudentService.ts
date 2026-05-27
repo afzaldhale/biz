@@ -1,15 +1,16 @@
 import {
-  addDoc,
+  collection,
   doc,
   getDoc,
   getDocs,
   orderBy,
   query,
+  runTransaction,
   updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore';
-import { AcademyCourse, AcademyStudent } from '@/types';
+import { AcademyCourse, AcademyStudent, BusinessProfile } from '@/types';
 import {
   academyCollection,
   academyDoc,
@@ -20,8 +21,16 @@ import {
   sortByCreatedAtDesc,
 } from './academyShared';
 import { canAddRecord } from '@/utils/planLimits';
-import { safeIncrementBusinessUsage } from './businessService';
 import { getStudentHistory } from './academyDashboardService';
+import {
+  decrementUsageOnDeactivate,
+  incrementUsageOnCreate,
+  SubscriptionLimitError,
+} from './subscriptionService';
+import {
+  calculateRemainingRecords,
+  normalizeSubscriptionBusinessData,
+} from '@/utils/subscription';
 
 export interface AcademyStudentInput {
   studentName: string;
@@ -91,47 +100,64 @@ export async function getStudentByBusinessStudentId(businessId: string, studentI
 }
 
 export async function createAcademyStudent(businessId: string, input: AcademyStudentInput) {
-  await canAddRecord(businessId, 'students');
   const firestore = getFirestoreDb();
-  const studentsCollection = academyCollection(businessId, 'students');
   const totalFees = input.selectedCourses.reduce((sum, course) => sum + Number(course.fees || 0), 0);
+  const studentRef = doc(collection(firestore, 'businesses', businessId, 'students'));
+  const studentId = studentRef.id;
+  const admissionId = buildAdmissionId(studentId);
+  const businessRef = doc(firestore, 'businesses', businessId);
 
-  const studentRef = await addDoc(studentsCollection, {
-    studentName: input.studentName.trim(),
-    parentName: input.parentName.trim(),
-    phone: input.phone.trim(),
-    email: input.email.trim(),
-    address: input.address.trim(),
-    dateOfBirth: input.dateOfBirth,
-    admissionDate: input.admissionDate,
-    status: input.status,
-    notes: input.notes.trim(),
-    totalFees,
-    paidFees: 0,
-    pendingFees: totalFees,
-    enrolledCourseIds: input.selectedCourses.map((course) => course.courseId),
-    createdAt: firestoreTimestamp(),
-    updatedAt: firestoreTimestamp(),
-  });
+  await runTransaction(firestore, async (transaction) => {
+    if (input.status === 'active') {
+      const businessSnapshot = await transaction.get(businessRef);
+      if (!businessSnapshot.exists()) {
+        throw new Error('Business profile not found.');
+      }
 
-  const batch = writeBatch(firestore);
-  batch.update(studentRef, {
-    studentId: studentRef.id,
-    admissionId: buildAdmissionId(studentRef.id),
-  });
-  await batch.commit();
+      const business = normalizeSubscriptionBusinessData(
+        businessSnapshot.data() as BusinessProfile
+      );
+      const currentUsage = business?.currentUsage ?? 0;
+      const recordLimit = business?.recordLimit ?? business?.planLimit ?? 0;
 
-  const studentSnapshot = await getDoc(studentRef);
-  const student = normalizeStudent(studentSnapshot.data() as Record<string, unknown>, studentRef.id);
+      if (currentUsage >= recordLimit) {
+        throw new SubscriptionLimitError(currentUsage, recordLimit);
+      }
 
-  if (input.selectedCourses.length > 0) {
-    const enrollmentBatch = writeBatch(firestore);
+      const nextUsage = currentUsage + 1;
+      transaction.update(businessRef, {
+        currentUsage: nextUsage,
+        remainingRecords: calculateRemainingRecords(recordLimit, nextUsage),
+        updatedAt: firestoreTimestamp(),
+      });
+    }
+
+    transaction.set(studentRef, {
+      studentId,
+      admissionId,
+      studentName: input.studentName.trim(),
+      parentName: input.parentName.trim(),
+      phone: input.phone.trim(),
+      email: input.email.trim(),
+      address: input.address.trim(),
+      dateOfBirth: input.dateOfBirth,
+      admissionDate: input.admissionDate,
+      status: input.status,
+      notes: input.notes.trim(),
+      totalFees,
+      paidFees: 0,
+      pendingFees: totalFees,
+      enrolledCourseIds: input.selectedCourses.map((course) => course.courseId),
+      createdAt: firestoreTimestamp(),
+      updatedAt: firestoreTimestamp(),
+    });
+
     input.selectedCourses.forEach((course) => {
-      const enrollmentRef = doc(academyCollection(businessId, 'enrollments'));
-      enrollmentBatch.set(enrollmentRef, {
+      const enrollmentRef = doc(collection(firestore, 'businesses', businessId, 'enrollments'));
+      transaction.set(enrollmentRef, {
         enrollmentId: enrollmentRef.id,
-        studentId: student.studentId,
-        studentName: student.studentName,
+        studentId,
+        studentName: input.studentName.trim(),
         courseId: course.courseId,
         courseName: course.courseName,
         courseFees: Number(course.fees) || 0,
@@ -141,11 +167,9 @@ export async function createAcademyStudent(businessId: string, input: AcademyStu
         updatedAt: firestoreTimestamp(),
       });
     });
-    await enrollmentBatch.commit();
-  }
+  });
 
-  await safeIncrementBusinessUsage(businessId);
-  return studentRef.id;
+  return studentId;
 }
 
 export async function updateStudent(
@@ -191,6 +215,12 @@ export async function updateAcademyStudent(
 
   const totalFees = input.selectedCourses.reduce((sum, course) => sum + Number(course.fees || 0), 0);
   const nextPendingFees = Math.max(0, totalFees - Number(input.paidFees || 0));
+  const statusChanged = currentStudent.status !== input.status;
+
+  if (statusChanged && currentStudent.status !== 'active' && input.status === 'active') {
+    await canAddRecord(businessId, 'students');
+    await incrementUsageOnCreate(businessId);
+  }
 
   await updateStudent(businessId, studentId, {
     ...input,
@@ -239,13 +269,22 @@ export async function updateAcademyStudent(
   });
 
   await batch.commit();
+
+  if (statusChanged && currentStudent.status === 'active' && input.status !== 'active') {
+    await decrementUsageOnDeactivate(businessId);
+  }
 }
 
 export async function deleteAcademyStudent(businessId: string, studentId: string) {
+  const student = await getAcademyStudent(businessId, studentId);
   await updateDoc(academyDoc(businessId, 'students', studentId), {
     status: 'inactive',
     updatedAt: firestoreTimestamp(),
   });
+
+  if (student?.status === 'active') {
+    await decrementUsageOnDeactivate(businessId);
+  }
 }
 
 export async function getStudentHistorySummary(businessId: string, studentId: string) {

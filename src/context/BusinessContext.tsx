@@ -20,12 +20,17 @@ interface BusinessContextType {
   businessType: string | null;
   selectedPlan: string | null;
   planLimit: number | null;
+  recordLimit: number | null;
   currentUsage: number;
+  remainingRecords: number;
+  monthlyPrice: number;
+  nextBillingDate: string | null;
   businessLoading: boolean;
   businessError: string | null;
   businessReady: boolean;
   hasBusinessAccess: boolean;
   refreshBusiness: (firebaseUser?: SessionUser | null) => Promise<void>;
+  canCreateRecord: () => boolean;
   isOnline: boolean;
 }
 
@@ -120,12 +125,37 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       businessType: business?.businessType ?? null,
       selectedPlan: business?.selectedPlan ?? null,
       planLimit: typeof business?.planLimit === 'number' ? business.planLimit : null,
+      recordLimit: typeof business?.recordLimit === 'number' ? business.recordLimit : null,
       currentUsage: typeof business?.currentUsage === 'number' ? business.currentUsage : 0,
+      remainingRecords:
+        typeof business?.remainingRecords === 'number'
+          ? business.remainingRecords
+          : Math.max(
+              0,
+              (typeof business?.recordLimit === 'number'
+                ? business.recordLimit
+                : typeof business?.planLimit === 'number'
+                  ? business.planLimit
+                  : 0) - (typeof business?.currentUsage === 'number' ? business.currentUsage : 0)
+            ),
+      monthlyPrice: typeof business?.monthlyPrice === 'number' ? business.monthlyPrice : 0,
+      nextBillingDate: business?.nextBillingDate ?? null,
       businessLoading,
       businessError,
       businessReady,
       hasBusinessAccess,
       refreshBusiness,
+      canCreateRecord: () => {
+        const recordLimit =
+          typeof business?.recordLimit === 'number'
+            ? business.recordLimit
+            : typeof business?.planLimit === 'number'
+              ? business.planLimit
+              : 0;
+        const currentUsage = typeof business?.currentUsage === 'number' ? business.currentUsage : 0;
+
+        return currentUsage < recordLimit;
+      },
       isOnline,
     }),
     [
@@ -135,6 +165,11 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
       businessReady,
       hasBusinessAccess,
       isOnline,
+      business?.monthlyPrice,
+      business?.nextBillingDate,
+      business?.planLimit,
+      business?.recordLimit,
+      business?.remainingRecords,
       refreshBusiness,
       userProfile,
     ]

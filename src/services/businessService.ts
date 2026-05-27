@@ -10,6 +10,12 @@ import {
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { BusinessProfile, BusinessType, PlanId, UserProfile } from '@/types';
 import { INTERNAL_PRICE_PER_RECORD, MIN_RECORDS } from '@/utils/pricing';
+import {
+  calculateMonthlyPrice,
+  calculateRemainingRecords,
+  calculateNextBillingDate,
+  normalizeSubscriptionBusinessData,
+} from '@/utils/subscription';
 
 interface CreateUserProfilePayload {
   uid: string;
@@ -112,9 +118,22 @@ export async function setupBusinessForUser(payload: SetupBusinessForUserPayload)
     ownerName: userProfile.ownerName,
     businessName: payload.businessName,
     businessType: payload.businessType,
-    selectedPlan: 'custom',
+    pricingModel: 'per_record',
+    selectedPlan: 'usage_based',
     planLimit: billableRecords,
+    recordLimit: billableRecords,
     currentUsage: 0,
+    remainingRecords: billableRecords,
+    minimumRecords: MIN_RECORDS,
+    estimatedRecords,
+    billableRecords,
+    monthlyPrice,
+    billingCycle: 'monthly',
+    subscriptionStatus: 'active',
+    subscriptionStartDate: now,
+    currentPeriodStart: now,
+    nextBillingDate: calculateNextBillingDate(now),
+    lastPaymentDate: null,
     email: userProfile.email,
     phone: userProfile.phone,
     status: 'active',
@@ -175,7 +194,55 @@ export async function getUserProfile(uid: string) {
 
 export async function getBusinessById(businessId: string) {
   const businessDoc = await getDoc(doc(getFirestoreDb(), 'businesses', businessId));
-  return businessDoc.exists() ? (businessDoc.data() as BusinessProfile) : null;
+  if (!businessDoc.exists()) {
+    return null;
+  }
+
+  const rawBusiness = businessDoc.data() as BusinessProfile;
+  const normalized = normalizeSubscriptionBusinessData(rawBusiness);
+
+  if (!normalized) {
+    return null;
+  }
+
+  const needsMigration =
+    rawBusiness.recordLimit !== normalized.recordLimit ||
+    rawBusiness.planLimit !== normalized.planLimit ||
+    rawBusiness.remainingRecords !== normalized.remainingRecords ||
+    rawBusiness.monthlyPrice !== normalized.monthlyPrice ||
+    rawBusiness.nextBillingDate !== normalized.nextBillingDate ||
+    rawBusiness.subscriptionStartDate !== normalized.subscriptionStartDate ||
+    rawBusiness.currentPeriodStart !== normalized.currentPeriodStart ||
+    rawBusiness.billableRecords !== normalized.billableRecords ||
+    rawBusiness.pricingModel !== normalized.pricingModel;
+
+  if (needsMigration) {
+    await setDoc(
+      doc(getFirestoreDb(), 'businesses', businessId),
+      {
+        pricingModel: normalized.pricingModel,
+        selectedPlan: normalized.selectedPlan,
+        planLimit: normalized.planLimit,
+        recordLimit: normalized.recordLimit,
+        currentUsage: normalized.currentUsage,
+        remainingRecords: normalized.remainingRecords,
+        minimumRecords: normalized.minimumRecords,
+        estimatedRecords: normalized.estimatedRecords,
+        billableRecords: normalized.billableRecords,
+        monthlyPrice: normalized.monthlyPrice,
+        billingCycle: normalized.billingCycle,
+        subscriptionStatus: normalized.subscriptionStatus,
+        subscriptionStartDate: normalized.subscriptionStartDate,
+        currentPeriodStart: normalized.currentPeriodStart,
+        nextBillingDate: normalized.nextBillingDate,
+        lastPaymentDate: normalized.lastPaymentDate ?? null,
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+  }
+
+  return normalized;
 }
 
 export async function getBusinessProfile(businessId: string) {
@@ -183,8 +250,9 @@ export async function getBusinessProfile(businessId: string) {
 }
 
 export async function saveBusinessProfile(profile: BusinessProfile) {
-  await setDoc(doc(getFirestoreDb(), 'businesses', profile.businessId), profile, { merge: true });
-  return profile;
+  const normalized = normalizeSubscriptionBusinessData(profile);
+  await setDoc(doc(getFirestoreDb(), 'businesses', profile.businessId), normalized, { merge: true });
+  return normalized;
 }
 
 export async function saveUserProfile(profile: UserProfile) {
@@ -193,8 +261,11 @@ export async function saveUserProfile(profile: UserProfile) {
 }
 
 export async function updateBusinessUsage(businessId: string, usage: number) {
+  const business = await getBusinessById(businessId);
+  const recordLimit = business?.recordLimit ?? business?.planLimit ?? MIN_RECORDS;
   await updateDoc(doc(getFirestoreDb(), 'businesses', businessId), {
-    currentUsage: usage,
+    currentUsage: Math.max(0, usage),
+    remainingRecords: calculateRemainingRecords(recordLimit, usage),
     updatedAt: new Date().toISOString(),
   });
 }
@@ -207,22 +278,18 @@ export async function safeIncrementBusinessUsage(businessId: string, delta = 1) 
       throw new Error('Business profile not found for usage update.');
     }
 
-    const businessProfile = snapshot.data() as BusinessProfile;
-    const currentUsage =
-      typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
-    const planLimit =
-      typeof businessProfile.planLimit === 'number' ? businessProfile.planLimit : null;
+    const businessProfile = normalizeSubscriptionBusinessData(snapshot.data() as BusinessProfile);
+    const currentUsage = businessProfile?.currentUsage ?? 0;
+    const recordLimit = businessProfile?.recordLimit ?? businessProfile?.planLimit ?? MIN_RECORDS;
 
-    if (
-      businessProfile.selectedPlan !== 'custom' &&
-      planLimit !== null &&
-      currentUsage + delta > planLimit
-    ) {
+    if (currentUsage + delta > recordLimit) {
       throw new Error('You have reached your plan limit. Please upgrade to add more records.');
     }
 
+    const nextUsage = currentUsage + delta;
     transaction.update(businessRef, {
-      currentUsage: currentUsage + delta,
+      currentUsage: nextUsage,
+      remainingRecords: calculateRemainingRecords(recordLimit, nextUsage),
       updatedAt: new Date().toISOString(),
     });
   });
@@ -236,13 +303,14 @@ export async function decrementBusinessUsage(businessId: string, delta = 1) {
       throw new Error('Business profile not found for usage update.');
     }
 
-    const businessProfile = snapshot.data() as BusinessProfile;
-    const currentUsage =
-      typeof businessProfile.currentUsage === 'number' ? businessProfile.currentUsage : 0;
+    const businessProfile = normalizeSubscriptionBusinessData(snapshot.data() as BusinessProfile);
+    const currentUsage = businessProfile?.currentUsage ?? 0;
+    const recordLimit = businessProfile?.recordLimit ?? businessProfile?.planLimit ?? MIN_RECORDS;
     const nextUsage = Math.max(0, currentUsage - delta);
 
     transaction.update(businessRef, {
       currentUsage: nextUsage,
+      remainingRecords: calculateRemainingRecords(recordLimit, nextUsage),
       updatedAt: new Date().toISOString(),
     });
   });
