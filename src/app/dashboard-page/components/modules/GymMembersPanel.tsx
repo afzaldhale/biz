@@ -3,6 +3,7 @@
 import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import {
+  AlertTriangle,
   CalendarDays,
   CreditCard,
   Download,
@@ -18,6 +19,7 @@ import {
   Users,
   Wallet,
   Weight,
+  MoreVertical,
   X,
 } from 'lucide-react';
 import {
@@ -38,6 +40,7 @@ import { SubscriptionLimitError } from '@/services/subscriptionService';
 
 type GymView = 'members' | 'trainers' | 'billing' | 'reports';
 type MemberProfileTab = 'overview' | 'payments' | 'attendance' | 'receipts';
+type MemberFilter = 'all' | 'active' | 'expired' | 'renewal-due-soon';
 
 interface GymMembersPanelProps {
   user: AuthUser;
@@ -129,6 +132,8 @@ const defaultAttendanceForm: AttendanceFormValues = {
   status: 'present',
 };
 
+const MEMBER_PAGE_SIZE = 10;
+
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
@@ -206,6 +211,111 @@ function getStatusBadge(status: GymMemberRecord['status'] | GymTrainerRecord['st
 function findTrainerName(trainers: GymTrainerRecord[], trainerId: string) {
   return trainers.find((trainer) => trainer.id === trainerId)?.name ?? '';
 }
+
+function isRenewalDueSoon(renewalDate: string) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const renewal = new Date(renewalDate);
+  renewal.setHours(0, 0, 0, 0);
+  const diff = renewal.getTime() - today.getTime();
+  const diffDays = Math.ceil(diff / (1000 * 60 * 60 * 24));
+  return diffDays >= 0 && diffDays <= 7;
+}
+
+const MemberRow = React.memo(function MemberRow({
+  member,
+  onView,
+  onEdit,
+  onPayment,
+  onReceipts,
+  onDelete,
+}: {
+  member: GymMemberRecord;
+  onView: (member: GymMemberRecord) => void;
+  onEdit: (member: GymMemberRecord) => void;
+  onPayment: (member: GymMemberRecord) => void;
+  onReceipts: (member: GymMemberRecord) => void;
+  onDelete: (member: GymMemberRecord) => void;
+}) {
+  const pending = Math.max(member.feeAmount - member.paidAmount, 0);
+  const dueSoon = isRenewalDueSoon(member.renewalDate);
+
+  return (
+    <tr className="group border-b border-border/70 odd:bg-white even:bg-slate-50/40 hover:bg-primary/5">
+      <td className="px-4 py-3 text-sm font-600 text-foreground">{member.memberId}</td>
+      <td className="px-4 py-3">
+        <button type="button" onClick={() => onView(member)} className="text-left">
+          <p className="text-sm font-700 text-foreground">{member.fullName}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{member.email || 'No email added'}</p>
+        </button>
+      </td>
+      <td className="px-4 py-3 text-sm text-foreground">{member.phone}</td>
+      <td className="px-4 py-3 text-sm text-foreground">{member.membershipPlan}</td>
+      <td className="px-4 py-3 text-sm text-foreground">{member.joiningDate}</td>
+      <td className="px-4 py-3">
+        <p className={`text-sm font-600 ${dueSoon ? 'text-amber-600' : 'text-foreground'}`}>
+          {member.renewalDate}
+        </p>
+        {dueSoon && <p className="mt-1 text-xs font-600 text-amber-600">Renewal Due Soon</p>}
+      </td>
+      <td className="px-4 py-3 text-sm font-700 text-emerald-600">{formatCurrency(member.paidAmount)}</td>
+      <td className="px-4 py-3 text-sm font-700 text-orange-600">{formatCurrency(pending)}</td>
+      <td className="px-4 py-3">
+        <div className="hidden items-center justify-end gap-2 lg:flex">
+          <button
+            type="button"
+            onClick={() => onView(member)}
+            className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-600 text-foreground transition-colors hover:bg-muted"
+          >
+            View
+          </button>
+          <button
+            type="button"
+            onClick={() => onEdit(member)}
+            className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-600 text-foreground transition-colors hover:bg-muted"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            onClick={() => onPayment(member)}
+            className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-600 text-foreground transition-colors hover:bg-muted"
+          >
+            Payment
+          </button>
+          <button
+            type="button"
+            onClick={() => onReceipts(member)}
+            className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-600 text-foreground transition-colors hover:bg-muted"
+          >
+            Receipt History
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(member)}
+            className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs font-600 text-danger"
+          >
+            Delete
+          </button>
+        </div>
+        <div className="lg:hidden">
+          <details className="group/details relative">
+            <summary className="flex cursor-pointer list-none items-center justify-center rounded-lg border border-border bg-white p-2 text-muted-foreground">
+              <MoreVertical size={16} />
+            </summary>
+            <div className="absolute right-0 z-10 mt-2 w-44 rounded-xl border border-border bg-white p-2 shadow-card">
+              <button type="button" onClick={() => onView(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">View</button>
+              <button type="button" onClick={() => onEdit(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Edit</button>
+              <button type="button" onClick={() => onPayment(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Payment</button>
+              <button type="button" onClick={() => onReceipts(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Receipt History</button>
+              <button type="button" onClick={() => onDelete(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/5">Delete</button>
+            </div>
+          </details>
+        </div>
+      </td>
+    </tr>
+  );
+});
 
 function openReceiptWindow(
   businessName: string,
@@ -325,7 +435,8 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
   const [selectedMember, setSelectedMember] = useState<GymMemberRecord | null>(null);
   const [profileTab, setProfileTab] = useState<MemberProfileTab>('overview');
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | GymMemberRecord['status']>('all');
+  const [statusFilter, setStatusFilter] = useState<MemberFilter>('all');
+  const [currentMemberPage, setCurrentMemberPage] = useState(1);
   const [memberModalOpen, setMemberModalOpen] = useState(false);
   const [trainerModalOpen, setTrainerModalOpen] = useState(false);
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
@@ -455,16 +566,18 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
     const query = deferredSearch.trim().toLowerCase();
 
     return members.filter((member) => {
-      const matchesStatus = statusFilter === 'all' || member.status === statusFilter;
+      const matchesStatus =
+        statusFilter === 'all' ||
+        (statusFilter === 'active' && member.status === 'active') ||
+        (statusFilter === 'expired' && member.status === 'expired') ||
+        (statusFilter === 'renewal-due-soon' && isRenewalDueSoon(member.renewalDate));
       const matchesSearch =
         !query ||
         [
           member.memberId,
           member.fullName,
           member.phone,
-          member.email,
           member.membershipPlan,
-          member.trainerName,
         ]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query));
@@ -472,6 +585,26 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       return matchesStatus && matchesSearch;
     });
   }, [deferredSearch, members, statusFilter]);
+
+  const totalMemberPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredMembers.length / MEMBER_PAGE_SIZE)),
+    [filteredMembers.length]
+  );
+
+  const paginatedMembers = useMemo(() => {
+    const start = (currentMemberPage - 1) * MEMBER_PAGE_SIZE;
+    return filteredMembers.slice(start, start + MEMBER_PAGE_SIZE);
+  }, [currentMemberPage, filteredMembers]);
+
+  useEffect(() => {
+    setCurrentMemberPage(1);
+  }, [deferredSearch, statusFilter]);
+
+  useEffect(() => {
+    if (currentMemberPage > totalMemberPages) {
+      setCurrentMemberPage(totalMemberPages);
+    }
+  }, [currentMemberPage, totalMemberPages]);
 
   const filteredPayments = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
@@ -984,7 +1117,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder={
                   activeView === 'members'
-                    ? 'Search member, phone, trainer, plan, or member ID'
+                    ? 'Search member ID, name, phone number, or plan'
                     : activeView === 'trainers'
                       ? 'Search trainer, phone, specialization, or trainer ID'
                       : activeView === 'billing'
@@ -997,13 +1130,13 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
             {activeView === 'members' && (
               <select
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value as 'all' | GymMemberRecord['status'])}
+                onChange={(event) => setStatusFilter(event.target.value as MemberFilter)}
                 className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="all">All statuses</option>
-                <option value="active">Active</option>
-                <option value="paused">Paused</option>
-                <option value="expired">Expired</option>
+                <option value="all">All Members</option>
+                <option value="active">Active Members</option>
+                <option value="expired">Expired Members</option>
+                <option value="renewal-due-soon">Renewal Due Soon</option>
               </select>
             )}
           </div>
@@ -1018,99 +1151,145 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               The primary gym hub for member info, attendance, payments, trainer assignment, and receipt history.
             </p>
           </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-[1500px] w-full">
-              <thead className="bg-muted/40">
+          <div className="hidden md:block overflow-x-auto">
+            <table className="w-full min-w-[1180px]">
+              <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur">
                 <tr>
                   {[
                     'Member ID',
                     'Name',
-                    'Phone',
-                    'Trainer',
+                    'Phone Number',
                     'Plan',
                     'Joining Date',
                     'Renewal Date',
                     'Fees Paid',
                     'Pending',
-                    'Attendance %',
-                    'Status',
                     'Actions',
                   ].map((label) => (
-                    <th key={label} className="px-4 py-3 text-left text-[11px] font-700 uppercase tracking-wider text-muted-foreground">
+                    <th key={label} className="px-4 py-3 text-left text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">
                       {label}
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/70">
-                {!loading && filteredMembers.length === 0 && (
+                {!loading && paginatedMembers.length === 0 && (
                   <tr>
-                    <td colSpan={12} className="px-5 py-14 text-center text-sm text-muted-foreground">
-                      No members match the current filters.
+                    <td colSpan={9} className="px-5 py-16">
+                      <div className="flex flex-col items-center justify-center text-center">
+                        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/8 text-primary">
+                          <Users size={24} />
+                        </div>
+                        <p className="mt-4 text-lg font-700 text-foreground">No Members Added Yet</p>
+                        <p className="mt-2 max-w-md text-sm text-muted-foreground">
+                          Start building your gym database by adding your first member.
+                        </p>
+                        <button type="button" onClick={openCreateMemberModal} className="btn-primary mt-5 rounded-xl px-4 py-2.5 text-sm">
+                          Add Member
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )}
-                {filteredMembers.map((member) => {
-                  const attendanceSummary = attendanceMap.get(member.id) ?? {
-                    present: 0,
-                    absent: 0,
-                    percentage: 0,
-                  };
-                  const pending = Math.max(member.feeAmount - member.paidAmount, 0);
-
-                  return (
-                    <tr key={member.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-4 text-sm font-600 text-foreground">{member.memberId}</td>
-                      <td className="px-4 py-4">
-                        <button
-                          type="button"
-                          onClick={() => openMemberProfile(member)}
-                          className="text-left"
-                        >
-                          <p className="text-sm font-700 text-foreground">{member.fullName}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{member.email || 'No email added'}</p>
-                        </button>
-                      </td>
-                      <td className="px-4 py-4 text-sm text-foreground">{member.phone}</td>
-                      <td className="px-4 py-4 text-sm text-foreground">{member.trainerName || 'Unassigned'}</td>
-                      <td className="px-4 py-4 text-sm text-foreground">{member.membershipPlan}</td>
-                      <td className="px-4 py-4 text-sm text-foreground">{member.joiningDate}</td>
-                      <td className="px-4 py-4 text-sm text-foreground">{member.renewalDate}</td>
-                      <td className="px-4 py-4 text-sm font-600 text-foreground">{formatCurrency(member.paidAmount)}</td>
-                      <td className="px-4 py-4 text-sm font-600 text-foreground">{formatCurrency(pending)}</td>
-                      <td className="px-4 py-4">
-                        <p className="text-sm font-600 text-foreground">{attendanceSummary.percentage}%</p>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {attendanceSummary.present} Present | {attendanceSummary.absent} Absent
-                        </p>
-                      </td>
-                      <td className="px-4 py-4">
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 capitalize ${getStatusBadge(member.status)}`}>
-                          {member.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => openMemberProfile(member)} className="btn-outline rounded-lg px-3 py-2 text-xs">View</button>
-                          <button type="button" onClick={() => openEditMemberModal(member)} className="btn-outline rounded-lg px-3 py-2 text-xs">Edit</button>
-                          <button type="button" onClick={() => openPaymentModal(member)} className="btn-outline rounded-lg px-3 py-2 text-xs">Payment</button>
-                          <button type="button" onClick={() => openAttendanceModal(member)} className="btn-outline rounded-lg px-3 py-2 text-xs">Attendance</button>
-                          <button type="button" onClick={() => openMemberProfile(member, 'receipts')} className="btn-outline rounded-lg px-3 py-2 text-xs">Receipt History</button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMember(member)}
-                            className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger transition-colors hover:bg-danger/10"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                {paginatedMembers.map((member) => (
+                  <MemberRow
+                    key={member.id}
+                    member={member}
+                    onView={(nextMember) => openMemberProfile(nextMember)}
+                    onEdit={openEditMemberModal}
+                    onPayment={openPaymentModal}
+                    onReceipts={(nextMember) => openMemberProfile(nextMember, 'receipts')}
+                    onDelete={handleDeleteMember}
+                  />
+                ))}
               </tbody>
             </table>
           </div>
+          <div className="space-y-3 p-4 md:hidden">
+            {!loading && paginatedMembers.length === 0 && (
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-slate-50 px-5 py-12 text-center">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/8 text-primary">
+                  <Users size={24} />
+                </div>
+                <p className="mt-4 text-lg font-700 text-foreground">No Members Added Yet</p>
+                <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+                  Start building your gym database by adding your first member.
+                </p>
+                <button type="button" onClick={openCreateMemberModal} className="btn-primary mt-5 rounded-xl px-4 py-2.5 text-sm">
+                  Add Member
+                </button>
+              </div>
+            )}
+            {paginatedMembers.map((member) => {
+              const pending = Math.max(member.feeAmount - member.paidAmount, 0);
+              const dueSoon = isRenewalDueSoon(member.renewalDate);
+              return (
+                <div key={member.id} className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-base font-700 text-foreground">{member.fullName}</p>
+                      <p className="mt-1 text-xs font-600 uppercase tracking-[0.18em] text-muted-foreground">{member.memberId}</p>
+                    </div>
+                    <details className="relative">
+                      <summary className="flex list-none cursor-pointer items-center justify-center rounded-lg border border-border bg-white p-2 text-muted-foreground">
+                        <MoreVertical size={16} />
+                      </summary>
+                      <div className="absolute right-0 z-10 mt-2 w-44 rounded-xl border border-border bg-white p-2 shadow-card">
+                        <button type="button" onClick={() => openMemberProfile(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">View</button>
+                        <button type="button" onClick={() => openEditMemberModal(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Edit</button>
+                        <button type="button" onClick={() => openPaymentModal(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Payment</button>
+                        <button type="button" onClick={() => openMemberProfile(member, 'receipts')} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Receipt History</button>
+                        <button type="button" onClick={() => handleDeleteMember(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/5">Delete</button>
+                      </div>
+                    </details>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
+                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Phone</p><p className="mt-1 font-600 text-foreground">{member.phone}</p></div>
+                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Plan</p><p className="mt-1 font-600 text-foreground">{member.membershipPlan}</p></div>
+                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Renewal Date</p><p className={`mt-1 font-600 ${dueSoon ? 'text-amber-600' : 'text-foreground'}`}>{member.renewalDate}</p></div>
+                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Fees Paid</p><p className="mt-1 font-700 text-emerald-600">{formatCurrency(member.paidAmount)}</p></div>
+                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Pending</p><p className="mt-1 font-700 text-orange-600">{formatCurrency(pending)}</p></div>
+                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Joining Date</p><p className="mt-1 font-600 text-foreground">{member.joiningDate}</p></div>
+                  </div>
+                  {dueSoon && (
+                    <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-700 text-amber-700">
+                      <AlertTriangle size={14} />
+                      Renewal Due Soon
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          {!loading && filteredMembers.length > 0 && (
+            <div className="flex flex-col gap-3 border-t border-border bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs text-muted-foreground">
+                Showing {(currentMemberPage - 1) * MEMBER_PAGE_SIZE + 1}-
+                {Math.min(currentMemberPage * MEMBER_PAGE_SIZE, filteredMembers.length)} of {filteredMembers.length} members
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCurrentMemberPage((page) => Math.max(1, page - 1))}
+                  disabled={currentMemberPage === 1}
+                  className="btn-outline rounded-lg px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Previous
+                </button>
+                <span className="rounded-lg bg-white px-3 py-2 text-xs font-700 text-foreground">
+                  {currentMemberPage} / {totalMemberPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentMemberPage((page) => Math.min(totalMemberPages, page + 1))}
+                  disabled={currentMemberPage === totalMemberPages}
+                  className="btn-outline rounded-lg px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
