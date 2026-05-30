@@ -18,7 +18,6 @@ import {
   UserRoundPlus,
   Users,
   Wallet,
-  Weight,
   MoreVertical,
   X,
 } from 'lucide-react';
@@ -59,10 +58,6 @@ interface MemberFormValues {
   renewalDate: string;
   status: GymMemberRecord['status'];
   trainerId: string;
-  heightCm: string;
-  weightKg: string;
-  fitnessGoal: NonNullable<GymMemberRecord['fitnessGoal']>;
-  notes: string;
 }
 
 interface TrainerFormValues {
@@ -101,10 +96,6 @@ const defaultMemberForm: MemberFormValues = {
   renewalDate: new Date().toISOString().slice(0, 10),
   status: 'active',
   trainerId: '',
-  heightCm: '',
-  weightKg: '',
-  fitnessGoal: 'general-fitness',
-  notes: '',
 };
 
 const defaultTrainerForm: TrainerFormValues = {
@@ -149,13 +140,6 @@ function formatPaymentMethod(method: GymPaymentRecord['paymentMethod']) {
   return 'Cash';
 }
 
-function formatGoal(goal?: GymMemberRecord['fitnessGoal']) {
-  if (goal === 'weight-loss') return 'Weight Loss';
-  if (goal === 'weight-gain') return 'Weight Gain';
-  if (goal === 'strength') return 'Strength';
-  return 'General Fitness';
-}
-
 function buildMemberId(totalMembers: number) {
   return `GYM-${String(totalMembers + 1201).padStart(4, '0')}`;
 }
@@ -170,13 +154,6 @@ function buildInvoiceId() {
 
 function buildReceiptNumber() {
   return `RCT-${Date.now().toString().slice(-8)}`;
-}
-
-function calculateBmi(heightCm?: number, weightKg?: number) {
-  if (!heightCm || !weightKg) return 0;
-  const heightM = heightCm / 100;
-  if (!heightM) return 0;
-  return Number((weightKg / (heightM * heightM)).toFixed(1));
 }
 
 function getCurrentMonthRange() {
@@ -390,20 +367,22 @@ function openReceiptWindow(
 
 function ModalShell({
   children,
+  footer,
   title,
   subtitle,
   onClose,
 }: {
   children: React.ReactNode;
+  footer?: React.ReactNode;
   title: string;
   subtitle: string;
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/45 p-4 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 p-4 backdrop-blur-sm">
       <div className="flex min-h-full items-center justify-center">
-        <div className="w-full max-w-3xl overflow-hidden rounded-[28px] border border-border bg-white shadow-card">
-          <div className="flex items-center justify-between border-b border-border px-6 py-5">
+        <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-border bg-white shadow-card">
+          <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-white px-6 py-5">
             <div>
               <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">{subtitle}</p>
               <h2 className="mt-1 text-xl font-700 text-foreground">{title}</h2>
@@ -416,7 +395,8 @@ function ModalShell({
               <X size={18} />
             </button>
           </div>
-          <div className="p-6">{children}</div>
+          <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
+          {footer ? <div className="sticky bottom-0 border-t border-border bg-white px-6 py-4">{footer}</div> : null}
         </div>
       </div>
     </div>
@@ -476,12 +456,6 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           trainerName: member.trainerName ?? '',
           emergencyContact: member.emergencyContact ?? '',
           notes: member.notes ?? '',
-          heightCm: Number(member.heightCm ?? 0) || undefined,
-          weightKg: Number(member.weightKg ?? 0) || undefined,
-          bmi:
-            Number(member.bmi ?? 0) ||
-            calculateBmi(Number(member.heightCm ?? 0), Number(member.weightKg ?? 0)),
-          fitnessGoal: member.fitnessGoal ?? 'general-fitness',
         }))
       );
     } else {
@@ -667,10 +641,6 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       renewalDate: member.renewalDate,
       status: member.status,
       trainerId: member.trainerId ?? '',
-      heightCm: member.heightCm ? String(member.heightCm) : '',
-      weightKg: member.weightKg ? String(member.weightKg) : '',
-      fitnessGoal: member.fitnessGoal ?? 'general-fitness',
-      notes: member.notes ?? '',
     });
     setMemberModalOpen(true);
   }, []);
@@ -720,10 +690,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       setSaving(true);
 
       const feeAmount = Number(memberFormValues.feeAmount || 0);
-      const heightCm = Number(memberFormValues.heightCm || 0);
-      const weightKg = Number(memberFormValues.weightKg || 0);
       const trainerName = findTrainerName(trainers, memberFormValues.trainerId);
-      const bmi = calculateBmi(heightCm || undefined, weightKg || undefined);
       const existingMember = members.find((member) => member.id === editingMemberId) ?? null;
 
       const nextMember: GymMemberRecord = {
@@ -742,11 +709,6 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         feeAmount,
         paidAmount: existingMember?.paidAmount ?? 0,
         status: memberFormValues.status,
-        heightCm: heightCm || undefined,
-        weightKg: weightKg || undefined,
-        bmi: bmi || undefined,
-        fitnessGoal: memberFormValues.fitnessGoal,
-        notes: memberFormValues.notes.trim(),
         createdAt: existingMember?.createdAt ?? new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -754,11 +716,12 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       try {
         if (editingMemberId) {
           await updateGymMember(user.id, editingMemberId, nextMember);
+          const mergedMember = { ...existingMember, ...nextMember, id: editingMemberId };
           setMembers((current) =>
-            current.map((member) => (member.id === editingMemberId ? { ...nextMember, id: editingMemberId } : member))
+            current.map((member) => (member.id === editingMemberId ? mergedMember : member))
           );
           if (selectedMember?.id === editingMemberId) {
-            setSelectedMember({ ...nextMember, id: editingMemberId });
+            setSelectedMember(mergedMember);
           }
           toast.success('Member updated successfully.');
         } else {
@@ -1530,27 +1493,20 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                     </div>
                   </div>
                   <div className="glass-card rounded-2xl border border-border p-5">
-                    <p className="text-sm font-700 text-foreground">Fitness Information</p>
+                    <p className="text-sm font-700 text-foreground">Trainer Assignment</p>
                     <div className="mt-4 space-y-2 text-sm">
-                      <p><span className="font-600 text-foreground">Height:</span> {selectedMember.heightCm ? `${selectedMember.heightCm} cm` : '-'}</p>
-                      <p><span className="font-600 text-foreground">Weight:</span> {selectedMember.weightKg ? `${selectedMember.weightKg} kg` : '-'}</p>
-                      <p><span className="font-600 text-foreground">BMI:</span> {selectedMember.bmi || '-'}</p>
-                      <p><span className="font-600 text-foreground">Goal:</span> {formatGoal(selectedMember.fitnessGoal)}</p>
+                      <p><span className="font-600 text-foreground">Assigned Trainer:</span> {selectedMember.trainerName || 'Unassigned'}</p>
+                      <p><span className="font-600 text-foreground">Trainer Status:</span> {selectedMember.trainerName ? 'Assigned' : 'Not assigned yet'}</p>
                     </div>
                   </div>
                   <div className="glass-card rounded-2xl border border-border p-5">
-                    <p className="text-sm font-700 text-foreground">Operations Snapshot</p>
+                    <p className="text-sm font-700 text-foreground">Attendance Snapshot</p>
                     <div className="mt-4 space-y-2 text-sm">
-                      <p><span className="font-600 text-foreground">Assigned Trainer:</span> {selectedMember.trainerName || 'Unassigned'}</p>
                       <p><span className="font-600 text-foreground">Attendance:</span> {(attendanceMap.get(selectedMember.id)?.present ?? 0)} Present | {(attendanceMap.get(selectedMember.id)?.absent ?? 0)} Absent</p>
                       <p><span className="font-600 text-foreground">Attendance Percentage:</span> {attendanceMap.get(selectedMember.id)?.percentage ?? 0}%</p>
                       <p><span className="font-600 text-foreground">Receipts:</span> {selectedMemberReceipts.length}</p>
                     </div>
                   </div>
-                </div>
-                <div className="glass-card rounded-2xl border border-border p-5">
-                  <p className="text-sm font-700 text-foreground">Notes</p>
-                  <p className="mt-3 text-sm text-muted-foreground">{selectedMember.notes || 'No notes added.'}</p>
                 </div>
               </>
             )}
@@ -1636,8 +1592,31 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       )}
 
       {memberModalOpen && (
-        <ModalShell title={editingMemberId ? 'Edit member' : 'Add member'} subtitle="Member Form" onClose={() => setMemberModalOpen(false)}>
-          <form onSubmit={handleMemberSubmit} className="space-y-5">
+        <ModalShell
+          title={editingMemberId ? 'Edit member' : 'Add member'}
+          subtitle="Member Form"
+          onClose={() => setMemberModalOpen(false)}
+          footer={
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setMemberModalOpen(false)}
+                className="btn-outline w-full rounded-xl px-4 py-2.5 text-sm sm:w-auto"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="member-form"
+                disabled={saving}
+                className="btn-primary w-full rounded-xl px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto"
+              >
+                {saving ? 'Saving...' : editingMemberId ? 'Update Member' : 'Add Member'}
+              </button>
+            </div>
+          }
+        >
+          <form id="member-form" onSubmit={handleMemberSubmit} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Full Name</span>
@@ -1649,7 +1628,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Email</span>
-                <input value={memberFormValues.email} onChange={(event) => setMemberFormValues((current) => ({ ...current, email: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input type="email" value={memberFormValues.email} onChange={(event) => setMemberFormValues((current) => ({ ...current, email: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Address</span>
@@ -1661,13 +1640,13 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Plan Name</span>
-                <select value={memberFormValues.membershipPlan} onChange={(event) => setMemberFormValues((current) => ({ ...current, membershipPlan: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
+                <select required value={memberFormValues.membershipPlan} onChange={(event) => setMemberFormValues((current) => ({ ...current, membershipPlan: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
                   {memberPlanOptions.map((option) => <option key={option} value={option}>{option}</option>)}
                 </select>
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Monthly Fee</span>
-                <input required type="number" min="0" value={memberFormValues.feeAmount} onChange={(event) => setMemberFormValues((current) => ({ ...current, feeAmount: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input required type="number" inputMode="numeric" min="0" value={memberFormValues.feeAmount} onChange={(event) => setMemberFormValues((current) => ({ ...current, feeAmount: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Assigned Trainer</span>
@@ -1684,39 +1663,14 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 <span className="font-600 text-foreground">Renewal Date</span>
                 <input required type="date" value={memberFormValues.renewalDate} onChange={(event) => setMemberFormValues((current) => ({ ...current, renewalDate: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
               </label>
-              <label className="space-y-1.5 text-sm">
+              <label className="space-y-1.5 text-sm md:col-span-2">
                 <span className="font-600 text-foreground">Status</span>
-                <select value={memberFormValues.status} onChange={(event) => setMemberFormValues((current) => ({ ...current, status: event.target.value as GymMemberRecord['status'] }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
+                <select required value={memberFormValues.status} onChange={(event) => setMemberFormValues((current) => ({ ...current, status: event.target.value as GymMemberRecord['status'] }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring md:max-w-[calc(50%-0.5rem)]">
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>
                   <option value="expired">Expired</option>
                 </select>
               </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-600 text-foreground">Height (cm)</span>
-                <input type="number" min="0" value={memberFormValues.heightCm} onChange={(event) => setMemberFormValues((current) => ({ ...current, heightCm: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
-              </label>
-              <label className="space-y-1.5 text-sm">
-                <span className="font-600 text-foreground">Weight (kg)</span>
-                <input type="number" min="0" value={memberFormValues.weightKg} onChange={(event) => setMemberFormValues((current) => ({ ...current, weightKg: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
-              </label>
-              <label className="space-y-1.5 text-sm md:col-span-2">
-                <span className="font-600 text-foreground">Goal</span>
-                <select value={memberFormValues.fitnessGoal} onChange={(event) => setMemberFormValues((current) => ({ ...current, fitnessGoal: event.target.value as NonNullable<GymMemberRecord['fitnessGoal']> }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
-                  <option value="weight-loss">Weight Loss</option>
-                  <option value="weight-gain">Weight Gain</option>
-                  <option value="strength">Strength</option>
-                  <option value="general-fitness">General Fitness</option>
-                </select>
-              </label>
-              <label className="space-y-1.5 text-sm md:col-span-2">
-                <span className="font-600 text-foreground">Notes</span>
-                <textarea value={memberFormValues.notes} onChange={(event) => setMemberFormValues((current) => ({ ...current, notes: event.target.value }))} className="min-h-28 w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
-              </label>
-            </div>
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setMemberModalOpen(false)} className="btn-outline rounded-xl px-4 py-2.5 text-sm">Cancel</button>
-              <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-2.5 text-sm disabled:opacity-60">{saving ? 'Saving...' : editingMemberId ? 'Update Member' : 'Create Member'}</button>
             </div>
           </form>
         </ModalShell>
