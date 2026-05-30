@@ -32,12 +32,35 @@ function getFirestoreDb() {
   return db!;
 }
 
+function assertBusinessId(businessId: string) {
+  if (!businessId?.trim()) {
+    throw new Error('Business ID missing');
+  }
+}
+
+function assertMemberId(memberId: string) {
+  if (!memberId?.trim()) {
+    throw new Error('Member ID missing');
+  }
+}
+
+function gymMembersCollection(businessId: string) {
+  assertBusinessId(businessId);
+  return collection(getFirestoreDb(), 'businesses', businessId, 'gymMembers');
+}
+
+function gymMemberDoc(businessId: string, memberId: string) {
+  assertBusinessId(businessId);
+  assertMemberId(memberId);
+  return doc(getFirestoreDb(), 'businesses', businessId, 'gymMembers', memberId);
+}
+
 export async function addGymMember(businessId: string, member: GymMemberRecord) {
   await canAddRecord(businessId, 'gymMembers');
 
   const firestore = getFirestoreDb();
   const now = new Date().toISOString();
-  const docRef = await addDoc(collection(firestore, `businesses/${businessId}/gymMembers`), {
+  const docRef = await addDoc(gymMembersCollection(businessId), {
     ...member,
     createdAt: member.createdAt ?? now,
     updatedAt: now,
@@ -54,7 +77,7 @@ export async function updateGymMember(
   memberId: string,
   member: GymMemberRecord
 ) {
-  const memberRef = doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId);
+  const memberRef = gymMemberDoc(businessId, memberId);
   const existing = await getDoc(memberRef);
   const previousStatus = existing.exists()
     ? (existing.data().status as GymMemberRecord['status'] | undefined)
@@ -70,14 +93,14 @@ export async function updateGymMember(
     await decrementBusinessUsage(businessId);
   }
 
-  await updateDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId), {
+  await updateDoc(memberRef, {
     ...member,
     updatedAt: new Date().toISOString(),
   });
 }
 
 export async function deleteGymMember(businessId: string, memberId: string) {
-  const memberRef = doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId);
+  const memberRef = gymMemberDoc(businessId, memberId);
   const existing = await getDoc(memberRef);
   await deleteDoc(memberRef);
 
@@ -113,7 +136,7 @@ function getGymMemberQuery(
   }
 
   return query(
-    collection(getFirestoreDb(), `businesses/${businessId}/gymMembers`),
+    gymMembersCollection(businessId),
     ...queryConstraints
   );
 }
@@ -144,7 +167,7 @@ export async function getGymMembers(
 
   const snapshot = await getDocs(
     query(
-      collection(getFirestoreDb(), `businesses/${businessId}/gymMembers`),
+      gymMembersCollection(businessId),
       orderBy('createdAt', 'desc'),
       orderBy('__name__', 'desc')
     )
@@ -157,7 +180,7 @@ export async function getGymMembers(
 
 export async function getGymMemberById(businessId: string, memberId: string) {
   const memberDoc = await getDoc(
-    doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId)
+    gymMemberDoc(businessId, memberId)
   );
   return memberDoc.exists()
     ? ({

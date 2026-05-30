@@ -314,6 +314,7 @@ export interface GymPaymentRecord {
   transactionId?: string;
   notes?: string;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface GymTrainerRecord {
@@ -352,8 +353,10 @@ export interface GymReceiptRecord {
   amount: number;
   paymentDate: string;
   paymentMethod: GymPaymentRecord['paymentMethod'];
+  businessName?: string;
   transactionId?: string;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface CourseRecord {

@@ -31,10 +31,10 @@ import {
 } from '@/types';
 import { useBusiness } from '@/context/BusinessContext';
 import { addGymMember, deleteGymMember, getGymMembers, updateGymMember } from '@/services/gymMemberService';
-import { addGymPayment, deleteGymPayment, getGymPayments } from '@/services/gymPaymentService';
+import { deleteGymPayment, getGymPayments, saveGymPaymentWithReceipt } from '@/services/gymPaymentService';
 import { addGymTrainer, deleteGymTrainer, getGymTrainers, updateGymTrainer } from '@/services/gymTrainerService';
 import { deleteGymAttendance, getGymAttendance, upsertGymAttendance } from '@/services/gymAttendanceService';
-import { addGymReceipt, deleteGymReceipt, getGymReceipts } from '@/services/gymReceiptService';
+import { deleteGymReceipt, getGymReceipts } from '@/services/gymReceiptService';
 import { SubscriptionLimitError } from '@/services/subscriptionService';
 
 type GymView = 'members' | 'trainers' | 'billing' | 'reports';
@@ -429,6 +429,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
   const [attendanceFormValues, setAttendanceFormValues] =
     useState<AttendanceFormValues>(defaultAttendanceForm);
   const [saving, setSaving] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [limitModalOpen, setLimitModalOpen] = useState(false);
   const deferredSearch = useDeferredValue(search);
 
@@ -652,6 +653,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
 
   const openPaymentModal = useCallback((member: GymMemberRecord) => {
     setSelectedMember(member);
+    setPaymentError(null);
     setPaymentFormValues({
       ...defaultPaymentForm,
       amount: String(Math.max(member.feeAmount - member.paidAmount, 0) || member.feeAmount || ''),
@@ -798,6 +800,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       event.preventDefault();
       if (!selectedMember) return;
       setSaving(true);
+      setPaymentError(null);
 
       const amount = Number(paymentFormValues.amount || 0);
       const paymentId = buildInvoiceId();
@@ -818,61 +821,52 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         transactionId: paymentFormValues.transactionId.trim(),
         notes: paymentFormValues.notes.trim(),
         createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      const receiptRecord: GymReceiptRecord = {
+        id: '',
+        receiptId: '',
+        receiptNumber,
+        paymentId: '',
+        memberDocId: selectedMember.id,
+        memberId: selectedMember.memberId,
+        memberName: selectedMember.fullName,
+        amount,
+        paymentDate: paymentFormValues.paymentDate,
+        paymentMethod: paymentFormValues.paymentMethod,
+        businessName: user.businessName,
+        transactionId: paymentFormValues.transactionId.trim(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
 
       try {
-        const createdPaymentId = await addGymPayment(user.id, paymentRecord);
-        const receiptRecord: GymReceiptRecord = {
-          id: '',
-          receiptId: '',
-          receiptNumber,
-          paymentId: createdPaymentId,
-          memberDocId: selectedMember.id,
-          memberId: selectedMember.memberId,
-          memberName: selectedMember.fullName,
-          amount,
-          paymentDate: paymentFormValues.paymentDate,
-          paymentMethod: paymentFormValues.paymentMethod,
-          transactionId: paymentFormValues.transactionId.trim(),
-          createdAt: new Date().toISOString(),
-        };
-        const createdReceiptId = await addGymReceipt(user.id, receiptRecord);
+        const result = await saveGymPaymentWithReceipt({
+          businessId: user.id,
+          businessName: user.businessName,
+          member: selectedMember,
+          payment: paymentRecord,
+          receipt: receiptRecord,
+        });
 
-        const updatedMember: GymMemberRecord = {
-          ...selectedMember,
-          paidAmount: selectedMember.paidAmount + amount,
-          status: selectedMember.status === 'expired' ? 'active' : selectedMember.status,
-          updatedAt: new Date().toISOString(),
-        };
-
-        await updateGymMember(user.id, selectedMember.id, updatedMember);
-
-        const savedPayment = {
-          ...paymentRecord,
-          id: createdPaymentId,
-          receiptId: createdReceiptId,
-        };
-        const savedReceipt = {
-          ...receiptRecord,
-          id: createdReceiptId,
-          receiptId: createdReceiptId,
-        };
-
-        setPayments((current) => [savedPayment, ...current]);
-        setReceipts((current) => [savedReceipt, ...current]);
+        setPayments((current) => [result.payment, ...current]);
+        setReceipts((current) => [result.receipt, ...current]);
         setMembers((current) =>
-          current.map((member) => (member.id === selectedMember.id ? updatedMember : member))
+          current.map((member) => (member.id === selectedMember.id ? result.member : member))
         );
-        setSelectedMember(updatedMember);
+        setSelectedMember(result.member);
         setPaymentModalOpen(false);
         toast.success('Payment saved and receipt generated.');
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Unable to save this payment.');
+        console.error('[gym-payments] unable to save payment', error);
+        setPaymentError('Unable to save payment. Please try again.');
+        toast.error('Unable to save payment. Please try again.');
       } finally {
         setSaving(false);
       }
     },
-    [paymentFormValues, selectedMember, user.id]
+    [paymentFormValues, selectedMember, user.businessName, user.id]
   );
 
   const handleAttendanceSubmit = useCallback(
@@ -1663,14 +1657,15 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 <span className="font-600 text-foreground">Renewal Date</span>
                 <input required type="date" value={memberFormValues.renewalDate} onChange={(event) => setMemberFormValues((current) => ({ ...current, renewalDate: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
               </label>
-              <label className="space-y-1.5 text-sm md:col-span-2">
+              <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Status</span>
-                <select required value={memberFormValues.status} onChange={(event) => setMemberFormValues((current) => ({ ...current, status: event.target.value as GymMemberRecord['status'] }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring md:max-w-[calc(50%-0.5rem)]">
+                <select required value={memberFormValues.status} onChange={(event) => setMemberFormValues((current) => ({ ...current, status: event.target.value as GymMemberRecord['status'] }))} className="h-[50px] w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>
                   <option value="expired">Expired</option>
                 </select>
               </label>
+              <div className="hidden md:block" aria-hidden="true" />
             </div>
           </form>
         </ModalShell>
@@ -1696,19 +1691,32 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       )}
 
       {paymentModalOpen && selectedMember && (
-        <ModalShell title={`Record payment for ${selectedMember.fullName}`} subtitle="Member Payment" onClose={() => setPaymentModalOpen(false)}>
-          <form onSubmit={handlePaymentSubmit} className="space-y-5">
+        <ModalShell
+          title={`Record payment for ${selectedMember.fullName}`}
+          subtitle="Member Payment"
+          onClose={() => setPaymentModalOpen(false)}
+          footer={
+            <div className="space-y-3">
+              {paymentError && (
+                <div className="rounded-xl border border-danger/20 bg-danger/5 px-4 py-3 text-sm text-danger">
+                  {paymentError}
+                </div>
+              )}
+              <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <button type="button" onClick={() => setPaymentModalOpen(false)} className="btn-outline w-full rounded-xl px-4 py-2.5 text-sm sm:w-auto">Cancel</button>
+                <button type="submit" form="payment-form" disabled={saving} className="btn-primary w-full rounded-xl px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto">{saving ? 'Saving...' : 'Save Payment'}</button>
+              </div>
+            </div>
+          }
+        >
+          <form id="payment-form" onSubmit={handlePaymentSubmit} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Amount</span><input required type="number" min="1" value={paymentFormValues.amount} onChange={(event) => setPaymentFormValues((current) => ({ ...current, amount: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
               <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Date</span><input required type="date" value={paymentFormValues.paymentDate} onChange={(event) => setPaymentFormValues((current) => ({ ...current, paymentDate: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
               <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Payment Method</span><select value={paymentFormValues.paymentMethod} onChange={(event) => setPaymentFormValues((current) => ({ ...current, paymentMethod: event.target.value as GymPaymentRecord['paymentMethod'] }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank">Bank</option></select></label>
               <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Transaction ID</span><input value={paymentFormValues.transactionId} onChange={(event) => setPaymentFormValues((current) => ({ ...current, transactionId: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm md:col-span-2"><span className="font-600 text-foreground">Billing Period</span><input required value={paymentFormValues.billingPeriod} onChange={(event) => setPaymentFormValues((current) => ({ ...current, billingPeriod: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm md:col-span-2"><span className="font-600 text-foreground">Notes</span><textarea value={paymentFormValues.notes} onChange={(event) => setPaymentFormValues((current) => ({ ...current, notes: event.target.value }))} className="min-h-28 w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-            </div>
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setPaymentModalOpen(false)} className="btn-outline rounded-xl px-4 py-2.5 text-sm">Cancel</button>
-              <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-2.5 text-sm disabled:opacity-60">{saving ? 'Saving...' : 'Save Payment'}</button>
+              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Billing Period</span><input required value={paymentFormValues.billingPeriod} onChange={(event) => setPaymentFormValues((current) => ({ ...current, billingPeriod: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
+              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Notes</span><textarea value={paymentFormValues.notes} onChange={(event) => setPaymentFormValues((current) => ({ ...current, notes: event.target.value }))} className="min-h-[50px] w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
             </div>
           </form>
         </ModalShell>

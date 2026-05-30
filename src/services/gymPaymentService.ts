@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -13,9 +12,10 @@ import {
   QueryDocumentSnapshot,
   startAfter,
   where,
+  writeBatch,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { GymPaymentRecord } from '@/types';
+import { GymMemberRecord, GymPaymentRecord, GymReceiptRecord } from '@/types';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -30,19 +30,40 @@ function getFirestoreDb() {
   return db!;
 }
 
-export async function addGymPayment(businessId: string, payment: GymPaymentRecord) {
-  const docRef = await addDoc(
-    collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`),
-    {
-      ...payment,
-      createdAt: payment.createdAt ?? new Date().toISOString(),
-    }
-  );
-  return docRef.id;
+function assertBusinessId(businessId: string) {
+  if (!businessId?.trim()) {
+    throw new Error('Business ID missing');
+  }
 }
 
-export async function deleteGymPayment(businessId: string, paymentId: string) {
-  await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymPayments`, paymentId));
+function assertMemberId(memberId: string) {
+  if (!memberId?.trim()) {
+    throw new Error('Member ID missing');
+  }
+}
+
+function gymPaymentsCollection(businessId: string) {
+  assertBusinessId(businessId);
+  return collection(getFirestoreDb(), 'businesses', businessId, 'gymPayments');
+}
+
+function gymPaymentDoc(businessId: string, paymentId: string) {
+  assertBusinessId(businessId);
+  if (!paymentId?.trim()) {
+    throw new Error('Payment ID missing');
+  }
+  return doc(getFirestoreDb(), 'businesses', businessId, 'gymPayments', paymentId);
+}
+
+function gymMemberDoc(businessId: string, memberId: string) {
+  assertBusinessId(businessId);
+  assertMemberId(memberId);
+  return doc(getFirestoreDb(), 'businesses', businessId, 'gymMembers', memberId);
+}
+
+function gymReceiptsCollection(businessId: string) {
+  assertBusinessId(businessId);
+  return collection(getFirestoreDb(), 'businesses', businessId, 'gymReceipts');
 }
 
 export interface PaginationOptions {
@@ -54,6 +75,88 @@ export interface PaginatedResult<T> {
   data: T[];
   lastDoc: QueryDocumentSnapshot<DocumentData> | null;
   hasMore: boolean;
+}
+
+export interface SaveGymPaymentPayload {
+  businessId: string;
+  businessName: string;
+  member: GymMemberRecord;
+  payment: Omit<GymPaymentRecord, 'id' | 'receiptId' | 'updatedAt'>;
+  receipt: Omit<GymReceiptRecord, 'id' | 'receiptId' | 'updatedAt'>;
+}
+
+export async function saveGymPaymentWithReceipt({
+  businessId,
+  businessName,
+  member,
+  payment,
+  receipt,
+}: SaveGymPaymentPayload) {
+  assertBusinessId(businessId);
+  assertMemberId(member.id);
+
+  const firestore = getFirestoreDb();
+  const batch = writeBatch(firestore);
+  const paymentRef = doc(gymPaymentsCollection(businessId));
+  const receiptRef = doc(gymReceiptsCollection(businessId));
+  const memberRef = gymMemberDoc(businessId, member.id);
+  const memberSnapshot = await getDoc(memberRef);
+
+  if (!memberSnapshot.exists()) {
+    throw new Error('Member record not found');
+  }
+
+  const existingMember = {
+    ...member,
+    ...(memberSnapshot.data() as Omit<GymMemberRecord, 'id'>),
+    id: memberSnapshot.id,
+  };
+
+  const now = new Date().toISOString();
+  const nextPaidAmount = existingMember.paidAmount + payment.amount;
+  const nextPendingAmount = Math.max(existingMember.feeAmount - nextPaidAmount, 0);
+
+  const paymentData: Omit<GymPaymentRecord, 'id'> = {
+    ...payment,
+    receiptId: receiptRef.id,
+    createdAt: payment.createdAt ?? now,
+    updatedAt: now,
+  };
+
+  const receiptData: Omit<GymReceiptRecord, 'id'> = {
+    ...receipt,
+    receiptId: receiptRef.id,
+    paymentId: paymentRef.id,
+    businessName,
+    createdAt: receipt.createdAt ?? now,
+    updatedAt: now,
+  };
+
+  batch.set(paymentRef, paymentData);
+  batch.set(receiptRef, receiptData);
+  batch.update(memberRef, {
+    paidAmount: nextPaidAmount,
+    pendingAmount: nextPendingAmount,
+    status: existingMember.status === 'expired' ? 'active' : existingMember.status,
+    updatedAt: now,
+  });
+
+  await batch.commit();
+
+  return {
+    payment: { ...paymentData, id: paymentRef.id },
+    receipt: { ...receiptData, id: receiptRef.id },
+    member: {
+      ...existingMember,
+      paidAmount: nextPaidAmount,
+      status: existingMember.status === 'expired' ? 'active' : existingMember.status,
+      updatedAt: now,
+    },
+  };
+}
+
+export async function deleteGymPayment(businessId: string, paymentId: string) {
+  await deleteDoc(gymPaymentDoc(businessId, paymentId));
 }
 
 function getGymPaymentQuery(
@@ -71,10 +174,7 @@ function getGymPaymentQuery(
     queryConstraints.push(startAfter(lastDoc));
   }
 
-  return query(
-    collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`),
-    ...queryConstraints
-  );
+  return query(gymPaymentsCollection(businessId), ...queryConstraints);
 }
 
 export async function getGymPayments(businessId: string): Promise<GymPaymentRecord[]>;
@@ -102,7 +202,7 @@ export async function getGymPayments(
   }
 
   const paymentsQuery = query(
-    collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`),
+    gymPaymentsCollection(businessId),
     orderBy('createdAt', 'desc'),
     orderBy('__name__', 'desc')
   );
@@ -114,9 +214,7 @@ export async function getGymPayments(
 }
 
 export async function getGymPaymentById(businessId: string, paymentId: string) {
-  const paymentDoc = await getDoc(
-    doc(getFirestoreDb(), `businesses/${businessId}/gymPayments`, paymentId)
-  );
+  const paymentDoc = await getDoc(gymPaymentDoc(businessId, paymentId));
   return paymentDoc.exists()
     ? ({
         id: paymentDoc.id,
@@ -142,10 +240,7 @@ function getGymPaymentsForMemberQuery(
     queryConstraints.push(startAfter(lastDoc));
   }
 
-  return query(
-    collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`),
-    ...queryConstraints
-  );
+  return query(gymPaymentsCollection(businessId), ...queryConstraints);
 }
 
 export async function getGymPaymentsForMember(
@@ -183,7 +278,7 @@ export async function getGymPaymentsForMember(
   }
 
   const paymentsQuery = query(
-    collection(getFirestoreDb(), `businesses/${businessId}/gymPayments`),
+    gymPaymentsCollection(businessId),
     where('memberDocId', '==', memberDocId),
     orderBy('createdAt', 'desc'),
     orderBy('__name__', 'desc')
