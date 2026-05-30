@@ -51,11 +51,11 @@ export const industries: Industry[] = [
   {
     id: 'gym',
     name: 'Gym / Fitness',
-    description: 'Track memberships, class schedules, trainer assignments, and monthly renewals.',
+    description: 'Manage members, trainer assignments, attendance, payments, and monthly renewals.',
     icon: 'Dumbbell',
     color: '#EF4444',
     bgColor: 'rgba(239, 68, 68, 0.12)',
-    modules: ['Members', 'Classes', 'Trainers', 'Memberships', 'Billing', 'Reports'],
+    modules: ['Members', 'Trainers', 'Billing', 'Reports', 'Subscription', 'Settings'],
   },
   {
     id: 'salon',

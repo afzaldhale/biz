@@ -118,9 +118,7 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
       section: 'MANAGEMENT',
       items: [
         { id: 'nav-members', label: 'Members', icon: 'Users' },
-        { id: 'nav-classes', label: 'Classes', icon: 'Dumbbell' },
         { id: 'nav-trainers', label: 'Trainers', icon: 'UserCheck' },
-        { id: 'nav-memberships', label: 'Memberships', icon: 'CreditCard' },
       ],
     },
     {
@@ -208,9 +206,9 @@ const quickActionMap: Record<
     { id: 'qa-sv-4', label: 'Create Invoice', icon: 'FileText', color: '#10B981' },
   ],
   gym: [
-    { id: 'qa-gm-1', label: 'Add Member', icon: 'UserPlus', color: '#EF4444' },
-    { id: 'qa-gm-2', label: 'New Class', icon: 'Dumbbell', color: '#2563EB' },
-    { id: 'qa-gm-3', label: 'Renew Membership', icon: 'RefreshCw', color: '#10B981' },
+    { id: 'qa-gm-1', label: 'Add Member', icon: 'UserPlus', color: '#7C3AED' },
+    { id: 'qa-gm-2', label: 'Assign Trainer', icon: 'UserCheck', color: '#2563EB' },
+    { id: 'qa-gm-3', label: 'Mark Attendance', icon: 'ClipboardCheck', color: '#10B981' },
     { id: 'qa-gm-4', label: 'Collect Fee', icon: 'IndianRupee', color: '#F59E0B' },
   ],
   salon: [

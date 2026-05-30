@@ -166,7 +166,7 @@ const defaultKpis: Record<BusinessType, KPICard[]> = {
   gym: [
     {
       id: 'kpi-gym-1',
-      label: 'Active Members',
+      label: 'Total Members',
       value: 0,
       change: 0,
       changeType: 'neutral',
@@ -175,16 +175,16 @@ const defaultKpis: Record<BusinessType, KPICard[]> = {
     },
     {
       id: 'kpi-gym-2',
-      label: 'Classes Today',
+      label: 'Active Members',
       value: 0,
       change: 0,
       changeType: 'neutral',
-      icon: 'Dumbbell',
+      icon: 'UserCheck',
       color: '#2563EB',
     },
     {
       id: 'kpi-gym-3',
-      label: 'Monthly Revenue',
+      label: 'Fees Collected',
       value: '₹0',
       change: 0,
       changeType: 'neutral',
@@ -193,7 +193,7 @@ const defaultKpis: Record<BusinessType, KPICard[]> = {
     },
     {
       id: 'kpi-gym-4',
-      label: 'Expiring This Week',
+      label: 'Pending Payments',
       value: 0,
       change: 0,
       changeType: 'neutral',
@@ -588,7 +588,7 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
 
     if (
       user.businessType === 'gym' &&
-      ['nav-members', 'nav-memberships', 'nav-billing'].includes(activeNav)
+      ['nav-members', 'nav-trainers', 'nav-billing', 'nav-reports'].includes(activeNav)
     ) {
       return 'gym-members';
     }
@@ -707,7 +707,15 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
     return (
       <GymMembersPanel
         user={user}
-        initialView={activeNav === 'nav-billing' ? 'payments' : 'members'}
+        initialView={
+          activeNav === 'nav-billing'
+            ? 'billing'
+            : activeNav === 'nav-trainers'
+              ? 'trainers'
+              : activeNav === 'nav-reports'
+                ? 'reports'
+                : 'members'
+        }
       />
     );
   }

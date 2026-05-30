@@ -43,7 +43,9 @@ export async function addGymMember(businessId: string, member: GymMemberRecord) 
     updatedAt: now,
   });
 
-  await safeIncrementBusinessUsage(businessId);
+  if (member.status === 'active') {
+    await safeIncrementBusinessUsage(businessId);
+  }
   return docRef.id;
 }
 
@@ -52,6 +54,22 @@ export async function updateGymMember(
   memberId: string,
   member: GymMemberRecord
 ) {
+  const memberRef = doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId);
+  const existing = await getDoc(memberRef);
+  const previousStatus = existing.exists()
+    ? (existing.data().status as GymMemberRecord['status'] | undefined)
+    : undefined;
+  const nextStatus = member.status;
+
+  if (previousStatus !== 'active' && nextStatus === 'active') {
+    await canAddRecord(businessId, 'gymMembers');
+    await safeIncrementBusinessUsage(businessId);
+  }
+
+  if (previousStatus === 'active' && nextStatus !== 'active') {
+    await decrementBusinessUsage(businessId);
+  }
+
   await updateDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId), {
     ...member,
     updatedAt: new Date().toISOString(),
@@ -59,8 +77,13 @@ export async function updateGymMember(
 }
 
 export async function deleteGymMember(businessId: string, memberId: string) {
-  await deleteDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId));
-  await decrementBusinessUsage(businessId);
+  const memberRef = doc(getFirestoreDb(), `businesses/${businessId}/gymMembers`, memberId);
+  const existing = await getDoc(memberRef);
+  await deleteDoc(memberRef);
+
+  if (existing.exists() && existing.data().status === 'active') {
+    await decrementBusinessUsage(businessId);
+  }
 }
 
 export interface PaginationOptions {

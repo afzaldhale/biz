@@ -75,11 +75,11 @@ const industries = [
   {
     id: 'gym',
     name: 'Gym / Fitness',
-    description: 'Members, classes, trainers & renewals',
+    description: 'Members, trainers, attendance & billing',
     icon: 'Dumbbell',
     color: '#EF4444',
     bgColor: 'rgba(239,68,68,0.1)',
-    modules: ['Members', 'Classes', 'Trainers', 'Billing'],
+    modules: ['Members', 'Trainers', 'Billing', 'Reports'],
   },
   {
     id: 'salon',

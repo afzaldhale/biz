@@ -279,7 +279,9 @@ export interface GymMemberRecord {
   fullName: string;
   phone: string;
   email: string;
+  address?: string;
   membershipPlan: string;
+  trainerId?: string;
   trainerName?: string;
   joiningDate: string;
   renewalDate: string;
@@ -287,6 +289,10 @@ export interface GymMemberRecord {
   paidAmount: number;
   status: 'active' | 'paused' | 'expired';
   emergencyContact?: string;
+  heightCm?: number;
+  weightKg?: number;
+  bmi?: number;
+  fitnessGoal?: 'weight-loss' | 'weight-gain' | 'strength' | 'general-fitness';
   notes?: string;
   createdAt?: string;
   updatedAt?: string;
@@ -299,11 +305,54 @@ export interface GymPaymentRecord {
   memberName: string;
   membershipPlan: string;
   invoiceId: string;
+  receiptId?: string;
+  receiptNumber?: string;
   paymentDate: string;
   billingPeriod: string;
   amount: number;
-  paymentMethod: 'cash' | 'upi' | 'card' | 'bank-transfer';
+  paymentMethod: 'cash' | 'upi' | 'card' | 'bank';
+  transactionId?: string;
   notes?: string;
+  createdAt?: string;
+}
+
+export interface GymTrainerRecord {
+  id: string;
+  trainerId: string;
+  name: string;
+  phone: string;
+  email: string;
+  specialization: string;
+  salary: number;
+  status: 'active' | 'inactive';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GymAttendanceRecord {
+  id: string;
+  attendanceId: string;
+  memberDocId: string;
+  memberId: string;
+  memberName: string;
+  attendanceDate: string;
+  status: 'present' | 'absent';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface GymReceiptRecord {
+  id: string;
+  receiptId: string;
+  receiptNumber: string;
+  paymentId: string;
+  memberDocId: string;
+  memberId: string;
+  memberName: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: GymPaymentRecord['paymentMethod'];
+  transactionId?: string;
   createdAt?: string;
 }
 

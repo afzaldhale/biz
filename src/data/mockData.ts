@@ -197,7 +197,7 @@ export const kpiData: Record<BusinessType, KPICard[]> = {
   gym: [
     {
       id: 'kpi-gym-1',
-      label: 'Active Members',
+      label: 'Total Members',
       value: '386',
       change: 22,
       changeType: 'positive',
@@ -206,16 +206,16 @@ export const kpiData: Record<BusinessType, KPICard[]> = {
     },
     {
       id: 'kpi-gym-2',
-      label: 'Classes Today',
-      value: '12',
+      label: 'Active Members',
+      value: '341',
       change: 2,
       changeType: 'positive',
-      icon: 'Dumbbell',
+      icon: 'UserCheck',
       color: '#2563EB',
     },
     {
       id: 'kpi-gym-3',
-      label: 'Monthly Revenue',
+      label: 'Fees Collected',
       value: '₹2,12,000',
       change: 8.9,
       changeType: 'positive',
@@ -224,8 +224,8 @@ export const kpiData: Record<BusinessType, KPICard[]> = {
     },
     {
       id: 'kpi-gym-4',
-      label: 'Expiring This Week',
-      value: '23',
+      label: 'Pending Payments',
+      value: 'â‚¹48,000',
       change: 15,
       changeType: 'negative',
       icon: 'AlertCircle',

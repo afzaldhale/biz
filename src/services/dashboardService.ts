@@ -138,7 +138,6 @@ export async function getDashboardStats(
     docs.filter((doc) => dateFields.some((field) => isSameDay(safeField(doc, field), now))).length;
 
   let members: Array<Record<string, unknown>> = [];
-  let classesData: Array<Record<string, unknown>> = [];
   let payments: Array<Record<string, unknown>> = [];
   let students: Array<Record<string, unknown>> = [];
   let courses: Array<Record<string, unknown>> = [];
@@ -171,11 +170,9 @@ export async function getDashboardStats(
       break;
     }
     case 'gym': {
-      [members, classesData, payments, bookings] = await settled(
-        loadCollectionDocs(businessId, 'members'),
-        loadCollectionDocs(businessId, 'classes'),
-        loadCollectionDocs(businessId, 'payments'),
-        loadCollectionDocs(businessId, 'bookings')
+      [members, payments] = await settled(
+        loadCollectionDocs(businessId, 'gymMembers'),
+        loadCollectionDocs(businessId, 'gymPayments')
       );
       break;
     }
@@ -262,18 +259,36 @@ export async function getDashboardStats(
       },
     ],
     gym: [
-      buildKpiCard('kpi-gym-1', 'Active Members', members.length),
-      buildKpiCard('kpi-gym-2', 'Classes Today', getTodayCount(classesData, ['classDate', 'date'])),
+      buildKpiCard('kpi-gym-1', 'Total Members', members.length),
+      buildKpiCard(
+        'kpi-gym-2',
+        'Active Members',
+        members.filter((member) => String(safeField(member, 'status') ?? '').toLowerCase() === 'active').length
+      ),
       {
         ...buildKpiCard(
           'kpi-gym-3',
-          'Monthly Revenue',
-          formatCurrency(sumRevenueFrom(payments, bookings))
+          'Fees Collected',
+          formatCurrency(sumRevenueFrom(payments))
         ),
         icon: 'IndianRupee',
         color: '#10B981',
       },
-      buildKpiCard('kpi-gym-4', 'Expiring This Week', getExpiringThisWeek(members)),
+      {
+        ...buildKpiCard(
+          'kpi-gym-4',
+          'Pending Payments',
+          formatCurrency(
+            members.reduce((sum, member) => {
+              const feeAmount = parseNumber(safeField(member, 'feeAmount'));
+              const paidAmount = parseNumber(safeField(member, 'paidAmount'));
+              return sum + Math.max(feeAmount - paidAmount, 0);
+            }, 0)
+          )
+        ),
+        icon: 'AlertCircle',
+        color: '#F59E0B',
+      },
     ],
     hotel: [
       buildKpiCard('kpi-hotel-1', 'Total Rooms', rooms.length),

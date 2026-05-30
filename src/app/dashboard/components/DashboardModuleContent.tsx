@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { AuthUser } from '@/types';
@@ -100,6 +100,12 @@ export default function DashboardModuleContent({ module, user }: DashboardModule
   const router = useRouter();
   const activeNav = `nav-${module}`;
 
+  useEffect(() => {
+    if (user.businessType === 'gym' && (module === 'classes' || module === 'memberships')) {
+      router.replace('/dashboard/members');
+    }
+  }, [module, router, user.businessType]);
+
   const handleNavigate = useCallback(
     (navId: string) => {
       router.push(getDashboardHrefFromNavId(navId));
@@ -116,6 +122,10 @@ export default function DashboardModuleContent({ module, user }: DashboardModule
       ),
     [user.businessType]
   );
+
+  if (user.businessType === 'gym' && (module === 'classes' || module === 'memberships')) {
+    return <ModuleSkeleton />;
+  }
 
   if (module === 'profile') {
     return <ProfilePanel businessId={user.id} />;
@@ -155,9 +165,20 @@ export default function DashboardModuleContent({ module, user }: DashboardModule
     }
   }
 
-  if (user.businessType === 'gym' && ['members', 'memberships', 'billing'].includes(module)) {
+  if (user.businessType === 'gym' && ['members', 'trainers', 'billing', 'reports'].includes(module)) {
     return (
-      <GymMembersPanel user={user} initialView={module === 'billing' ? 'payments' : 'members'} />
+      <GymMembersPanel
+        user={user}
+        initialView={
+          module === 'billing'
+            ? 'billing'
+            : module === 'trainers'
+              ? 'trainers'
+              : module === 'reports'
+                ? 'reports'
+                : 'members'
+        }
+      />
     );
   }
 
