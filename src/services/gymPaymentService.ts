@@ -66,6 +66,38 @@ function gymReceiptsCollection(businessId: string) {
   return collection(getFirestoreDb(), 'businesses', businessId, 'gymReceipts');
 }
 
+function normalizeGymPayment(
+  rawPayment: Partial<GymPaymentRecord> & Record<string, unknown>,
+  documentId: string
+): GymPaymentRecord {
+  const resolvedMemberId =
+    String(rawPayment.memberId ?? rawPayment.memberDocId ?? '').trim() ||
+    String(rawPayment.memberCode ?? '').trim() ||
+    documentId;
+
+  return {
+    id: documentId,
+    memberDocId: String(rawPayment.memberDocId ?? resolvedMemberId),
+    memberId: resolvedMemberId,
+    memberCode:
+      String(rawPayment.memberCode ?? rawPayment.memberId ?? rawPayment.memberDocId ?? '').trim() ||
+      resolvedMemberId,
+    memberName: String(rawPayment.memberName ?? ''),
+    membershipPlan: String(rawPayment.membershipPlan ?? 'Monthly'),
+    invoiceId: String(rawPayment.invoiceId ?? documentId),
+    receiptId: rawPayment.receiptId ? String(rawPayment.receiptId) : undefined,
+    receiptNumber: rawPayment.receiptNumber ? String(rawPayment.receiptNumber) : undefined,
+    paymentDate: String(rawPayment.paymentDate ?? ''),
+    billingPeriod: String(rawPayment.billingPeriod ?? ''),
+    amount: Number(rawPayment.amount ?? 0),
+    paymentMethod: (rawPayment.paymentMethod as GymPaymentRecord['paymentMethod']) ?? 'cash',
+    transactionId: rawPayment.transactionId ? String(rawPayment.transactionId) : undefined,
+    notes: rawPayment.notes ? String(rawPayment.notes) : undefined,
+    createdAt: rawPayment.createdAt ? String(rawPayment.createdAt) : undefined,
+    updatedAt: rawPayment.updatedAt ? String(rawPayment.updatedAt) : undefined,
+  };
+}
+
 export interface PaginationOptions {
   pageSize?: number;
   lastDoc?: QueryDocumentSnapshot<DocumentData> | null;
@@ -85,7 +117,7 @@ export interface SaveGymPaymentPayload {
   receipt: Omit<GymReceiptRecord, 'id' | 'receiptId' | 'updatedAt'>;
 }
 
-export async function saveGymPaymentWithReceipt({
+export async function saveGymMemberPayment({
   businessId,
   businessName,
   member,
@@ -93,13 +125,28 @@ export async function saveGymPaymentWithReceipt({
   receipt,
 }: SaveGymPaymentPayload) {
   assertBusinessId(businessId);
-  assertMemberId(member.id);
+  const resolvedMemberId = String(member.memberId || member.id || '').trim();
+  if (!resolvedMemberId) {
+    throw new Error('Unable to identify member. Please refresh and try again.');
+  }
+  if (!(payment.amount > 0)) {
+    throw new Error('Payment amount must be greater than zero.');
+  }
+  const knownPending = typeof member.pendingFees === 'number'
+    ? member.pendingFees
+    : typeof member.pendingAmount === 'number'
+      ? member.pendingAmount
+      : Math.max((member.monthlyFee ?? member.feeAmount) - (member.paidFees ?? member.paidAmount), 0);
+  if (knownPending > 0 && payment.amount > knownPending) {
+    throw new Error('Payment amount cannot exceed pending fees.');
+  }
+  assertMemberId(resolvedMemberId);
 
   const firestore = getFirestoreDb();
   const batch = writeBatch(firestore);
   const paymentRef = doc(gymPaymentsCollection(businessId));
   const receiptRef = doc(gymReceiptsCollection(businessId));
-  const memberRef = gymMemberDoc(businessId, member.id);
+  const memberRef = gymMemberDoc(businessId, resolvedMemberId);
   const memberSnapshot = await getDoc(memberRef);
 
   if (!memberSnapshot.exists()) {
@@ -110,14 +157,24 @@ export async function saveGymPaymentWithReceipt({
     ...member,
     ...(memberSnapshot.data() as Omit<GymMemberRecord, 'id'>),
     id: memberSnapshot.id,
+    memberId: memberSnapshot.id,
   };
+  const resolvedMemberCode =
+    String(existingMember.memberCode ?? existingMember.displayId ?? '').trim() ||
+    String(payment.memberCode ?? '').trim() ||
+    resolvedMemberId;
 
   const now = new Date().toISOString();
-  const nextPaidAmount = existingMember.paidAmount + payment.amount;
-  const nextPendingAmount = Math.max(existingMember.feeAmount - nextPaidAmount, 0);
+  const monthlyFee = existingMember.monthlyFee ?? existingMember.feeAmount;
+  const currentPaid = existingMember.paidFees ?? existingMember.paidAmount;
+  const nextPaidAmount = currentPaid + payment.amount;
+  const nextPendingAmount = Math.max(monthlyFee - nextPaidAmount, 0);
 
   const paymentData: Omit<GymPaymentRecord, 'id'> = {
     ...payment,
+    memberDocId: resolvedMemberId,
+    memberId: resolvedMemberId,
+    memberCode: resolvedMemberCode,
     receiptId: receiptRef.id,
     createdAt: payment.createdAt ?? now,
     updatedAt: now,
@@ -125,6 +182,9 @@ export async function saveGymPaymentWithReceipt({
 
   const receiptData: Omit<GymReceiptRecord, 'id'> = {
     ...receipt,
+    memberDocId: resolvedMemberId,
+    memberId: resolvedMemberId,
+    memberCode: resolvedMemberCode,
     receiptId: receiptRef.id,
     paymentId: paymentRef.id,
     businessName,
@@ -135,8 +195,15 @@ export async function saveGymPaymentWithReceipt({
   batch.set(paymentRef, paymentData);
   batch.set(receiptRef, receiptData);
   batch.update(memberRef, {
+    memberId: resolvedMemberId,
+    memberCode: resolvedMemberCode,
+    displayId: resolvedMemberCode,
     paidAmount: nextPaidAmount,
+    paidFees: nextPaidAmount,
     pendingAmount: nextPendingAmount,
+    pendingFees: nextPendingAmount,
+    monthlyFee,
+    feeAmount: monthlyFee,
     status: existingMember.status === 'expired' ? 'active' : existingMember.status,
     updatedAt: now,
   });
@@ -148,12 +215,22 @@ export async function saveGymPaymentWithReceipt({
     receipt: { ...receiptData, id: receiptRef.id },
     member: {
       ...existingMember,
+      memberId: resolvedMemberId,
+      memberCode: resolvedMemberCode,
+      displayId: resolvedMemberCode,
       paidAmount: nextPaidAmount,
+      paidFees: nextPaidAmount,
+      pendingAmount: nextPendingAmount,
+      pendingFees: nextPendingAmount,
+      monthlyFee,
+      feeAmount: monthlyFee,
       status: existingMember.status === 'expired' ? 'active' : existingMember.status,
       updatedAt: now,
     },
   };
 }
+
+export const saveGymPaymentWithReceipt = saveGymMemberPayment;
 
 export async function deleteGymPayment(businessId: string, paymentId: string) {
   await deleteDoc(gymPaymentDoc(businessId, paymentId));
@@ -190,10 +267,9 @@ export async function getGymPayments(
     const pageSize = options.pageSize ?? 25;
     const paymentsQuery = getGymPaymentQuery(businessId, pageSize, options.lastDoc ?? undefined);
     const snapshot = await getDocs(paymentsQuery);
-    const data = snapshot.docs.map((paymentDoc) => ({
-      id: paymentDoc.id,
-      ...(paymentDoc.data() as Omit<GymPaymentRecord, 'id'>),
-    }));
+    const data = snapshot.docs.map((paymentDoc) =>
+      normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+    );
     return {
       data,
       lastDoc: snapshot.docs.at(-1) ?? null,
@@ -207,19 +283,18 @@ export async function getGymPayments(
     orderBy('__name__', 'desc')
   );
   const snapshot = await getDocs(paymentsQuery);
-  return snapshot.docs.map((paymentDoc) => ({
-    id: paymentDoc.id,
-    ...(paymentDoc.data() as Omit<GymPaymentRecord, 'id'>),
-  }));
+  return snapshot.docs.map((paymentDoc) =>
+    normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+  );
 }
 
 export async function getGymPaymentById(businessId: string, paymentId: string) {
   const paymentDoc = await getDoc(gymPaymentDoc(businessId, paymentId));
   return paymentDoc.exists()
-    ? ({
-        id: paymentDoc.id,
-        ...(paymentDoc.data() as Omit<GymPaymentRecord, 'id'>),
-      } as GymPaymentRecord)
+    ? normalizeGymPayment(
+        paymentDoc.data() as GymPaymentRecord & Record<string, unknown>,
+        paymentDoc.id
+      )
     : null;
 }
 
@@ -266,10 +341,9 @@ export async function getGymPaymentsForMember(
       options.lastDoc ?? undefined
     );
     const snapshot = await getDocs(paymentsQuery);
-    const data = snapshot.docs.map((paymentDoc) => ({
-      id: paymentDoc.id,
-      ...(paymentDoc.data() as Omit<GymPaymentRecord, 'id'>),
-    }));
+    const data = snapshot.docs.map((paymentDoc) =>
+      normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+    );
     return {
       data,
       lastDoc: snapshot.docs.at(-1) ?? null,
@@ -285,10 +359,9 @@ export async function getGymPaymentsForMember(
   );
   const snapshot = await getDocs(paymentsQuery);
 
-  return snapshot.docs.map((paymentDoc) => ({
-    id: paymentDoc.id,
-    ...(paymentDoc.data() as Omit<GymPaymentRecord, 'id'>),
-  }));
+  return snapshot.docs.map((paymentDoc) =>
+    normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+  );
 }
 
 export async function getAllGymPaymentsForMember(

@@ -22,6 +22,36 @@ function getFirestoreDb() {
   return db!;
 }
 
+function normalizeGymReceipt(
+  rawReceipt: Partial<GymReceiptRecord> & Record<string, unknown>,
+  documentId: string
+): GymReceiptRecord {
+  const resolvedMemberId =
+    String(rawReceipt.memberId ?? rawReceipt.memberDocId ?? '').trim() || documentId;
+  const resolvedMemberCode =
+    String(rawReceipt.memberCode ?? rawReceipt.memberId ?? rawReceipt.memberDocId ?? '').trim() ||
+    resolvedMemberId;
+
+  return {
+    id: documentId,
+    receiptId: String(rawReceipt.receiptId ?? documentId),
+    receiptNumber: String(rawReceipt.receiptNumber ?? rawReceipt.paymentId ?? documentId),
+    paymentId: String(rawReceipt.paymentId ?? ''),
+    memberDocId: String(rawReceipt.memberDocId ?? resolvedMemberId),
+    memberId: resolvedMemberId,
+    memberCode: resolvedMemberCode,
+    memberName: String(rawReceipt.memberName ?? ''),
+    amount: Number(rawReceipt.amount ?? 0),
+    paymentDate: String(rawReceipt.paymentDate ?? ''),
+    paymentMethod: (rawReceipt.paymentMethod as GymReceiptRecord['paymentMethod']) ?? 'cash',
+    businessName: rawReceipt.businessName ? String(rawReceipt.businessName) : undefined,
+    transactionId: rawReceipt.transactionId ? String(rawReceipt.transactionId) : undefined,
+    billingPeriod: rawReceipt.billingPeriod ? String(rawReceipt.billingPeriod) : undefined,
+    createdAt: rawReceipt.createdAt ? String(rawReceipt.createdAt) : undefined,
+    updatedAt: rawReceipt.updatedAt ? String(rawReceipt.updatedAt) : undefined,
+  };
+}
+
 export async function deleteGymReceipt(businessId: string, receiptId: string) {
   await deleteDoc(doc(getFirestoreDb(), 'businesses', businessId, 'gymReceipts', receiptId));
 }
@@ -35,10 +65,9 @@ export async function getGymReceipts(businessId: string): Promise<GymReceiptReco
     )
   );
 
-  return snapshot.docs.map((receiptDoc) => ({
-    id: receiptDoc.id,
-    ...(receiptDoc.data() as Omit<GymReceiptRecord, 'id'>),
-  }));
+  return snapshot.docs.map((receiptDoc) =>
+    normalizeGymReceipt(receiptDoc.data() as GymReceiptRecord & Record<string, unknown>, receiptDoc.id)
+  );
 }
 
 export async function getGymReceiptsForMember(

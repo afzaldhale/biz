@@ -36,6 +36,7 @@ import { addGymTrainer, deleteGymTrainer, getGymTrainers, updateGymTrainer } fro
 import { deleteGymAttendance, getGymAttendance, upsertGymAttendance } from '@/services/gymAttendanceService';
 import { deleteGymReceipt, getGymReceipts } from '@/services/gymReceiptService';
 import { SubscriptionLimitError } from '@/services/subscriptionService';
+import { renderGymReceiptPrintDocument } from './GymReceiptPrint';
 
 type GymView = 'members' | 'trainers' | 'billing' | 'reports';
 type MemberProfileTab = 'overview' | 'payments' | 'attendance' | 'receipts';
@@ -156,6 +157,10 @@ function buildReceiptNumber() {
   return `RCT-${Date.now().toString().slice(-8)}`;
 }
 
+function getMemberDisplayCode(member?: GymMemberRecord | null) {
+  return member?.memberCode || member?.displayId || member?.memberId || member?.id || '-';
+}
+
 function getCurrentMonthRange() {
   const now = new Date();
   const year = now.getFullYear();
@@ -219,7 +224,7 @@ const MemberRow = React.memo(function MemberRow({
 
   return (
     <tr className="group border-b border-border/70 odd:bg-white even:bg-slate-50/40 hover:bg-primary/5">
-      <td className="px-4 py-3 text-sm font-600 text-foreground">{member.memberId}</td>
+      <td className="px-4 py-3 text-sm font-600 text-foreground">{getMemberDisplayCode(member)}</td>
       <td className="px-4 py-3">
         <button type="button" onClick={() => onView(member)} className="text-left">
           <p className="text-sm font-700 text-foreground">{member.fullName}</p>
@@ -299,6 +304,8 @@ function openReceiptWindow(
   payment: GymPaymentRecord,
   receipt: GymReceiptRecord | undefined,
   member?: GymMemberRecord | null,
+  businessPhone?: string,
+  businessAddress?: string,
   mode: 'print' | 'download' = 'print'
 ) {
   const receiptWindow = window.open('', '_blank', 'width=900,height=760');
@@ -308,54 +315,16 @@ function openReceiptWindow(
     return;
   }
 
-  receiptWindow.document.write(`
-    <html>
-      <head>
-        <title>Receipt ${receipt?.receiptNumber ?? payment.receiptNumber ?? payment.invoiceId}</title>
-        <style>
-          body { font-family: Arial, sans-serif; background: #f8fafc; color: #0f172a; padding: 28px; }
-          .sheet { max-width: 760px; margin: 0 auto; background: white; border-radius: 24px; padding: 32px; border: 1px solid #e2e8f0; }
-          .header { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 28px; }
-          .brand { font-size: 26px; font-weight: 700; color: #7c3aed; }
-          .sub { margin-top: 6px; color: #64748b; }
-          .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-          .box { border: 1px solid #e2e8f0; border-radius: 18px; padding: 16px; }
-          .label { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: #64748b; margin-bottom: 6px; }
-          .value { font-size: 15px; font-weight: 600; color: #0f172a; }
-          .summary { margin-top: 18px; background: linear-gradient(135deg, rgba(124,58,237,.08), rgba(168,85,247,.14)); border-radius: 18px; padding: 18px; }
-        </style>
-      </head>
-      <body>
-        <div class="sheet">
-          <div class="header">
-            <div>
-              <div class="brand">${businessName}</div>
-              <div class="sub">Gym Payment Receipt</div>
-            </div>
-            <div>
-              <div><strong>Receipt No:</strong> ${receipt?.receiptNumber ?? payment.receiptNumber ?? payment.invoiceId}</div>
-              <div><strong>Date:</strong> ${receipt?.paymentDate ?? payment.paymentDate}</div>
-            </div>
-          </div>
-          <div class="grid">
-            <div class="box"><div class="label">Member Name</div><div class="value">${payment.memberName}</div></div>
-            <div class="box"><div class="label">Member ID</div><div class="value">${payment.memberId}</div></div>
-            <div class="box"><div class="label">Plan</div><div class="value">${payment.membershipPlan}</div></div>
-            <div class="box"><div class="label">Payment Method</div><div class="value">${formatPaymentMethod(payment.paymentMethod)}</div></div>
-            <div class="box"><div class="label">Amount</div><div class="value">${formatCurrency(payment.amount)}</div></div>
-            <div class="box"><div class="label">Transaction ID</div><div class="value">${payment.transactionId || '-'}</div></div>
-          </div>
-          <div class="summary">
-            <div><strong>Joining Date:</strong> ${member?.joiningDate ?? '-'}</div>
-            <div><strong>Renewal Date:</strong> ${member?.renewalDate ?? '-'}</div>
-            <div><strong>Outstanding Balance:</strong> ${formatCurrency(
-              Math.max((member?.feeAmount ?? payment.amount) - (member?.paidAmount ?? payment.amount), 0)
-            )}</div>
-          </div>
-        </div>
-      </body>
-    </html>
-  `);
+  receiptWindow.document.write(
+    renderGymReceiptPrintDocument({
+      businessName,
+      businessPhone,
+      businessAddress,
+      member,
+      payment,
+      receipt,
+    })
+  );
 
   receiptWindow.document.close();
   receiptWindow.focus();
@@ -452,6 +421,8 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       setMembers(
         membersResult.value.map((member) => ({
           ...member,
+          memberCode: member.memberCode ?? member.displayId ?? member.memberId,
+          displayId: member.displayId ?? member.memberCode ?? member.memberId,
           address: member.address ?? '',
           trainerId: member.trainerId ?? '',
           trainerName: member.trainerName ?? '',
@@ -550,6 +521,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         !query ||
         [
           member.memberId,
+          member.memberCode,
           member.fullName,
           member.phone,
           member.membershipPlan,
@@ -697,7 +669,9 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
 
       const nextMember: GymMemberRecord = {
         id: existingMember?.id ?? '',
-        memberId: existingMember?.memberId ?? buildMemberId(members.length),
+        memberId: existingMember?.memberId ?? existingMember?.id ?? '',
+        memberCode: existingMember?.memberCode ?? buildMemberId(members.length),
+        displayId: existingMember?.displayId ?? existingMember?.memberCode ?? buildMemberId(members.length),
         fullName: memberFormValues.fullName.trim(),
         phone: memberFormValues.phone.trim(),
         email: memberFormValues.email.trim(),
@@ -728,7 +702,14 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           toast.success('Member updated successfully.');
         } else {
           const createdId = await addGymMember(user.id, nextMember);
-          setMembers((current) => [{ ...nextMember, id: createdId }, ...current]);
+          setMembers((current) => [
+            {
+              ...nextMember,
+              id: createdId,
+              memberId: createdId,
+            },
+            ...current,
+          ]);
           await refreshBusiness();
           toast.success('Member created successfully.');
         }
@@ -799,6 +780,12 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
     async (event: React.FormEvent<HTMLFormElement>) => {
       event.preventDefault();
       if (!selectedMember) return;
+      const resolvedMemberId = selectedMember.memberId || selectedMember.id;
+      if (!resolvedMemberId) {
+        setPaymentError('Unable to identify member. Please refresh and try again.');
+        toast.error('Could not save payment. Please refresh and try again.');
+        return;
+      }
       setSaving(true);
       setPaymentError(null);
 
@@ -808,8 +795,9 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
 
       const paymentRecord: GymPaymentRecord = {
         id: '',
-        memberDocId: selectedMember.id,
-        memberId: selectedMember.memberId,
+        memberDocId: resolvedMemberId,
+        memberId: resolvedMemberId,
+        memberCode: getMemberDisplayCode(selectedMember),
         memberName: selectedMember.fullName,
         membershipPlan: selectedMember.membershipPlan,
         invoiceId: paymentId,
@@ -829,14 +817,16 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         receiptId: '',
         receiptNumber,
         paymentId: '',
-        memberDocId: selectedMember.id,
-        memberId: selectedMember.memberId,
+        memberDocId: resolvedMemberId,
+        memberId: resolvedMemberId,
+        memberCode: getMemberDisplayCode(selectedMember),
         memberName: selectedMember.fullName,
         amount,
         paymentDate: paymentFormValues.paymentDate,
         paymentMethod: paymentFormValues.paymentMethod,
         businessName: user.businessName,
         transactionId: paymentFormValues.transactionId.trim(),
+        billingPeriod: paymentFormValues.billingPeriod.trim(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -845,7 +835,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         const result = await saveGymPaymentWithReceipt({
           businessId: user.id,
           businessName: user.businessName,
-          member: selectedMember,
+          member: { ...selectedMember, id: resolvedMemberId, memberId: resolvedMemberId },
           payment: paymentRecord,
           receipt: receiptRecord,
         });
@@ -853,7 +843,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         setPayments((current) => [result.payment, ...current]);
         setReceipts((current) => [result.receipt, ...current]);
         setMembers((current) =>
-          current.map((member) => (member.id === selectedMember.id ? result.member : member))
+          current.map((member) => (member.id === resolvedMemberId ? result.member : member))
         );
         setSelectedMember(result.member);
         setPaymentModalOpen(false);
@@ -1185,7 +1175,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-base font-700 text-foreground">{member.fullName}</p>
-                      <p className="mt-1 text-xs font-600 uppercase tracking-[0.18em] text-muted-foreground">{member.memberId}</p>
+                      <p className="mt-1 text-xs font-600 uppercase tracking-[0.18em] text-muted-foreground">{getMemberDisplayCode(member)}</p>
                     </div>
                     <details className="relative">
                       <summary className="flex list-none cursor-pointer items-center justify-center rounded-lg border border-border bg-white p-2 text-muted-foreground">
@@ -1349,11 +1339,11 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                       <td className="px-4 py-4 text-sm text-foreground">{payment.transactionId || '-'}</td>
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => openReceiptWindow(user.businessName, payment, receipt, member, 'download')} className="btn-outline rounded-lg px-3 py-2 text-xs">
+                          <button type="button" onClick={() => openReceiptWindow(user.businessName, payment, receipt, member, business?.phone, business?.address, 'download')} className="btn-outline rounded-lg px-3 py-2 text-xs">
                             <Download size={14} className="inline-block mr-1" />
-                            Download PDF
+                            Download / Save PDF
                           </button>
-                          <button type="button" onClick={() => openReceiptWindow(user.businessName, payment, receipt, member, 'print')} className="btn-outline rounded-lg px-3 py-2 text-xs">
+                          <button type="button" onClick={() => openReceiptWindow(user.businessName, payment, receipt, member, business?.phone, business?.address, 'print')} className="btn-outline rounded-lg px-3 py-2 text-xs">
                             <Printer size={14} className="inline-block mr-1" />
                             Print Receipt
                           </button>
@@ -1403,7 +1393,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 <button key={member.id} type="button" onClick={() => openMemberProfile(member, 'payments')} className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3 text-left">
                   <div>
                     <p className="text-sm font-600 text-foreground">{member.fullName}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{member.memberId} | Paid {formatCurrency(member.paidAmount)}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{getMemberDisplayCode(member)} | Paid {formatCurrency(member.paidAmount)}</p>
                   </div>
                   <span className="text-sm font-700 text-danger">{formatCurrency(Math.max(member.feeAmount - member.paidAmount, 0))}</span>
                 </button>
@@ -1434,7 +1424,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           <div className="sticky top-0 z-10 border-b border-border bg-white/95 px-6 py-5 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">{selectedMember.memberId}</p>
+                <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">{getMemberDisplayCode(selectedMember)}</p>
                 <h2 className="mt-1 text-2xl font-700 text-foreground">{selectedMember.fullName}</h2>
                 <p className="mt-1 text-sm text-muted-foreground">
                   {selectedMember.membershipPlan} | Trainer {selectedMember.trainerName || 'Unassigned'}
@@ -1567,10 +1557,10 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                             <p className="mt-1 text-xs text-muted-foreground">{receipt.paymentDate} | {formatPaymentMethod(receipt.paymentMethod)}</p>
                           </div>
                           <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={() => payment && openReceiptWindow(user.businessName, payment, receipt, selectedMember, 'download')} className="btn-outline rounded-lg px-3 py-2 text-xs" disabled={!payment}>
-                              Download PDF
+                            <button type="button" onClick={() => payment && openReceiptWindow(user.businessName, payment, receipt, selectedMember, business?.phone, business?.address, 'download')} className="btn-outline rounded-lg px-3 py-2 text-xs" disabled={!payment}>
+                              Download / Save PDF
                             </button>
-                            <button type="button" onClick={() => payment && openReceiptWindow(user.businessName, payment, receipt, selectedMember, 'print')} className="btn-outline rounded-lg px-3 py-2 text-xs" disabled={!payment}>
+                            <button type="button" onClick={() => payment && openReceiptWindow(user.businessName, payment, receipt, selectedMember, business?.phone, business?.address, 'print')} className="btn-outline rounded-lg px-3 py-2 text-xs" disabled={!payment}>
                               Print Receipt
                             </button>
                           </div>
@@ -1702,9 +1692,14 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                   {paymentError}
                 </div>
               )}
+              {!(selectedMember?.memberId || selectedMember?.id) && (
+                <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                  Unable to identify member. Please refresh and try again.
+                </div>
+              )}
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
                 <button type="button" onClick={() => setPaymentModalOpen(false)} className="btn-outline w-full rounded-xl px-4 py-2.5 text-sm sm:w-auto">Cancel</button>
-                <button type="submit" form="payment-form" disabled={saving} className="btn-primary w-full rounded-xl px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto">{saving ? 'Saving...' : 'Save Payment'}</button>
+                <button type="submit" form="payment-form" disabled={saving || !(selectedMember?.memberId || selectedMember?.id)} className="btn-primary w-full rounded-xl px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto">{saving ? 'Saving...' : 'Save Payment'}</button>
               </div>
             </div>
           }

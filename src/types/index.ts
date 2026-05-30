@@ -276,6 +276,8 @@ export interface AcademyDashboardSummary {
 export interface GymMemberRecord {
   id: string;
   memberId: string;
+  memberCode?: string;
+  displayId?: string;
   fullName: string;
   phone: string;
   email: string;
@@ -287,6 +289,10 @@ export interface GymMemberRecord {
   renewalDate: string;
   feeAmount: number;
   paidAmount: number;
+  pendingAmount?: number;
+  monthlyFee?: number;
+  paidFees?: number;
+  pendingFees?: number;
   status: 'active' | 'paused' | 'expired';
   emergencyContact?: string;
   heightCm?: number;
@@ -302,6 +308,7 @@ export interface GymPaymentRecord {
   id: string;
   memberDocId: string;
   memberId: string;
+  memberCode?: string;
   memberName: string;
   membershipPlan: string;
   invoiceId: string;
@@ -349,12 +356,14 @@ export interface GymReceiptRecord {
   paymentId: string;
   memberDocId: string;
   memberId: string;
+  memberCode?: string;
   memberName: string;
   amount: number;
   paymentDate: string;
   paymentMethod: GymPaymentRecord['paymentMethod'];
   businessName?: string;
   transactionId?: string;
+  billingPeriod?: string;
   createdAt?: string;
   updatedAt?: string;
 }

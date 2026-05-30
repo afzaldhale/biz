@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -11,6 +10,7 @@ import {
   query,
   QueryConstraint,
   QueryDocumentSnapshot,
+  setDoc,
   startAfter,
   updateDoc,
 } from 'firebase/firestore';
@@ -55,13 +55,61 @@ function gymMemberDoc(businessId: string, memberId: string) {
   return doc(getFirestoreDb(), 'businesses', businessId, 'gymMembers', memberId);
 }
 
+export function normalizeGymMember(
+  rawMember: Partial<GymMemberRecord> & Record<string, unknown>,
+  documentId: string
+): GymMemberRecord {
+  const resolvedMemberCode =
+    String(rawMember.memberCode ?? rawMember.displayId ?? rawMember.memberId ?? '').trim() ||
+    `GYM-${documentId.slice(-6).toUpperCase()}`;
+  const feeAmount = Number(rawMember.feeAmount ?? rawMember.monthlyFee ?? 0);
+  const paidAmount = Number(rawMember.paidAmount ?? rawMember.paidFees ?? 0);
+  const pendingAmount = Math.max(
+    Number(rawMember.pendingAmount ?? rawMember.pendingFees ?? feeAmount - paidAmount),
+    0
+  );
+
+  return {
+    id: documentId,
+    memberId: documentId,
+    memberCode: resolvedMemberCode,
+    displayId: resolvedMemberCode,
+    fullName: String(rawMember.fullName ?? ''),
+    phone: String(rawMember.phone ?? ''),
+    email: String(rawMember.email ?? ''),
+    address: String(rawMember.address ?? ''),
+    membershipPlan: String(rawMember.membershipPlan ?? 'Monthly'),
+    trainerId: rawMember.trainerId ? String(rawMember.trainerId) : '',
+    trainerName: rawMember.trainerName ? String(rawMember.trainerName) : '',
+    joiningDate: String(rawMember.joiningDate ?? ''),
+    renewalDate: String(rawMember.renewalDate ?? ''),
+    feeAmount,
+    paidAmount,
+    pendingAmount,
+    monthlyFee: feeAmount,
+    paidFees: paidAmount,
+    pendingFees: pendingAmount,
+    status: (rawMember.status as GymMemberRecord['status']) ?? 'active',
+    emergencyContact: rawMember.emergencyContact ? String(rawMember.emergencyContact) : '',
+    heightCm: typeof rawMember.heightCm === 'number' ? rawMember.heightCm : undefined,
+    weightKg: typeof rawMember.weightKg === 'number' ? rawMember.weightKg : undefined,
+    bmi: typeof rawMember.bmi === 'number' ? rawMember.bmi : undefined,
+    fitnessGoal: rawMember.fitnessGoal as GymMemberRecord['fitnessGoal'],
+    notes: rawMember.notes ? String(rawMember.notes) : '',
+    createdAt: rawMember.createdAt ? String(rawMember.createdAt) : undefined,
+    updatedAt: rawMember.updatedAt ? String(rawMember.updatedAt) : undefined,
+  };
+}
+
 export async function addGymMember(businessId: string, member: GymMemberRecord) {
   await canAddRecord(businessId, 'gymMembers');
 
-  const firestore = getFirestoreDb();
   const now = new Date().toISOString();
-  const docRef = await addDoc(gymMembersCollection(businessId), {
-    ...member,
+  const memberRef = doc(gymMembersCollection(businessId));
+  const normalized = normalizeGymMember(member as GymMemberRecord & Record<string, unknown>, memberRef.id);
+
+  await setDoc(memberRef, {
+    ...normalized,
     createdAt: member.createdAt ?? now,
     updatedAt: now,
   });
@@ -69,7 +117,7 @@ export async function addGymMember(businessId: string, member: GymMemberRecord) 
   if (member.status === 'active') {
     await safeIncrementBusinessUsage(businessId);
   }
-  return docRef.id;
+  return memberRef.id;
 }
 
 export async function updateGymMember(
@@ -154,10 +202,9 @@ export async function getGymMembers(
     const pageSize = options.pageSize ?? 25;
     const membersQuery = getGymMemberQuery(businessId, pageSize, options.lastDoc ?? undefined);
     const snapshot = await getDocs(membersQuery);
-    const data = snapshot.docs.map((memberDoc) => ({
-      id: memberDoc.id,
-      ...(memberDoc.data() as Omit<GymMemberRecord, 'id'>),
-    }));
+    const data = snapshot.docs.map((memberDoc) =>
+      normalizeGymMember(memberDoc.data() as GymMemberRecord & Record<string, unknown>, memberDoc.id)
+    );
     return {
       data,
       lastDoc: snapshot.docs.at(-1) ?? null,
@@ -172,10 +219,9 @@ export async function getGymMembers(
       orderBy('__name__', 'desc')
     )
   );
-  return snapshot.docs.map((memberDoc) => ({
-    id: memberDoc.id,
-    ...(memberDoc.data() as Omit<GymMemberRecord, 'id'>),
-  }));
+  return snapshot.docs.map((memberDoc) =>
+    normalizeGymMember(memberDoc.data() as GymMemberRecord & Record<string, unknown>, memberDoc.id)
+  );
 }
 
 export async function getGymMemberById(businessId: string, memberId: string) {
@@ -183,9 +229,9 @@ export async function getGymMemberById(businessId: string, memberId: string) {
     gymMemberDoc(businessId, memberId)
   );
   return memberDoc.exists()
-    ? ({
-        id: memberDoc.id,
-        ...(memberDoc.data() as Omit<GymMemberRecord, 'id'>),
-      } as GymMemberRecord)
+    ? normalizeGymMember(
+        memberDoc.data() as GymMemberRecord & Record<string, unknown>,
+        memberDoc.id
+      )
     : null;
 }
