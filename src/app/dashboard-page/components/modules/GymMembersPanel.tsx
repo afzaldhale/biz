@@ -720,7 +720,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           setLimitModalOpen(true);
           await refreshBusiness();
         } else {
-          toast.error(error instanceof Error ? error.message : 'Unable to save this member.');
+          handleAppError(error, 'Unable to save this member.');
         }
       } finally {
         setSaving(false);
@@ -768,7 +768,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
 
         setTrainerModalOpen(false);
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Unable to save this trainer.');
+        handleAppError(error, 'Unable to save this trainer.');
       } finally {
         setSaving(false);
       }
@@ -894,7 +894,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         setAttendanceModalOpen(false);
         toast.success('Attendance updated.');
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Unable to save attendance.');
+        handleAppError(error, 'Unable to save attendance.');
       } finally {
         setSaving(false);
       }
@@ -935,7 +935,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         }
         toast.success('Member deleted successfully.');
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Unable to delete this member.');
+        handleAppError(error, 'Unable to delete this member.');
       }
     },
     [attendance, payments, receipts, refreshBusiness, selectedMember, user.id]
@@ -971,7 +971,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         setTrainers((current) => current.filter((item) => item.id !== trainer.id));
         toast.success('Trainer deleted successfully.');
       } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Unable to delete this trainer.');
+        handleAppError(error, 'Unable to delete this trainer.');
       }
     },
     [members, user.id]

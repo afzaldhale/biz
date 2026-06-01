@@ -17,6 +17,7 @@ import {
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymMemberRecord } from '@/types';
 import { canAddRecord } from '@/utils/planLimits';
+import { removeUndefinedFields } from '@/utils/removeUndefinedFields';
 import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
 
 function ensureFirebaseConfigured() {
@@ -91,14 +92,62 @@ export function normalizeGymMember(
     pendingFees: pendingAmount,
     status: (rawMember.status as GymMemberRecord['status']) ?? 'active',
     emergencyContact: rawMember.emergencyContact ? String(rawMember.emergencyContact) : '',
-    heightCm: typeof rawMember.heightCm === 'number' ? rawMember.heightCm : undefined,
-    weightKg: typeof rawMember.weightKg === 'number' ? rawMember.weightKg : undefined,
-    bmi: typeof rawMember.bmi === 'number' ? rawMember.bmi : undefined,
-    fitnessGoal: rawMember.fitnessGoal as GymMemberRecord['fitnessGoal'],
     notes: rawMember.notes ? String(rawMember.notes) : '',
     createdAt: rawMember.createdAt ? String(rawMember.createdAt) : undefined,
     updatedAt: rawMember.updatedAt ? String(rawMember.updatedAt) : undefined,
   };
+}
+
+type GymMemberDocument = {
+  memberId: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  address?: string;
+  emergencyContact?: string;
+  planName: string;
+  monthlyFee: number;
+  assignedTrainer?: string;
+  joiningDate: string;
+  renewalDate: string;
+  status: GymMemberRecord['status'];
+  feesPaid: number;
+  pendingAmount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+function buildGymMemberDocument(
+  member: GymMemberRecord,
+  memberId: string,
+  createdAt: string,
+  updatedAt: string
+): GymMemberDocument {
+  const monthlyFee = Number(member.monthlyFee ?? member.feeAmount ?? 0);
+  const feesPaid = Number(member.paidFees ?? member.paidAmount ?? 0);
+  const pendingAmount = Math.max(
+    Number(member.pendingAmount ?? member.pendingFees ?? monthlyFee - feesPaid),
+    0
+  );
+
+  return removeUndefinedFields({
+    memberId,
+    fullName: member.fullName,
+    phone: member.phone,
+    email: member.email,
+    address: member.address?.trim() || undefined,
+    emergencyContact: member.emergencyContact?.trim() || undefined,
+    planName: String(member.membershipPlan ?? 'Monthly'),
+    monthlyFee,
+    assignedTrainer: member.trainerName?.trim() || undefined,
+    joiningDate: member.joiningDate,
+    renewalDate: member.renewalDate,
+    status: member.status,
+    feesPaid,
+    pendingAmount,
+    createdAt,
+    updatedAt,
+  });
 }
 
 export async function addGymMember(businessId: string, member: GymMemberRecord) {
@@ -107,12 +156,10 @@ export async function addGymMember(businessId: string, member: GymMemberRecord) 
   const now = new Date().toISOString();
   const memberRef = doc(gymMembersCollection(businessId));
   const normalized = normalizeGymMember(member as GymMemberRecord & Record<string, unknown>, memberRef.id);
+  const payload = buildGymMemberDocument(normalized, memberRef.id, member.createdAt ?? now, now);
+  console.log('Saving member:', payload);
 
-  await setDoc(memberRef, {
-    ...normalized,
-    createdAt: member.createdAt ?? now,
-    updatedAt: now,
-  });
+  await setDoc(memberRef, payload);
 
   if (member.status === 'active') {
     await safeIncrementBusinessUsage(businessId);
@@ -141,10 +188,13 @@ export async function updateGymMember(
     await decrementBusinessUsage(businessId);
   }
 
-  await updateDoc(memberRef, {
-    ...member,
-    updatedAt: new Date().toISOString(),
-  });
+  const now = new Date().toISOString();
+  const existingData = existing.data();
+  const createdAt = existingData?.createdAt ? String(existingData.createdAt) : now;
+  const payload = buildGymMemberDocument(member, memberId, createdAt, now);
+  console.log('Updating member:', payload);
+
+  await updateDoc(memberRef, payload);
 }
 
 export async function deleteGymMember(businessId: string, memberId: string) {

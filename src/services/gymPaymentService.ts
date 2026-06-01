@@ -16,6 +16,7 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymMemberRecord, GymPaymentRecord, GymReceiptRecord } from '@/types';
+import { removeUndefinedFields } from '@/utils/removeUndefinedFields';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -170,7 +171,7 @@ export async function saveGymMemberPayment({
   const nextPaidAmount = currentPaid + payment.amount;
   const nextPendingAmount = Math.max(monthlyFee - nextPaidAmount, 0);
 
-  const paymentData: Omit<GymPaymentRecord, 'id'> = {
+  const paymentData: Omit<GymPaymentRecord, 'id'> = removeUndefinedFields({
     ...payment,
     memberDocId: resolvedMemberId,
     memberId: resolvedMemberId,
@@ -178,9 +179,9 @@ export async function saveGymMemberPayment({
     receiptId: receiptRef.id,
     createdAt: payment.createdAt ?? now,
     updatedAt: now,
-  };
+  });
 
-  const receiptData: Omit<GymReceiptRecord, 'id'> = {
+  const receiptData: Omit<GymReceiptRecord, 'id'> = removeUndefinedFields({
     ...receipt,
     memberDocId: resolvedMemberId,
     memberId: resolvedMemberId,
@@ -190,11 +191,14 @@ export async function saveGymMemberPayment({
     businessName,
     createdAt: receipt.createdAt ?? now,
     updatedAt: now,
-  };
+  });
+
+  console.log('Saving payment:', paymentData);
+  console.log('Saving receipt:', receiptData);
 
   batch.set(paymentRef, paymentData);
   batch.set(receiptRef, receiptData);
-  batch.update(memberRef, {
+  batch.update(memberRef, removeUndefinedFields({
     memberId: resolvedMemberId,
     memberCode: resolvedMemberCode,
     displayId: resolvedMemberCode,
@@ -206,7 +210,7 @@ export async function saveGymMemberPayment({
     feeAmount: monthlyFee,
     status: existingMember.status === 'expired' ? 'active' : existingMember.status,
     updatedAt: now,
-  });
+  }));
 
   await batch.commit();
 

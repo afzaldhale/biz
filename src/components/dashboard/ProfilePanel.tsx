@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { getAppErrorMessage, handleAppError } from '@/utils/appErrorHandler';
 import { BusinessProfile } from '@/types';
 import { getBusinessProfile, saveBusinessProfile } from '@/services/businessService';
 
@@ -61,7 +62,7 @@ export default function ProfilePanel({ businessId }: ProfilePanelProps) {
       })
       .catch((caught) => {
         if (cancelled) return;
-        setError(caught instanceof Error ? caught.message : 'Unable to load profile.');
+        setError(getAppErrorMessage(caught, 'Unable to load profile.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -99,7 +100,7 @@ export default function ProfilePanel({ businessId }: ProfilePanelProps) {
       setProfile(nextProfile);
       toast.success('Profile updated successfully.');
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : 'Failed to save profile.');
+      handleAppError(caught, 'Failed to save profile.');
     } finally {
       setSaving(false);
     }

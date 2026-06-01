@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import { BookOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { AuthUser, AcademyCourse } from '@/types';
 import {
@@ -134,7 +135,7 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
         }
         closeModal();
       } catch (caught) {
-        toast.error(caught instanceof Error ? caught.message : 'Unable to save course.');
+        handleAppError(caught, 'Unable to save course.');
       } finally {
         setSaving(false);
       }

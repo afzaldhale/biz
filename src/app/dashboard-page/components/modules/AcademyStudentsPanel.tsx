@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import {
   Check,
   Circle,
@@ -790,7 +791,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         setLimitModalLimit(error.recordLimit);
         setLimitModalOpen(true);
       }
-      toast.error(error instanceof Error ? error.message : 'Unable to save student.');
+      handleAppError(error, 'Unable to save student.');
     } finally {
       setSavingStudent(false);
     }
@@ -911,7 +912,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         printReceipt(receipt);
       }
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to save payment.');
+      handleAppError(error, 'Unable to save payment.');
     } finally {
       setSavingPayment(false);
     }

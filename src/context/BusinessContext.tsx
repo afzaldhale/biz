@@ -11,6 +11,7 @@ import React, {
 } from 'react';
 import { BusinessProfile, UserProfile } from '@/types';
 import { getBusinessById, getUserProfile } from '@/services/businessService';
+import { getAppErrorMessage } from '@/utils/appErrorHandler';
 import { useAuth } from './AuthContext';
 import type { SessionUser } from '@/services/authService';
 
@@ -74,9 +75,7 @@ export const BusinessProvider = ({ children }: { children: ReactNode }) => {
         console.error('[business-context] failed to load business state', error);
         setUserProfile(null);
         setBusiness(null);
-        setBusinessError(
-          error instanceof Error ? error.message : 'Unable to load business profile.'
-        );
+        setBusinessError(getAppErrorMessage(error, 'Unable to load business profile.'));
       } finally {
         setBusinessLoading(false);
       }

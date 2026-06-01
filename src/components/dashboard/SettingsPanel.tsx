@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
+import { getAppErrorMessage, handleAppError } from '@/utils/appErrorHandler';
 import { BusinessProfile } from '@/types';
 import { getBusinessProfile, saveBusinessProfile } from '@/services/businessService';
 
@@ -44,7 +45,7 @@ export default function SettingsPanel({ businessId }: SettingsPanelProps) {
       })
       .catch((caught) => {
         if (cancelled) return;
-        setError(caught instanceof Error ? caught.message : 'Unable to load settings.');
+        setError(getAppErrorMessage(caught, 'Unable to load settings.'));
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -79,7 +80,7 @@ export default function SettingsPanel({ businessId }: SettingsPanelProps) {
       setProfile(updatedProfile);
       toast.success('Settings saved successfully.');
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : 'Could not save settings.');
+      handleAppError(caught, 'Could not save settings.');
     } finally {
       setSaving(false);
     }

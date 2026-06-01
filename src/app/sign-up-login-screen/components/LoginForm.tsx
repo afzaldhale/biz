@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAppErrorMessage } from '@/utils/appErrorHandler';
 import { useAuth } from '@/context/AuthContext';
 import { useBusiness } from '@/context/BusinessContext';
 
@@ -54,8 +55,7 @@ export default function LoginForm({ onSwitchToSignup }: LoginFormProps) {
       toast.success('Welcome back! Redirecting to your dashboard...');
       router.replace('/dashboard');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to sign in right now';
-      setAuthError(message);
+      setAuthError(getAppErrorMessage(error, 'Unable to sign in right now'));
     } finally {
       setIsLoading(false);
     }

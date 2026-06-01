@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import { useBusiness } from '@/context/BusinessContext';
 import { upgradeRecordLimit } from '@/services/subscriptionService';
 import {
@@ -81,7 +82,7 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
       toast.success('Subscription upgraded successfully.');
       onUpgradeComplete?.();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to upgrade subscription.');
+      handleAppError(error, 'Unable to upgrade subscription.');
     } finally {
       setSaving(false);
     }

@@ -295,10 +295,6 @@ export interface GymMemberRecord {
   pendingFees?: number;
   status: 'active' | 'paused' | 'expired';
   emergencyContact?: string;
-  heightCm?: number;
-  weightKg?: number;
-  bmi?: number;
-  fitnessGoal?: 'weight-loss' | 'weight-gain' | 'strength' | 'general-fitness';
   notes?: string;
   createdAt?: string;
   updatedAt?: string;

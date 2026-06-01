@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import { Eye, Plus, Printer, Search } from 'lucide-react';
 import { AcademyFee, AcademyPaymentMode, AcademyReceipt, AcademyStudent, AuthUser } from '@/types';
 import { getAcademyStudents } from '@/services/academyStudentService';
@@ -345,7 +346,7 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
           printReceipt(receipt);
         }
       } catch (caught) {
-        toast.error(caught instanceof Error ? caught.message : 'Unable to record payment.');
+        handleAppError(caught, 'Unable to record payment.');
       } finally {
         setSaving(false);
       }

@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymAttendanceRecord } from '@/types';
+import { removeUndefinedFields } from '@/utils/removeUndefinedFields';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -39,12 +40,12 @@ export async function upsertGymAttendance(
 
   await setDoc(
     attendanceRef,
-    {
+    removeUndefinedFields({
       ...attendance,
       attendanceId,
       createdAt: existing.exists() ? existing.data().createdAt ?? now : now,
       updatedAt: now,
-    },
+    }),
     { merge: true }
   );
 

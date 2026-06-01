@@ -12,6 +12,7 @@ import BusinessPlanModal from './BusinessPlanModal';
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
 import { Business, BusinessStatus, CapacityTier } from '@/lib/mockData';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import { Plus } from 'lucide-react';
 import {
   adminSyncBusinessUsage,
@@ -59,7 +60,7 @@ export default function BusinessManagementContent() {
       .catch((error) => {
         if (!active) return;
         console.error('[business-management] unable to load businesses', error);
-        toast.error(error instanceof Error ? error.message : 'Unable to load businesses.');
+        handleAppError(error, 'Unable to load businesses.');
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -149,7 +150,7 @@ export default function BusinessManagementContent() {
       setStatusModalBiz(null);
       toast.success(`${biz.businessName} status updated to ${newStatus.replace('_', ' ')}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to update business status.');
+      handleAppError(error, 'Unable to update business status.');
     } finally {
       setActionLoading(false);
     }
@@ -179,7 +180,7 @@ export default function BusinessManagementContent() {
       setPlanModalBiz(null);
       toast.success(`${biz.businessName} record limit updated.`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to update record limit.');
+      handleAppError(error, 'Unable to update record limit.');
     } finally {
       setActionLoading(false);
     }
@@ -196,7 +197,7 @@ export default function BusinessManagementContent() {
       setSuspendConfirm(null);
       toast.success(`${suspendConfirm.businessName} has been suspended`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Unable to suspend business.');
+      handleAppError(error, 'Unable to suspend business.');
     } finally {
       setActionLoading(false);
     }
@@ -324,7 +325,7 @@ export default function BusinessManagementContent() {
               setBusinesses(rows);
               toast.success('Business usage synced successfully.');
             } catch (error) {
-              toast.error(error instanceof Error ? error.message : 'Unable to sync usage.');
+              handleAppError(error, 'Unable to sync usage.');
             }
           }}
         />

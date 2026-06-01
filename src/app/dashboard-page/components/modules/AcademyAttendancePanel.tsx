@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import { CalendarCheck2, Check, MinusCircle, Search } from 'lucide-react';
 import {
   AcademyAttendance,
@@ -219,7 +220,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
         toast.success('Attendance saved successfully.');
       }
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : 'Unable to save attendance.');
+      handleAppError(caught, 'Unable to save attendance.');
     } finally {
       setSaving(false);
     }

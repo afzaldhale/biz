@@ -248,9 +248,7 @@ export default function BusinessSetupPage() {
       toast.success('Business workspace configured successfully. Redirecting to dashboard...');
       router.replace('/dashboard');
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : 'Unable to save your business setup right now.';
-      toast.error(message);
+      toast.error(getAppErrorMessage(error, 'Unable to save your business setup right now.'));
       setIsSubmitting(false);
     }
   };

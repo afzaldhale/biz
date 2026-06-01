@@ -27,8 +27,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <BusinessProvider>{children}</BusinessProvider>
         </AuthProvider>
         <Toaster
-          position="bottom-right"
+          position="top-right"
           toastOptions={{
+            duration: 4000,
             style: {
               background: 'var(--card)',
               color: 'var(--foreground)',

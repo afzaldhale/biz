@@ -8,6 +8,7 @@ import {
   updateStudent,
   deleteStudent,
 } from '../../services/studentService';
+import { getAppErrorMessage } from '@/utils/appErrorHandler';
 
 const AcademyDashboard: React.FC = () => {
   const { business } = useBusiness();
@@ -45,7 +46,7 @@ const AcademyDashboard: React.FC = () => {
       setHasMoreStudents(paginatedStudents.hasMore);
       setTotalStudents(studentCount);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch students');
+      setError(getAppErrorMessage(err, 'Failed to fetch students'));
     } finally {
       setLoading(false);
     }
@@ -67,7 +68,7 @@ const AcademyDashboard: React.FC = () => {
       setLastStudentDoc(nextPage.lastDoc);
       setHasMoreStudents(nextPage.hasMore);
     } catch (err: any) {
-      setError(err.message || 'Failed to load more students');
+      setError(getAppErrorMessage(err, 'Failed to load more students'));
     } finally {
       setLoading(false);
     }

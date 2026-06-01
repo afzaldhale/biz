@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import { createSupportTicket } from '@/services/activityService';
 
 interface HelpSupportPanelProps {
@@ -42,7 +43,7 @@ export default function HelpSupportPanel({ businessId, ownerName }: HelpSupportP
       toast.success('Support request sent. Our team will follow up soon.');
       setForm({ subject: '', category: 'General', message: '' });
     } catch (caught) {
-      toast.error(caught instanceof Error ? caught.message : 'Failed to submit support request.');
+      handleAppError(caught, 'Failed to submit support request.');
     } finally {
       setSubmitting(false);
     }

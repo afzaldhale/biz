@@ -10,6 +10,7 @@ import {
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymTrainerRecord } from '@/types';
+import { removeUndefinedFields } from '@/utils/removeUndefinedFields';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -26,11 +27,11 @@ function getFirestoreDb() {
 
 export async function addGymTrainer(businessId: string, trainer: GymTrainerRecord) {
   const now = new Date().toISOString();
-  const docRef = await addDoc(collection(getFirestoreDb(), `businesses/${businessId}/gymTrainers`), {
+  const docRef = await addDoc(collection(getFirestoreDb(), `businesses/${businessId}/gymTrainers`), removeUndefinedFields({
     ...trainer,
     createdAt: trainer.createdAt ?? now,
     updatedAt: now,
-  });
+  }));
   return docRef.id;
 }
 
@@ -39,10 +40,10 @@ export async function updateGymTrainer(
   trainerId: string,
   trainer: GymTrainerRecord
 ) {
-  await updateDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymTrainers`, trainerId), {
+  await updateDoc(doc(getFirestoreDb(), `businesses/${businessId}/gymTrainers`, trainerId), removeUndefinedFields({
     ...trainer,
     updatedAt: new Date().toISOString(),
-  });
+  }));
 }
 
 export async function deleteGymTrainer(businessId: string, trainerId: string) {

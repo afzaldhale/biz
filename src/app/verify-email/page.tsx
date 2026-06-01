@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { getAppErrorMessage } from '@/utils/appErrorHandler';
 import {
   activateBusinessAfterVerification,
   markUserEmailVerified,
@@ -76,8 +77,7 @@ export default function VerifyEmailPage() {
       );
       toast.success('Verification email sent again. Please check your inbox.');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to send verification email.';
-      setError(message);
+      setError(getAppErrorMessage(err, 'Failed to send verification email.'));
       setPageState('notVerified');
     } finally {
       setIsResending(false);
@@ -117,9 +117,7 @@ export default function VerifyEmailPage() {
       setPageState('verified');
       await redirectAfterVerification();
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : 'Unable to confirm verification right now.';
-      setError(message);
+      setError(getAppErrorMessage(err, 'Unable to confirm verification right now.'));
       setPageState('notVerified');
     } finally {
       setIsChecking(false);

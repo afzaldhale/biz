@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { handleAppError } from '@/utils/appErrorHandler';
 import { useAuth } from '@/context/AuthContext';
 
 interface SignupFormValues {
@@ -50,8 +51,7 @@ export default function SignupForm({ onSwitchToLogin }: SignupFormProps) {
       toast.success(`Account created for ${data.ownerName}. We've sent your verification email.`);
       router.push('/verify-email');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to create account right now';
-      toast.error(message);
+      handleAppError(error, 'Unable to create account right now');
       setIsLoading(false);
     }
   };
