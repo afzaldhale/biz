@@ -80,6 +80,34 @@ const GymMembersPanel = dynamic(
   }
 );
 
+const HotelRoomsPanel = dynamic(
+  () => import('@/app/dashboard-page/components/modules/HotelRoomsPanel'),
+  {
+    loading: () => <ModuleSkeleton />,
+  }
+);
+
+const HotelBookingsPanel = dynamic(
+  () => import('@/app/dashboard-page/components/modules/HotelBookingsPanel'),
+  {
+    loading: () => <ModuleSkeleton />,
+  }
+);
+
+const HotelGuestsPanel = dynamic(
+  () => import('@/app/dashboard-page/components/modules/HotelGuestsPanel'),
+  {
+    loading: () => <ModuleSkeleton />,
+  }
+);
+
+const HotelHousekeepingPanel = dynamic(
+  () => import('@/app/dashboard-page/components/modules/HotelHousekeepingPanel'),
+  {
+    loading: () => <ModuleSkeleton />,
+  }
+);
+
 const ProfilePanel = dynamic(() => import('@/components/dashboard/ProfilePanel'), {
   loading: () => <ModuleSkeleton />,
 });
@@ -162,6 +190,24 @@ export default function DashboardModuleContent({ module, user }: DashboardModule
 
     if (module === 'attendance') {
       return <AcademyAttendancePanel user={user} onNavigate={handleNavigate} />;
+    }
+  }
+
+  if (user.businessType === 'hotel') {
+    if (module === 'rooms') {
+      return <HotelRoomsPanel user={user} />;
+    }
+
+    if (module === 'bookings') {
+      return <HotelBookingsPanel user={user} />;
+    }
+
+    if (module === 'guests') {
+      return <HotelGuestsPanel user={user} />;
+    }
+
+    if (module === 'housekeeping') {
+      return <HotelHousekeepingPanel user={user} />;
     }
   }
 

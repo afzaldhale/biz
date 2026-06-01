@@ -364,6 +364,64 @@ export interface GymReceiptRecord {
   updatedAt?: string;
 }
 
+export type HotelRoomStatus = 'available' | 'occupied' | 'maintenance';
+export type HotelGuestStatus = 'reserved' | 'checked-in' | 'checked-out';
+export type HotelBookingStatus = 'confirmed' | 'checked-in' | 'checked-out' | 'cancelled';
+export type HotelHousekeepingStatus = 'pending' | 'in-progress' | 'completed';
+
+export interface HotelRoomRecord {
+  id: string;
+  roomId?: string;
+  roomNumber: string;
+  roomType: string;
+  ratePerNight: number;
+  status: HotelRoomStatus;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HotelGuestRecord {
+  id: string;
+  guestId?: string;
+  fullName: string;
+  phone: string;
+  email: string;
+  roomNumber: string;
+  checkInDate: string;
+  checkOutDate: string;
+  status: HotelGuestStatus;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HotelBookingRecord {
+  id: string;
+  bookingId?: string;
+  guestName: string;
+  roomNumber: string;
+  checkInDate: string;
+  checkOutDate: string;
+  amount: number;
+  status: HotelBookingStatus;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface HotelHousekeepingRecord {
+  id: string;
+  taskTitle: string;
+  roomNumber: string;
+  assignedTo: string;
+  status: HotelHousekeepingStatus;
+  scheduledDate: string;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface CourseRecord {
   id: string;
   title: string;
