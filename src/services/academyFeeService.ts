@@ -108,11 +108,7 @@ async function findPrimaryEnrollment(businessId: string, student: AcademyStudent
     )
   );
 
-  return (
-    enrollments.find((enrollment) => enrollment.status === 'active') ??
-    enrollments[0] ??
-    null
-  );
+  return enrollments.find((enrollment) => enrollment.status === 'active') ?? enrollments[0] ?? null;
 }
 
 export async function addStudentPayment(
@@ -192,7 +188,9 @@ export async function recordAcademyFeePayment(businessId: string, input: RecordF
 
     const nextPaid = Number(studentData.paidFees ?? 0) + paid;
     const nextPending = Math.max(0, currentPending - paid);
-    const totalAmount = Number(input.courseFees ?? enrollmentData.courseFees ?? studentData.totalFees ?? 0);
+    const totalAmount = Number(
+      input.courseFees ?? enrollmentData.courseFees ?? studentData.totalFees ?? 0
+    );
 
     const feeRef = doc(feesCollection);
     const receiptRef = doc(receiptsCollection);

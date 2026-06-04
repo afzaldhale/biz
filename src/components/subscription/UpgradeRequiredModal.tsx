@@ -28,9 +28,7 @@ export default function UpgradeRequiredModal({
           <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
             Record limit reached
           </p>
-          <h2 className="mt-1 text-xl font-700 text-foreground">
-            Upgrade your record capacity
-          </h2>
+          <h2 className="mt-1 text-xl font-700 text-foreground">Upgrade your record capacity</h2>
         </div>
 
         <div className="space-y-5 px-6 py-6">
@@ -69,13 +67,25 @@ export default function UpgradeRequiredModal({
           </div>
 
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onClose} className="btn-outline rounded-xl px-4 py-2.5 text-sm">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+            >
               Cancel
             </button>
-            <button type="button" onClick={onUpgrade} className="btn-outline rounded-xl px-4 py-2.5 text-sm">
+            <button
+              type="button"
+              onClick={onUpgrade}
+              className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+            >
               Contact Sales
             </button>
-            <button type="button" onClick={onUpgrade} className="btn-primary rounded-xl px-4 py-2.5 text-sm">
+            <button
+              type="button"
+              onClick={onUpgrade}
+              className="btn-primary rounded-xl px-4 py-2.5 text-sm"
+            >
               Upgrade Now
             </button>
           </div>

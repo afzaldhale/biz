@@ -44,15 +44,7 @@ export function sidebarResolver(businessType: string) {
         'Settings',
       ];
     case 'gym':
-      return [
-        'Dashboard',
-        'Members',
-        'Trainers',
-        'Billing',
-        'Reports',
-        'Subscription',
-        'Settings',
-      ];
+      return ['Dashboard', 'Members', 'Trainers', 'Billing', 'Reports', 'Subscription', 'Settings'];
     case 'serviceCenter':
       return [
         'Dashboard',

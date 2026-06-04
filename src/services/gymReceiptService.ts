@@ -1,11 +1,4 @@
-import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocs,
-  orderBy,
-  query,
-} from 'firebase/firestore';
+import { collection, deleteDoc, doc, getDocs, orderBy, query } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { GymReceiptRecord } from '@/types';
 
@@ -66,7 +59,10 @@ export async function getGymReceipts(businessId: string): Promise<GymReceiptReco
   );
 
   return snapshot.docs.map((receiptDoc) =>
-    normalizeGymReceipt(receiptDoc.data() as GymReceiptRecord & Record<string, unknown>, receiptDoc.id)
+    normalizeGymReceipt(
+      receiptDoc.data() as GymReceiptRecord & Record<string, unknown>,
+      receiptDoc.id
+    )
   );
 }
 

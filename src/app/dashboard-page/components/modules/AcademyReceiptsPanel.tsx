@@ -179,9 +179,7 @@ export default function AcademyReceiptsPanel({ user }: AcademyReceiptsPanelProps
           </div>
           <select
             value={modeFilter}
-            onChange={(event) =>
-              setModeFilter(event.target.value as 'all' | AcademyPaymentMode)
-            }
+            onChange={(event) => setModeFilter(event.target.value as 'all' | AcademyPaymentMode)}
             className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All modes</option>
@@ -199,7 +197,9 @@ export default function AcademyReceiptsPanel({ user }: AcademyReceiptsPanelProps
             </div>
           ) : (
             <div className="p-16 text-center text-muted-foreground">
-              {showSlowMessage ? 'Network is slow. Trying to load your workspace.' : 'Loading receipts...'}
+              {showSlowMessage
+                ? 'Network is slow. Trying to load your workspace.'
+                : 'Loading receipts...'}
             </div>
           )
         ) : filteredReceipts.length === 0 ? (
@@ -295,7 +295,9 @@ export default function AcademyReceiptsPanel({ user }: AcademyReceiptsPanelProps
               <div className="rounded-2xl border border-border bg-muted/20 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                   <div>
-                    <p className="text-lg font-700 text-foreground">{selectedReceipt.businessName}</p>
+                    <p className="text-lg font-700 text-foreground">
+                      {selectedReceipt.businessName}
+                    </p>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {selectedReceipt.businessAddress || 'Business address not added'}
                     </p>

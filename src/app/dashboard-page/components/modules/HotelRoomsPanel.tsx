@@ -174,12 +174,15 @@ export default function HotelRoomsPanel({ user }: { user: AuthUser }) {
     [user.id]
   );
 
-  const stats = useMemo(() => ({
-    total: rooms.length,
-    available: rooms.filter((room) => room.status === 'available').length,
-    occupied: rooms.filter((room) => room.status === 'occupied').length,
-    maintenance: rooms.filter((room) => room.status === 'maintenance').length,
-  }), [rooms]);
+  const stats = useMemo(
+    () => ({
+      total: rooms.length,
+      available: rooms.filter((room) => room.status === 'available').length,
+      occupied: rooms.filter((room) => room.status === 'occupied').length,
+      maintenance: rooms.filter((room) => room.status === 'maintenance').length,
+    }),
+    [rooms]
+  );
 
   return (
     <div className="max-w-screen-2xl mx-auto space-y-6">
@@ -204,11 +207,15 @@ export default function HotelRoomsPanel({ user }: { user: AuthUser }) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Total Rooms</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Total Rooms
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.total}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Available</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Available
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.available}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
@@ -216,7 +223,9 @@ export default function HotelRoomsPanel({ user }: { user: AuthUser }) {
           <p className="text-2xl font-700 text-foreground mt-2">{stats.occupied}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Maintenance</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Maintenance
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.maintenance}</p>
         </div>
       </div>
@@ -224,7 +233,10 @@ export default function HotelRoomsPanel({ user }: { user: AuthUser }) {
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               value={searchInput}
@@ -273,8 +285,12 @@ export default function HotelRoomsPanel({ user }: { user: AuthUser }) {
                   <tr key={room.id} className="group hover:bg-primary/5">
                     <td className="px-5 py-4 font-600 text-foreground">{room.roomNumber}</td>
                     <td className="px-5 py-4 text-muted-foreground">{room.roomType}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(room.ratePerNight)}</td>
-                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">{room.status}</td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatCurrency(room.ratePerNight)}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">
+                      {room.status}
+                    </td>
                     <td className="px-5 py-4 space-x-2">
                       <button
                         type="button"
@@ -334,9 +350,7 @@ export default function HotelRoomsPanel({ user }: { user: AuthUser }) {
           <div className="mx-auto max-w-3xl rounded-3xl bg-white p-6 md:p-8 shadow-xl">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <p className="text-sm text-muted-foreground">
-                  {editingId ? 'Edit' : 'New'} room
-                </p>
+                <p className="text-sm text-muted-foreground">{editingId ? 'Edit' : 'New'} room</p>
                 <h2 className="text-2xl font-700 text-foreground mt-1">
                   {editingId ? 'Update' : 'Create'} room record
                 </h2>
@@ -395,7 +409,9 @@ export default function HotelRoomsPanel({ user }: { user: AuthUser }) {
               </div>
 
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Rate per Night</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Rate per Night
+                </label>
                 <input
                   required
                   type="number"

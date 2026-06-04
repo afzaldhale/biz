@@ -36,7 +36,8 @@ export default function HotelHousekeepingPanel({ user }: { user: AuthUser }) {
   const [currentPage, setCurrentPage] = useState(1);
   const [formOpen, setFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formValues, setFormValues] = useState<Omit<HotelHousekeepingRecord, 'id'>>(defaultTaskForm);
+  const [formValues, setFormValues] =
+    useState<Omit<HotelHousekeepingRecord, 'id'>>(defaultTaskForm);
   const [submitting, setSubmitting] = useState(false);
 
   const debouncedSearchTerm = useDeferredValue(searchInput);
@@ -205,7 +206,9 @@ export default function HotelHousekeepingPanel({ user }: { user: AuthUser }) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Total Tasks</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Total Tasks
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.total}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
@@ -213,11 +216,15 @@ export default function HotelHousekeepingPanel({ user }: { user: AuthUser }) {
           <p className="text-2xl font-700 text-foreground mt-2">{stats.pending}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">In Progress</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            In Progress
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.inProgress}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Completed</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Completed
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.completed}</p>
         </div>
       </div>
@@ -225,7 +232,10 @@ export default function HotelHousekeepingPanel({ user }: { user: AuthUser }) {
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               value={searchInput}
@@ -255,7 +265,9 @@ export default function HotelHousekeepingPanel({ user }: { user: AuthUser }) {
         ) : filteredTasks.length === 0 ? (
           <div className="px-5 py-16 text-center">
             <p className="text-sm font-600 text-foreground">No housekeeping tasks found.</p>
-            <p className="text-xs text-muted-foreground mt-1">Create a task to keep the team aligned.</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Create a task to keep the team aligned.
+            </p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -275,9 +287,15 @@ export default function HotelHousekeepingPanel({ user }: { user: AuthUser }) {
                   <tr key={task.id} className="group hover:bg-primary/5">
                     <td className="px-5 py-4 font-600 text-foreground">{task.taskTitle}</td>
                     <td className="px-5 py-4 text-muted-foreground">{task.roomNumber || '—'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{task.assignedTo || 'Unassigned'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{formatDate(task.scheduledDate)}</td>
-                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">{task.status}</td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {task.assignedTo || 'Unassigned'}
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatDate(task.scheduledDate)}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">
+                      {task.status}
+                    </td>
                     <td className="px-5 py-4 space-x-2">
                       <button
                         type="button"
@@ -400,7 +418,9 @@ export default function HotelHousekeepingPanel({ user }: { user: AuthUser }) {
               </div>
 
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Scheduled Date</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">
+                  Scheduled Date
+                </label>
                 <input
                   required
                   type="date"

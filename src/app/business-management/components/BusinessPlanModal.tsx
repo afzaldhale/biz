@@ -104,7 +104,11 @@ export default function BusinessPlanModal({
             </button>
             <button
               onClick={() => onConfirm(selected)}
-              disabled={loading || !canManageSubscription || selected < (business.currentUsage ?? business.usageCount)}
+              disabled={
+                loading ||
+                !canManageSubscription ||
+                selected < (business.currentUsage ?? business.usageCount)
+              }
               className="btn-primary flex-1 rounded-xl py-2.5 text-sm font-700 disabled:opacity-60"
             >
               {loading ? 'Updating...' : 'Save Limit'}

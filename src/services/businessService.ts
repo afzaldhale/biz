@@ -251,7 +251,9 @@ export async function getBusinessProfile(businessId: string) {
 
 export async function saveBusinessProfile(profile: BusinessProfile) {
   const normalized = normalizeSubscriptionBusinessData(profile);
-  await setDoc(doc(getFirestoreDb(), 'businesses', profile.businessId), normalized, { merge: true });
+  await setDoc(doc(getFirestoreDb(), 'businesses', profile.businessId), normalized, {
+    merge: true,
+  });
   return normalized;
 }
 

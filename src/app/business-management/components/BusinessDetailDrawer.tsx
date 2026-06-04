@@ -85,7 +85,9 @@ export default function BusinessDetailDrawer({
               {biz.businessName.charAt(0)}
             </div>
             <div>
-              <h2 className="text-base font-800 leading-tight text-foreground">{biz.businessName}</h2>
+              <h2 className="text-base font-800 leading-tight text-foreground">
+                {biz.businessName}
+              </h2>
               <p className="text-xs text-muted-foreground">{biz.id}</p>
             </div>
           </div>
@@ -202,13 +204,23 @@ export default function BusinessDetailDrawer({
                 {[
                   ['Billing Model', 'Per-record subscription'],
                   ['Monthly Price', `₹${monthlyPriceDisplay.toLocaleString('en-IN')}/mo`],
-                  ['Record Limit', capacityLimit === 9999 ? 'Unlimited' : capacityLimit.toLocaleString('en-IN')],
+                  [
+                    'Record Limit',
+                    capacityLimit === 9999 ? 'Unlimited' : capacityLimit.toLocaleString('en-IN'),
+                  ],
                   ['Current Usage', usageCount.toLocaleString('en-IN')],
-                  ['Remaining', (biz.remainingRecords ?? Math.max(0, capacityLimit - usageCount)).toLocaleString('en-IN')],
+                  [
+                    'Remaining',
+                    (
+                      biz.remainingRecords ?? Math.max(0, capacityLimit - usageCount)
+                    ).toLocaleString('en-IN'),
+                  ],
                   ['Subscription Status', biz.subscriptionStatus ?? 'active'],
                   [
                     'Next Billing',
-                    biz.nextBillingDate ? new Date(biz.nextBillingDate).toLocaleDateString('en-IN') : 'Not set',
+                    biz.nextBillingDate
+                      ? new Date(biz.nextBillingDate).toLocaleDateString('en-IN')
+                      : 'Not set',
                   ],
                 ].map(([label, value]) => (
                   <div key={label} className="rounded-xl bg-muted/40 p-3">
@@ -223,7 +235,9 @@ export default function BusinessDetailDrawer({
               <div>
                 <div className="mb-2 flex items-center justify-between">
                   <p className="text-xs font-600 text-foreground">Usage progress</p>
-                  <span className={`text-xs font-700 ${usagePct >= 85 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                  <span
+                    className={`text-xs font-700 ${usagePct >= 85 ? 'text-red-500' : 'text-muted-foreground'}`}
+                  >
                     {usageCount} / {capacityLimit === 9999 ? '∞' : capacityLimit} ({usagePct}%)
                   </span>
                 </div>
@@ -246,7 +260,9 @@ export default function BusinessDetailDrawer({
               className="w-full resize-none rounded-xl border border-border bg-muted/40 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/50 focus:outline-none focus:ring-2 focus:ring-primary/30"
               rows={3}
             />
-            <button className="mt-2 text-xs font-600 text-primary hover:underline">Save note</button>
+            <button className="mt-2 text-xs font-600 text-primary hover:underline">
+              Save note
+            </button>
           </div>
         </div>
       </div>

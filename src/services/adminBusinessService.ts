@@ -2,10 +2,7 @@ import { collection, doc, getDocs, orderBy, query, setDoc, updateDoc } from 'fir
 import { BusinessProfile } from '@/types';
 import { getFirestoreDb } from '@/services/academyShared';
 import { syncBusinessUsage } from '@/services/subscriptionService';
-import {
-  calculateMonthlyPrice,
-  normalizeSubscriptionBusinessData,
-} from '@/utils/subscription';
+import { calculateMonthlyPrice, normalizeSubscriptionBusinessData } from '@/utils/subscription';
 import { Business, BusinessStatus, CapacityTier } from '@/lib/mockData';
 
 const INDUSTRY_MAP: Record<string, Business['industry']> = {

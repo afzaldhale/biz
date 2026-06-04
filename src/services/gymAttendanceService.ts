@@ -34,7 +34,11 @@ export async function upsertGymAttendance(
   attendance: Omit<GymAttendanceRecord, 'id' | 'attendanceId' | 'createdAt' | 'updatedAt'>
 ) {
   const attendanceId = getAttendanceDocId(attendance.memberDocId, attendance.attendanceDate);
-  const attendanceRef = doc(getFirestoreDb(), `businesses/${businessId}/gymAttendance`, attendanceId);
+  const attendanceRef = doc(
+    getFirestoreDb(),
+    `businesses/${businessId}/gymAttendance`,
+    attendanceId
+  );
   const existing = await getDoc(attendanceRef);
   const now = new Date().toISOString();
 
@@ -43,7 +47,7 @@ export async function upsertGymAttendance(
     removeUndefinedFields({
       ...attendance,
       attendanceId,
-      createdAt: existing.exists() ? existing.data().createdAt ?? now : now,
+      createdAt: existing.exists() ? (existing.data().createdAt ?? now) : now,
       updatedAt: now,
     }),
     { merge: true }

@@ -22,15 +22,9 @@ import {
 } from './academyShared';
 import { canAddRecord } from '@/utils/planLimits';
 import { getStudentHistory } from './academyDashboardService';
-import {
-  decrementUsageOnDeactivate,
-  incrementUsageOnCreate,
-  SubscriptionLimitError,
-} from './subscriptionService';
-import {
-  calculateRemainingRecords,
-  normalizeSubscriptionBusinessData,
-} from '@/utils/subscription';
+import { decrementUsageOnDeactivate, SubscriptionLimitError } from './subscriptionService';
+import { incrementUsageInTransaction } from './subscriptionUsageService';
+import { calculateRemainingRecords, normalizeSubscriptionBusinessData } from '@/utils/subscription';
 
 export interface AcademyStudentInput {
   studentName: string;
@@ -82,7 +76,9 @@ export async function getAcademyStudents(businessId: string) {
   const snapshot = await getDocs(
     query(academyCollection(businessId, 'students'), orderBy('createdAt', 'desc'))
   );
-  return snapshot.docs.map((docSnapshot) => mapSnapshot<AcademyStudent>(docSnapshot, normalizeStudent));
+  return snapshot.docs.map((docSnapshot) =>
+    mapSnapshot<AcademyStudent>(docSnapshot, normalizeStudent)
+  );
 }
 
 export async function getAcademyStudent(businessId: string, studentId: string) {
@@ -101,7 +97,10 @@ export async function getStudentByBusinessStudentId(businessId: string, studentI
 
 export async function createAcademyStudent(businessId: string, input: AcademyStudentInput) {
   const firestore = getFirestoreDb();
-  const totalFees = input.selectedCourses.reduce((sum, course) => sum + Number(course.fees || 0), 0);
+  const totalFees = input.selectedCourses.reduce(
+    (sum, course) => sum + Number(course.fees || 0),
+    0
+  );
   const studentRef = doc(collection(firestore, 'businesses', businessId, 'students'));
   const studentId = studentRef.id;
   const admissionId = buildAdmissionId(studentId);
@@ -109,27 +108,7 @@ export async function createAcademyStudent(businessId: string, input: AcademyStu
 
   await runTransaction(firestore, async (transaction) => {
     if (input.status === 'active') {
-      const businessSnapshot = await transaction.get(businessRef);
-      if (!businessSnapshot.exists()) {
-        throw new Error('Business profile not found.');
-      }
-
-      const business = normalizeSubscriptionBusinessData(
-        businessSnapshot.data() as BusinessProfile
-      );
-      const currentUsage = business?.currentUsage ?? 0;
-      const recordLimit = business?.recordLimit ?? business?.planLimit ?? 0;
-
-      if (currentUsage >= recordLimit) {
-        throw new SubscriptionLimitError(currentUsage, recordLimit);
-      }
-
-      const nextUsage = currentUsage + 1;
-      transaction.update(businessRef, {
-        currentUsage: nextUsage,
-        remainingRecords: calculateRemainingRecords(recordLimit, nextUsage),
-        updatedAt: firestoreTimestamp(),
-      });
+      await incrementUsageInTransaction(transaction, businessId, 1);
     }
 
     transaction.set(studentRef, {
@@ -175,7 +154,11 @@ export async function createAcademyStudent(businessId: string, input: AcademyStu
 export async function updateStudent(
   businessId: string,
   studentId: string,
-  data: Partial<AcademyStudentInput> & { paidFees?: number; pendingFees?: number; totalFees?: number }
+  data: Partial<AcademyStudentInput> & {
+    paidFees?: number;
+    pendingFees?: number;
+    totalFees?: number;
+  }
 ) {
   const updates: Record<string, unknown> = {
     updatedAt: firestoreTimestamp(),
@@ -213,24 +196,36 @@ export async function updateAcademyStudent(
     throw new Error('Student not found.');
   }
 
-  const totalFees = input.selectedCourses.reduce((sum, course) => sum + Number(course.fees || 0), 0);
+  const totalFees = input.selectedCourses.reduce(
+    (sum, course) => sum + Number(course.fees || 0),
+    0
+  );
   const nextPendingFees = Math.max(0, totalFees - Number(input.paidFees || 0));
   const statusChanged = currentStudent.status !== input.status;
 
-  if (statusChanged && currentStudent.status !== 'active' && input.status === 'active') {
-    await canAddRecord(businessId, 'students');
-    await incrementUsageOnCreate(businessId);
-  }
-
-  await updateStudent(businessId, studentId, {
+  const studentUpdatePayload = {
     ...input,
     totalFees,
     paidFees: Number(input.paidFees) || 0,
     pendingFees: nextPendingFees,
-  });
+    updatedAt: firestoreTimestamp(),
+  };
+
+  if (statusChanged && currentStudent.status !== 'active' && input.status === 'active') {
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await incrementUsageInTransaction(transaction, businessId, 1);
+      transaction.update(academyDoc(businessId, 'students', studentId), studentUpdatePayload);
+    });
+  } else {
+    await updateStudent(businessId, studentId, studentUpdatePayload as any);
+  }
 
   const existingEnrollments = await getDocs(
-    query(academyCollection(businessId, 'enrollments'), where('studentId', '==', currentStudent.studentId))
+    query(
+      academyCollection(businessId, 'enrollments'),
+      where('studentId', '==', currentStudent.studentId)
+    )
   );
   const existingCourseIds = new Set(
     existingEnrollments.docs
@@ -293,7 +288,10 @@ export async function getStudentHistorySummary(businessId: string, studentId: st
 
 export async function searchStudentByCourse(businessId: string, courseId: string) {
   const snapshot = await getDocs(
-    query(academyCollection(businessId, 'students'), where('enrolledCourseIds', 'array-contains', courseId))
+    query(
+      academyCollection(businessId, 'students'),
+      where('enrolledCourseIds', 'array-contains', courseId)
+    )
   );
   return sortByCreatedAtDesc(
     snapshot.docs.map((docSnapshot) => mapSnapshot<AcademyStudent>(docSnapshot, normalizeStudent))

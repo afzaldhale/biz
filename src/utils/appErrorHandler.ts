@@ -1,4 +1,5 @@
 import { toast } from 'sonner';
+import { SubscriptionLimitError } from '@/services/subscriptionService';
 
 function getErrorCode(error: unknown): string | undefined {
   if (typeof error === 'object' && error !== null) {
@@ -82,6 +83,15 @@ export function getAppErrorMessage(error: unknown, fallbackMessage?: string): st
 }
 
 export function handleAppError(error: unknown, fallbackMessage?: string): string {
+  // Special-case subscription limit errors to show a clear upgrade message
+  if (error instanceof SubscriptionLimitError || getErrorCode(error) === 'subscription/record-limit-reached') {
+    const title = 'Record Limit Reached';
+    const message = 'You have used all available records in your current subscription.\nUpgrade your subscription to continue.';
+    console.error('[app-error][subscription-limit]', error);
+    toast.error(`${title}\n${message}`, { duration: 7000 });
+    return title + ' - ' + message;
+  }
+
   const friendlyMessage = getFriendlyErrorMessage(error, fallbackMessage);
   console.error('[app-error]', error);
   toast.error(friendlyMessage, { duration: 5000 });

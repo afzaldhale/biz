@@ -37,20 +37,8 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
   hotel: [
     ...baseNavGroups,
     {
-      section: 'OPERATIONS',
-      items: [
-        { id: 'nav-rooms', label: 'Rooms', icon: 'DoorOpen' },
-        { id: 'nav-bookings', label: 'Bookings', icon: 'CalendarCheck' },
-        { id: 'nav-guests', label: 'Guests', icon: 'Users' },
-        { id: 'nav-housekeeping', label: 'Housekeeping', icon: 'SprayCan' },
-      ],
-    },
-    {
-      section: 'BILLING',
-      items: [
-        { id: 'nav-billing', label: 'Billing', icon: 'Receipt' },
-        { id: 'nav-reports', label: 'Reports', icon: 'BarChart2' },
-      ],
+      section: 'MANAGEMENT',
+      items: [{ id: 'nav-guests', label: 'Guests', icon: 'Users' }],
     },
     settingsGroup,
   ],
@@ -67,10 +55,7 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     },
     {
       section: 'BILLING',
-      items: [
-        { id: 'nav-billing', label: 'Billing', icon: 'Receipt' },
-        { id: 'nav-reports', label: 'Reports', icon: 'BarChart2' },
-      ],
+      items: [],
     },
     settingsGroup,
   ],

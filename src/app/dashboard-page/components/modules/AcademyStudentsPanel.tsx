@@ -16,7 +16,14 @@ import {
   WalletCards,
   X,
 } from 'lucide-react';
-import { AcademyAttendance, AcademyCourse, AcademyPaymentMode, AcademyReceipt, AcademyStudent, AuthUser } from '@/types';
+import {
+  AcademyAttendance,
+  AcademyCourse,
+  AcademyPaymentMode,
+  AcademyReceipt,
+  AcademyStudent,
+  AuthUser,
+} from '@/types';
 import { useBusiness } from '@/context/BusinessContext';
 import AdminConfirmDialog from '@/components/admin/AdminConfirmDialog';
 import RetryState from '@/components/ui/RetryState';
@@ -43,7 +50,7 @@ interface AcademyStudentsPanelProps {
   onNavigate: (navId: string) => void;
 }
 
-interface StudentFormState extends AcademyStudentInput {}
+type StudentFormState = AcademyStudentInput;
 
 interface PaymentFormState {
   amountPaid: string;
@@ -192,7 +199,11 @@ function StudentFormModal({
               {editingStudent ? 'Update student record' : 'Add student'}
             </h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full bg-muted p-2 text-muted-foreground">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-muted p-2 text-muted-foreground"
+          >
             <X size={18} />
           </button>
         </div>
@@ -210,7 +221,9 @@ function StudentFormModal({
                 required={key !== 'email'}
                 type={key === 'email' ? 'email' : 'text'}
                 value={form[key as keyof StudentFormState] as string}
-                onChange={(event) => onFormChange(key as keyof StudentFormState, event.target.value as never)}
+                onChange={(event) =>
+                  onFormChange(key as keyof StudentFormState, event.target.value as never)
+                }
                 className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               />
             </div>
@@ -247,10 +260,14 @@ function StudentFormModal({
           </div>
 
           <div className="md:col-span-2">
-            <label className="mb-1.5 block text-sm font-600 text-foreground">Enrolled Courses</label>
+            <label className="mb-1.5 block text-sm font-600 text-foreground">
+              Enrolled Courses
+            </label>
             <div className="grid gap-3 rounded-2xl border border-border bg-muted/30 p-4 sm:grid-cols-2">
               {courses.map((course) => {
-                const selected = form.selectedCourses.some((item) => item.courseId === course.courseId);
+                const selected = form.selectedCourses.some(
+                  (item) => item.courseId === course.courseId
+                );
                 return (
                   <button
                     key={course.id}
@@ -284,7 +301,9 @@ function StudentFormModal({
             <label className="mb-1.5 block text-sm font-600 text-foreground">Status</label>
             <select
               value={form.status}
-              onChange={(event) => onFormChange('status', event.target.value as AcademyStudent['status'])}
+              onChange={(event) =>
+                onFormChange('status', event.target.value as AcademyStudent['status'])
+              }
               className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="active">Active</option>
@@ -293,12 +312,26 @@ function StudentFormModal({
           </div>
 
           <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onClose} className="btn-outline rounded-xl px-5 py-3 text-sm">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-outline rounded-xl px-5 py-3 text-sm"
+            >
               Cancel
             </button>
-                <button type="submit" disabled={saving || isOffline} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
-              {saving ? 'Saving...' : isOffline ? 'Offline' : editingStudent ? 'Update Student' : 'Add Student'}
-                </button>
+            <button
+              type="submit"
+              disabled={saving || isOffline}
+              className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving
+                ? 'Saving...'
+                : isOffline
+                  ? 'Offline'
+                  : editingStudent
+                    ? 'Update Student'
+                    : 'Add Student'}
+            </button>
           </div>
         </form>
       </div>
@@ -333,7 +366,11 @@ function PaymentModal({
             <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">Add Payment</p>
             <h2 className="mt-1 text-xl font-700 text-foreground">{student.studentName}</h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-full bg-muted p-2 text-muted-foreground">
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-muted p-2 text-muted-foreground"
+          >
             <X size={18} />
           </button>
         </div>
@@ -341,15 +378,21 @@ function PaymentModal({
         <form onSubmit={onSubmit} className="grid gap-4 p-6 md:grid-cols-2">
           <div className="rounded-2xl border border-border bg-muted/40 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Total Fees</p>
-            <p className="mt-2 text-lg font-700 text-foreground">{formatCurrency(student.totalFees)}</p>
+            <p className="mt-2 text-lg font-700 text-foreground">
+              {formatCurrency(student.totalFees)}
+            </p>
           </div>
           <div className="rounded-2xl border border-border bg-muted/40 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Paid Fees</p>
-            <p className="mt-2 text-lg font-700 text-foreground">{formatCurrency(student.paidFees)}</p>
+            <p className="mt-2 text-lg font-700 text-foreground">
+              {formatCurrency(student.paidFees)}
+            </p>
           </div>
           <div className="rounded-2xl border border-border bg-muted/40 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Pending Fees</p>
-            <p className="mt-2 text-lg font-700 text-foreground">{formatCurrency(student.pendingFees)}</p>
+            <p className="mt-2 text-lg font-700 text-foreground">
+              {formatCurrency(student.pendingFees)}
+            </p>
           </div>
           <div className="rounded-2xl border border-border bg-muted/40 p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">Admission ID</p>
@@ -374,7 +417,9 @@ function PaymentModal({
             <label className="mb-1.5 block text-sm font-600 text-foreground">Payment Mode</label>
             <select
               value={form.paymentMode}
-              onChange={(event) => onChange('paymentMode', event.target.value as AcademyPaymentMode)}
+              onChange={(event) =>
+                onChange('paymentMode', event.target.value as AcademyPaymentMode)
+              }
               className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <option value="cash">Cash</option>
@@ -412,7 +457,11 @@ function PaymentModal({
           )}
 
           <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onClose} className="btn-outline rounded-xl px-5 py-3 text-sm">
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-outline rounded-xl px-5 py-3 text-sm"
+            >
               Cancel
             </button>
             <button
@@ -451,27 +500,37 @@ function HistoryDrawer({
         <div className="sticky top-0 z-10 border-b border-border bg-white px-6 py-5">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">Student History</p>
+              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
+                Student History
+              </p>
               <h2 className="mt-1 text-xl font-700 text-foreground">{student.studentName}</h2>
             </div>
-            <button type="button" onClick={onClose} className="rounded-full bg-muted p-2 text-muted-foreground">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-full bg-muted p-2 text-muted-foreground"
+            >
               <X size={18} />
             </button>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
-            {([
-              ['overview', 'Overview'],
-              ['fees', 'Fee History'],
-              ['receipts', 'Receipt History'],
-              ['attendance', 'Attendance History'],
-              ['courses', 'Courses'],
-            ] as Array<[HistoryTab, string]>).map(([tab, label]) => (
+            {(
+              [
+                ['overview', 'Overview'],
+                ['fees', 'Fee History'],
+                ['receipts', 'Receipt History'],
+                ['attendance', 'Attendance History'],
+                ['courses', 'Courses'],
+              ] as Array<[HistoryTab, string]>
+            ).map(([tab, label]) => (
               <button
                 key={tab}
                 type="button"
                 onClick={() => onTabChange(tab)}
                 className={`rounded-full px-4 py-2 text-sm font-600 ${
-                  historyTab === tab ? 'bg-indigo-50 text-primary' : 'bg-muted/60 text-muted-foreground'
+                  historyTab === tab
+                    ? 'bg-indigo-50 text-primary'
+                    : 'bg-muted/60 text-muted-foreground'
                 }`}
               >
                 {label}
@@ -492,21 +551,50 @@ function HistoryDrawer({
                   <div className="rounded-2xl border border-border p-5">
                     <p className="text-sm font-700 text-foreground">Student Details</p>
                     <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                      <p><span className="font-600 text-foreground">Admission ID:</span> {student.admissionId}</p>
-                      <p><span className="font-600 text-foreground">Parent:</span> {student.parentName}</p>
-                      <p><span className="font-600 text-foreground">Phone:</span> {student.phone}</p>
-                      <p><span className="font-600 text-foreground">Email:</span> {student.email || '—'}</p>
-                      <p><span className="font-600 text-foreground">Address:</span> {student.address || '—'}</p>
+                      <p>
+                        <span className="font-600 text-foreground">Admission ID:</span>{' '}
+                        {student.admissionId}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Parent:</span>{' '}
+                        {student.parentName}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Phone:</span> {student.phone}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Email:</span>{' '}
+                        {student.email || '—'}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Address:</span>{' '}
+                        {student.address || '—'}
+                      </p>
                     </div>
                   </div>
                   <div className="rounded-2xl border border-border p-5">
                     <p className="text-sm font-700 text-foreground">Operations Summary</p>
                     <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                      <p><span className="font-600 text-foreground">Total Fees:</span> {formatCurrency(student.totalFees)}</p>
-                      <p><span className="font-600 text-foreground">Paid Fees:</span> {formatCurrency(student.paidFees)}</p>
-                      <p><span className="font-600 text-foreground">Pending Fees:</span> {formatCurrency(student.pendingFees)}</p>
-                      <p><span className="font-600 text-foreground">Attendance Records:</span> {historyData.attendance.length}</p>
-                      <p><span className="font-600 text-foreground">Enrolled Courses:</span> {historyData.enrollments.length}</p>
+                      <p>
+                        <span className="font-600 text-foreground">Total Fees:</span>{' '}
+                        {formatCurrency(student.totalFees)}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Paid Fees:</span>{' '}
+                        {formatCurrency(student.paidFees)}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Pending Fees:</span>{' '}
+                        {formatCurrency(student.pendingFees)}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Attendance Records:</span>{' '}
+                        {historyData.attendance.length}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Enrolled Courses:</span>{' '}
+                        {historyData.enrollments.length}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -514,70 +602,108 @@ function HistoryDrawer({
 
               {historyTab === 'fees' && (
                 <div className="space-y-3">
-                  {historyData.fees.length ? historyData.fees.map((fee) => (
-                    <div key={fee.id} className="rounded-2xl border border-border p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="font-600 text-foreground">{fee.courseName || 'Fee Payment'}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{fee.paymentDate} · {fee.paymentMode}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-700 text-foreground">{formatCurrency(fee.paidAmount)}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">Pending {formatCurrency(fee.pendingAmount)}</p>
+                  {historyData.fees.length ? (
+                    historyData.fees.map((fee) => (
+                      <div key={fee.id} className="rounded-2xl border border-border p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-600 text-foreground">
+                              {fee.courseName || 'Fee Payment'}
+                            </p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {fee.paymentDate} · {fee.paymentMode}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-700 text-foreground">
+                              {formatCurrency(fee.paidAmount)}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              Pending {formatCurrency(fee.pendingAmount)}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground">No fee history found.</p>}
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No fee history found.</p>
+                  )}
                 </div>
               )}
 
               {historyTab === 'receipts' && (
                 <div className="space-y-3">
-                  {historyData.receipts.length ? historyData.receipts.map((receipt) => (
-                    <div key={receipt.id} className="flex items-center justify-between gap-4 rounded-2xl border border-border p-4">
-                      <div>
-                        <p className="font-600 text-foreground">{receipt.receiptNumber}</p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          {receipt.paymentDate} · {formatCurrency(receipt.amountPaid)}
-                        </p>
+                  {historyData.receipts.length ? (
+                    historyData.receipts.map((receipt) => (
+                      <div
+                        key={receipt.id}
+                        className="flex items-center justify-between gap-4 rounded-2xl border border-border p-4"
+                      >
+                        <div>
+                          <p className="font-600 text-foreground">{receipt.receiptNumber}</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {receipt.paymentDate} · {formatCurrency(receipt.amountPaid)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => printReceipt(receipt)}
+                          className="btn-outline rounded-xl px-4 py-2 text-xs"
+                        >
+                          Print
+                        </button>
                       </div>
-                      <button type="button" onClick={() => printReceipt(receipt)} className="btn-outline rounded-xl px-4 py-2 text-xs">
-                        Print
-                      </button>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground">No receipts found.</p>}
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No receipts found.</p>
+                  )}
                 </div>
               )}
 
               {historyTab === 'attendance' && (
                 <div className="space-y-3">
-                  {historyData.attendance.length ? historyData.attendance.map((record) => (
-                    <div key={record.id} className="rounded-2xl border border-border p-4">
-                      <div className="flex items-center justify-between gap-4">
-                        <div>
-                          <p className="font-600 text-foreground">{record.attendanceDate}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{record.courseName || 'General attendance'}</p>
+                  {historyData.attendance.length ? (
+                    historyData.attendance.map((record) => (
+                      <div key={record.id} className="rounded-2xl border border-border p-4">
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="font-600 text-foreground">{record.attendanceDate}</p>
+                            <p className="mt-1 text-sm text-muted-foreground">
+                              {record.courseName || 'General attendance'}
+                            </p>
+                          </div>
+                          <span
+                            className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${attendanceBadge(record.status)}`}
+                          >
+                            {attendanceLabel(record.status)}
+                          </span>
                         </div>
-                        <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${attendanceBadge(record.status)}`}>
-                          {attendanceLabel(record.status)}
-                        </span>
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          {record.remarks || 'No remarks'}
+                        </p>
                       </div>
-                      <p className="mt-3 text-sm text-muted-foreground">{record.remarks || 'No remarks'}</p>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground">No attendance history found.</p>}
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No attendance history found.</p>
+                  )}
                 </div>
               )}
 
               {historyTab === 'courses' && (
                 <div className="space-y-3">
-                  {historyData.enrollments.length ? historyData.enrollments.map((enrollment) => (
-                    <div key={enrollment.id} className="rounded-2xl border border-border p-4">
-                      <p className="font-600 text-foreground">{enrollment.courseName}</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Enrolled {enrollment.enrollmentDate} · {formatCurrency(enrollment.courseFees)} · {enrollment.status}
-                      </p>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground">No enrolled courses found.</p>}
+                  {historyData.enrollments.length ? (
+                    historyData.enrollments.map((enrollment) => (
+                      <div key={enrollment.id} className="rounded-2xl border border-border p-4">
+                        <p className="font-600 text-foreground">{enrollment.courseName}</p>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          Enrolled {enrollment.enrollmentDate} ·{' '}
+                          {formatCurrency(enrollment.courseFees)} · {enrollment.status}
+                        </p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No enrolled courses found.</p>
+                  )}
                 </div>
               )}
             </>
@@ -593,7 +719,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
   const { isOffline } = useNetworkStatus();
   const [students, setStudents] = useState<AcademyStudent[]>([]);
   const [courses, setCourses] = useState<AcademyCourse[]>([]);
-  const [todayAttendanceMap, setTodayAttendanceMap] = useState<Map<string, AcademyAttendance>>(new Map());
+  const [todayAttendanceMap, setTodayAttendanceMap] = useState<Map<string, AcademyAttendance>>(
+    new Map()
+  );
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
@@ -613,7 +741,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
   const [savingPayment, setSavingPayment] = useState(false);
 
   const [historyStudent, setHistoryStudent] = useState<AcademyStudent | null>(null);
-  const [historyData, setHistoryData] = useState<Awaited<ReturnType<typeof getStudentHistory>> | null>(null);
+  const [historyData, setHistoryData] = useState<Awaited<
+    ReturnType<typeof getStudentHistory>
+  > | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyTab, setHistoryTab] = useState<HistoryTab>('overview');
 
@@ -682,13 +812,7 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         (attendanceFilter === 'not_marked' && !attendance);
       const matchesQuery =
         query.length === 0 ||
-        [
-          student.studentName,
-          student.parentName,
-          student.phone,
-          student.email,
-          student.admissionId,
-        ]
+        [student.studentName, student.parentName, student.phone, student.email, student.admissionId]
           .join(' ')
           .toLowerCase()
           .includes(query);
@@ -704,20 +828,33 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
   const totalPages = Math.max(1, Math.ceil(filteredStudents.length / rowsPerPage));
 
-  const stats = useMemo(() => ({
-    totalStudents: students.length,
-    presentToday: Array.from(todayAttendanceMap.values()).filter((record) => record.status === 'present').length,
-    absentToday: Array.from(todayAttendanceMap.values()).filter((record) => record.status === 'absent').length,
-    pendingFees: students.reduce((sum, student) => sum + Number(student.pendingFees || 0), 0),
-  }), [students, todayAttendanceMap]);
+  const stats = useMemo(
+    () => ({
+      totalStudents: students.length,
+      presentToday: Array.from(todayAttendanceMap.values()).filter(
+        (record) => record.status === 'present'
+      ).length,
+      absentToday: Array.from(todayAttendanceMap.values()).filter(
+        (record) => record.status === 'absent'
+      ).length,
+      pendingFees: students.reduce((sum, student) => sum + Number(student.pendingFees || 0), 0),
+    }),
+    [students, todayAttendanceMap]
+  );
 
-  const updateFormField = useCallback(<K extends keyof StudentFormState>(key: K, value: StudentFormState[K]) => {
-    setForm((current) => ({ ...current, [key]: value }));
-  }, []);
+  const updateFormField = useCallback(
+    <K extends keyof StudentFormState>(key: K, value: StudentFormState[K]) => {
+      setForm((current) => ({ ...current, [key]: value }));
+    },
+    []
+  );
 
-  const updatePaymentField = useCallback(<K extends keyof PaymentFormState>(key: K, value: PaymentFormState[K]) => {
-    setPaymentForm((current) => ({ ...current, [key]: value }));
-  }, []);
+  const updatePaymentField = useCallback(
+    <K extends keyof PaymentFormState>(key: K, value: PaymentFormState[K]) => {
+      setPaymentForm((current) => ({ ...current, [key]: value }));
+    },
+    []
+  );
 
   const toggleCourse = useCallback((course: AcademyCourse) => {
     setForm((current) => {
@@ -726,7 +863,10 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         ...current,
         selectedCourses: exists
           ? current.selectedCourses.filter((item) => item.courseId !== course.courseId)
-          : [...current.selectedCourses, { courseId: course.courseId, courseName: course.courseName, fees: course.fees }],
+          : [
+              ...current.selectedCourses,
+              { courseId: course.courseId, courseName: course.courseName, fees: course.fees },
+            ],
       };
     });
   }, []);
@@ -737,24 +877,31 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     setIsFormModalOpen(true);
   }, []);
 
-  const openEditModal = useCallback((student: AcademyStudent) => {
-    setEditingStudent(student);
-    setForm({
-      studentName: student.studentName,
-      parentName: student.parentName,
-      phone: student.phone,
-      email: student.email,
-      address: student.address,
-      dateOfBirth: student.dateOfBirth,
-      admissionDate: student.admissionDate,
-      notes: student.notes,
-      status: student.status,
-      selectedCourses: courses
-        .filter((course) => student.enrolledCourseIds.includes(course.courseId))
-        .map((course) => ({ courseId: course.courseId, courseName: course.courseName, fees: course.fees })),
-    });
-    setIsFormModalOpen(true);
-  }, [courses]);
+  const openEditModal = useCallback(
+    (student: AcademyStudent) => {
+      setEditingStudent(student);
+      setForm({
+        studentName: student.studentName,
+        parentName: student.parentName,
+        phone: student.phone,
+        email: student.email,
+        address: student.address,
+        dateOfBirth: student.dateOfBirth,
+        admissionDate: student.admissionDate,
+        notes: student.notes,
+        status: student.status,
+        selectedCourses: courses
+          .filter((course) => student.enrolledCourseIds.includes(course.courseId))
+          .map((course) => ({
+            courseId: course.courseId,
+            courseName: course.courseName,
+            fees: course.fees,
+          })),
+      });
+      setIsFormModalOpen(true);
+    },
+    [courses]
+  );
 
   const closeFormModal = useCallback(() => {
     setEditingStudent(null);
@@ -762,99 +909,121 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     setIsFormModalOpen(false);
   }, []);
 
-  const handleStudentSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (isOffline) {
-      toast.error('You are offline. Reconnect to save student changes.');
-      return;
-    }
-    setSavingStudent(true);
-
-    try {
-      if (editingStudent) {
-        await updateAcademyStudent(user.id, editingStudent.id, {
-          ...form,
-          paidFees: editingStudent.paidFees,
-        });
-        toast.success('Student updated successfully.');
-      } else {
-        await createAcademyStudent(user.id, form);
-        toast.success('Student added successfully.');
+  const handleStudentSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (isOffline) {
+        toast.error('You are offline. Reconnect to save student changes.');
+        return;
       }
+      setSavingStudent(true);
 
-      await loadStudentsWorkspace();
-      await refreshBusiness();
-      closeFormModal();
-    } catch (error) {
-      if (error instanceof SubscriptionLimitError) {
-        setLimitModalUsage(error.currentUsage);
-        setLimitModalLimit(error.recordLimit);
-        setLimitModalOpen(true);
+      try {
+        if (editingStudent) {
+          await updateAcademyStudent(user.id, editingStudent.id, {
+            ...form,
+            paidFees: editingStudent.paidFees,
+          });
+          toast.success('Student updated successfully.');
+        } else {
+          await createAcademyStudent(user.id, form);
+          toast.success('Student added successfully.');
+        }
+
+        await loadStudentsWorkspace();
+        await refreshBusiness();
+        closeFormModal();
+      } catch (error) {
+        if (error instanceof SubscriptionLimitError) {
+          setLimitModalUsage(error.currentUsage);
+          setLimitModalLimit(error.recordLimit);
+          setLimitModalOpen(true);
+        }
+        handleAppError(error, 'Unable to save student.');
+      } finally {
+        setSavingStudent(false);
       }
-      handleAppError(error, 'Unable to save student.');
-    } finally {
-      setSavingStudent(false);
-    }
-  }, [closeFormModal, editingStudent, form, isOffline, loadStudentsWorkspace, refreshBusiness, user.id]);
+    },
+    [
+      closeFormModal,
+      editingStudent,
+      form,
+      isOffline,
+      loadStudentsWorkspace,
+      refreshBusiness,
+      user.id,
+    ]
+  );
 
-  const handleAttendanceAction = useCallback(async (student: AcademyStudent, status: 'present' | 'absent') => {
-    if (isOffline) {
-      toast.error('You are offline. Reconnect to update attendance.');
-      return;
-    }
-    const previous = todayAttendanceMap.get(student.studentId);
-    const optimistic: AcademyAttendance = {
-      id: previous?.id ?? `${student.studentId}_${new Date().toISOString().slice(0, 10)}`,
-      attendanceId: previous?.attendanceId ?? `${student.studentId}_${new Date().toISOString().slice(0, 10)}`,
-      studentId: student.studentId,
-      studentName: student.studentName,
-      courseId: previous?.courseId ?? student.enrolledCourseIds[0] ?? '',
-      courseName: previous?.courseName ?? '',
-      attendanceDate: new Date().toISOString().slice(0, 10),
-      status,
-      remarks: previous?.remarks ?? '',
-      markedBy: user.ownerName,
-      createdAt: previous?.createdAt ?? new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setTodayAttendanceMap((current) => {
-      const next = new Map(current);
-      next.set(student.studentId, optimistic);
-      return next;
-    });
-
-    try {
-      const saved = await markTodayAttendance(user.id, {
-        id: student.id,
+  const handleAttendanceAction = useCallback(
+    async (student: AcademyStudent, status: 'present' | 'absent') => {
+      if (isOffline) {
+        toast.error('You are offline. Reconnect to update attendance.');
+        return;
+      }
+      const previous = todayAttendanceMap.get(student.studentId);
+      const optimistic: AcademyAttendance = {
+        id: previous?.id ?? `${student.studentId}_${new Date().toISOString().slice(0, 10)}`,
+        attendanceId:
+          previous?.attendanceId ?? `${student.studentId}_${new Date().toISOString().slice(0, 10)}`,
         studentId: student.studentId,
         studentName: student.studentName,
-        enrolledCourseIds: student.enrolledCourseIds,
-      }, status, { markedBy: user.ownerName });
+        courseId: previous?.courseId ?? student.enrolledCourseIds[0] ?? '',
+        courseName: previous?.courseName ?? '',
+        attendanceDate: new Date().toISOString().slice(0, 10),
+        status,
+        remarks: previous?.remarks ?? '',
+        markedBy: user.ownerName,
+        createdAt: previous?.createdAt ?? new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
 
-      if (saved) {
-        setTodayAttendanceMap((current) => {
-          const next = new Map(current);
-          next.set(student.studentId, saved);
-          return next;
-        });
-      }
-
-      toast.success(status === 'present' ? 'Attendance marked present' : 'Attendance marked absent');
-    } catch (error) {
-      console.error('[academy-students] unable to mark attendance', error);
       setTodayAttendanceMap((current) => {
         const next = new Map(current);
-        if (previous) {
-          next.set(student.studentId, previous);
-        } else {
-          next.delete(student.studentId);
-        }
+        next.set(student.studentId, optimistic);
         return next;
       });
-      toast.error('Unable to update attendance right now.');
-    }
-  }, [isOffline, todayAttendanceMap, user.id, user.ownerName]);
+
+      try {
+        const saved = await markTodayAttendance(
+          user.id,
+          {
+            id: student.id,
+            studentId: student.studentId,
+            studentName: student.studentName,
+            enrolledCourseIds: student.enrolledCourseIds,
+          },
+          status,
+          { markedBy: user.ownerName }
+        );
+
+        if (saved) {
+          setTodayAttendanceMap((current) => {
+            const next = new Map(current);
+            next.set(student.studentId, saved);
+            return next;
+          });
+        }
+
+        toast.success(
+          status === 'present' ? 'Attendance marked present' : 'Attendance marked absent'
+        );
+      } catch (error) {
+        console.error('[academy-students] unable to mark attendance', error);
+        setTodayAttendanceMap((current) => {
+          const next = new Map(current);
+          if (previous) {
+            next.set(student.studentId, previous);
+          } else {
+            next.delete(student.studentId);
+          }
+          return next;
+        });
+        toast.error('Unable to update attendance right now.');
+      }
+    },
+    [isOffline, todayAttendanceMap, user.id, user.ownerName]
+  );
 
   const openPaymentModal = useCallback((student: AcademyStudent) => {
     setPaymentStudent(student);
@@ -866,75 +1035,95 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     setPaymentForm(emptyPaymentForm);
   }, []);
 
-  const handlePaymentSubmit = useCallback(async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handlePaymentSubmit = useCallback(
+    async (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
 
-    if (!paymentStudent) return;
-    if (isOffline) {
-      toast.error('You are offline. Reconnect to save payments.');
-      return;
-    }
-    if (!business) {
-      toast.error('Business profile not loaded.');
-      return;
-    }
-
-    const amount = Number(paymentForm.amountPaid || 0);
-    if (amount <= 0) {
-      toast.error('Amount is required.');
-      return;
-    }
-    if (amount > paymentStudent.pendingFees) {
-      toast.error('Amount cannot exceed pending amount.');
-      return;
-    }
-
-    setSavingPayment(true);
-    try {
-      const paymentResult = await addStudentPayment(user.id, paymentStudent, {
-        amountPaid: amount,
-        paymentMode: paymentForm.paymentMode,
-        paymentDate: paymentForm.paymentDate,
-        notes: paymentForm.notes,
-        businessProfile: {
-          businessName: business.businessName,
-          address: business.address ?? '',
-          phone: business.phone,
-        },
-      });
-
-      await loadStudentsWorkspace();
-      closePaymentModal();
-      toast.success('Payment saved and receipt generated.');
-
-      const receipt = await getReceiptById(user.id, paymentResult.receiptId);
-      if (receipt && window.confirm(`Payment saved. Print receipt ${receipt.receiptNumber} now?`)) {
-        printReceipt(receipt);
+      if (!paymentStudent) return;
+      if (isOffline) {
+        toast.error('You are offline. Reconnect to save payments.');
+        return;
       }
-    } catch (error) {
-      handleAppError(error, 'Unable to save payment.');
-    } finally {
-      setSavingPayment(false);
-    }
-  }, [business, closePaymentModal, isOffline, loadStudentsWorkspace, paymentForm.amountPaid, paymentForm.notes, paymentForm.paymentDate, paymentForm.paymentMode, paymentStudent, user.id]);
+      if (!business) {
+        toast.error('Business profile not loaded.');
+        return;
+      }
 
-  const openHistoryDrawer = useCallback(async (student: AcademyStudent) => {
-    setHistoryStudent(student);
-    setHistoryData(null);
-    setHistoryTab('overview');
-    setHistoryLoading(true);
+      const amount = Number(paymentForm.amountPaid || 0);
+      if (amount <= 0) {
+        toast.error('Amount is required.');
+        return;
+      }
+      if (amount > paymentStudent.pendingFees) {
+        toast.error('Amount cannot exceed pending amount.');
+        return;
+      }
 
-    try {
-      const result = await getStudentHistory(user.id, student.studentId);
-      setHistoryData(result);
-    } catch (error) {
-      console.error('[academy-students] unable to load student history', error);
-      toast.error('Unable to load student history right now.');
-      setHistoryStudent(null);
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, [user.id]);
+      setSavingPayment(true);
+      try {
+        const paymentResult = await addStudentPayment(user.id, paymentStudent, {
+          amountPaid: amount,
+          paymentMode: paymentForm.paymentMode,
+          paymentDate: paymentForm.paymentDate,
+          notes: paymentForm.notes,
+          businessProfile: {
+            businessName: business.businessName,
+            address: business.address ?? '',
+            phone: business.phone,
+          },
+        });
+
+        await loadStudentsWorkspace();
+        closePaymentModal();
+        toast.success('Payment saved and receipt generated.');
+
+        const receipt = await getReceiptById(user.id, paymentResult.receiptId);
+        if (
+          receipt &&
+          window.confirm(`Payment saved. Print receipt ${receipt.receiptNumber} now?`)
+        ) {
+          printReceipt(receipt);
+        }
+      } catch (error) {
+        handleAppError(error, 'Unable to save payment.');
+      } finally {
+        setSavingPayment(false);
+      }
+    },
+    [
+      business,
+      closePaymentModal,
+      isOffline,
+      loadStudentsWorkspace,
+      paymentForm.amountPaid,
+      paymentForm.notes,
+      paymentForm.paymentDate,
+      paymentForm.paymentMode,
+      paymentStudent,
+      user.id,
+    ]
+  );
+
+  const openHistoryDrawer = useCallback(
+    async (student: AcademyStudent) => {
+      setHistoryStudent(student);
+      setHistoryData(null);
+      setHistoryTab('overview');
+      setHistoryLoading(true);
+
+      try {
+        const result = await getStudentHistory(user.id, student.studentId);
+        setHistoryData(result);
+      } catch (error) {
+        console.error('[academy-students] unable to load student history', error);
+        toast.error('Unable to load student history right now.');
+        setHistoryStudent(null);
+      } finally {
+        setHistoryLoading(false);
+      }
+    },
+    [user.id]
+  );
 
   const handleDeleteStudent = useCallback(async () => {
     if (!deleteStudentTarget) return;
@@ -962,17 +1151,27 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
     <div className="max-w-screen-2xl mx-auto space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-700 uppercase tracking-[0.24em] text-primary">Academy Students</p>
+          <p className="text-xs font-700 uppercase tracking-[0.24em] text-primary">
+            Academy Students
+          </p>
           <h1 className="mt-1 text-2xl font-700 text-foreground">Students</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Manage admissions, attendance, fee collection, and student records from one workspace.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button type="button" onClick={() => onNavigate('nav-fees')} className="btn-outline rounded-xl px-4 py-2.5 text-sm">
+          <button
+            type="button"
+            onClick={() => onNavigate('nav-fees')}
+            className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+          >
             Open Fees
           </button>
-          <button type="button" onClick={openCreateModal} className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm">
+          <button
+            type="button"
+            onClick={openCreateModal}
+            className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
+          >
             <Plus size={16} />
             Add Student
           </button>
@@ -981,7 +1180,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
-          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Total Students</p>
+          <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+            Total Students
+          </p>
           <p className="mt-2 text-2xl font-700 text-foreground">{stats.totalStudents}</p>
         </div>
         <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
@@ -994,14 +1195,19 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
         </div>
         <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
           <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Pending Fees</p>
-          <p className="mt-2 text-2xl font-700 text-foreground">{formatCurrency(stats.pendingFees)}</p>
+          <p className="mt-2 text-2xl font-700 text-foreground">
+            {formatCurrency(stats.pendingFees)}
+          </p>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-[28px] border border-border bg-white shadow-sm">
         <div className="grid gap-4 border-b border-border p-5 lg:grid-cols-[1fr_180px_180px_150px]">
           <div className="relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -1011,7 +1217,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
           </div>
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as 'all' | AcademyStudent['status'])}
+            onChange={(event) =>
+              setStatusFilter(event.target.value as 'all' | AcademyStudent['status'])
+            }
             className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All Statuses</option>
@@ -1051,7 +1259,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
           </div>
         ) : filteredStudents.length === 0 ? (
           <div className="p-16 text-center">
-            <p className="text-sm font-600 text-foreground">No students matched the current filters.</p>
+            <p className="text-sm font-600 text-foreground">
+              No students matched the current filters.
+            </p>
           </div>
         ) : (
           <>
@@ -1079,9 +1289,13 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
                         <td className="px-5 py-4">
                           <button
                             type="button"
-                            onClick={() => setSelectedStudentId(isSelected ? '' : student.studentId)}
+                            onClick={() =>
+                              setSelectedStudentId(isSelected ? '' : student.studentId)
+                            }
                             className={`flex h-6 w-6 items-center justify-center rounded-full border transition ${
-                              isSelected ? 'border-primary bg-primary text-white' : 'border-slate-300 bg-white text-transparent'
+                              isSelected
+                                ? 'border-primary bg-primary text-white'
+                                : 'border-slate-300 bg-white text-transparent'
                             }`}
                           >
                             <Circle size={10} fill="currentColor" />
@@ -1102,7 +1316,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
                               type="button"
                               onClick={() => void handleAttendanceAction(student, 'present')}
                               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-600 transition ${
-                                presentActive ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-border bg-white text-muted-foreground'
+                                presentActive
+                                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                  : 'border-border bg-white text-muted-foreground'
                               }`}
                             >
                               <Check size={13} />
@@ -1112,13 +1328,17 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
                               type="button"
                               onClick={() => void handleAttendanceAction(student, 'absent')}
                               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-600 transition ${
-                                absentActive ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-border bg-white text-muted-foreground'
+                                absentActive
+                                  ? 'border-rose-200 bg-rose-50 text-rose-700'
+                                  : 'border-border bg-white text-muted-foreground'
                               }`}
                             >
                               <X size={13} />
                               Absent
                             </button>
-                            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${attendanceBadge(todayAttendance?.status)}`}>
+                            <span
+                              className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${attendanceBadge(todayAttendance?.status)}`}
+                            >
                               {attendanceLabel(todayAttendance?.status)}
                             </span>
                           </div>
@@ -1129,7 +1349,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
                           </p>
                         </td>
                         <td className="px-5 py-4">
-                          <p className="font-700 text-foreground">{formatCurrency(student.pendingFees)}</p>
+                          <p className="font-700 text-foreground">
+                            {formatCurrency(student.pendingFees)}
+                          </p>
                         </td>
                         <td className="px-5 py-4">
                           <div className="flex justify-end gap-2">
@@ -1177,7 +1399,9 @@ export default function AcademyStudentsPanel({ user, onNavigate }: AcademyStuden
 
             <div className="flex items-center justify-between border-t border-border bg-white px-5 py-4">
               <p className="text-xs text-muted-foreground">
-                Showing {(page - 1) * rowsPerPage + 1}-{Math.min(page * rowsPerPage, filteredStudents.length)} of {filteredStudents.length} students
+                Showing {(page - 1) * rowsPerPage + 1}-
+                {Math.min(page * rowsPerPage, filteredStudents.length)} of {filteredStudents.length}{' '}
+                students
               </p>
               <div className="flex items-center gap-2">
                 <button

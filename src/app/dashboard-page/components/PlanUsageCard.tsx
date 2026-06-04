@@ -10,11 +10,7 @@ interface PlanUsageCardProps {
   usagePct: number;
 }
 
-export default function PlanUsageCard({
-  recordsUsed,
-  recordLimit,
-  usagePct,
-}: PlanUsageCardProps) {
+export default function PlanUsageCard({ recordsUsed, recordLimit, usagePct }: PlanUsageCardProps) {
   const isNearLimit = usagePct >= 80;
   const isAtLimit = usagePct >= 100;
   const barColor = isAtLimit ? 'var(--danger)' : isNearLimit ? 'var(--warning)' : 'var(--primary)';

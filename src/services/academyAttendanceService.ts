@@ -30,11 +30,10 @@ export interface AttendanceMarkInput {
   }>;
 }
 
-export interface TodayAttendanceStudentInput
-  extends Pick<
-    AcademyStudent,
-    'id' | 'studentId' | 'studentName' | 'enrolledCourseIds'
-  > {
+export interface TodayAttendanceStudentInput extends Pick<
+  AcademyStudent,
+  'id' | 'studentId' | 'studentName' | 'enrolledCourseIds'
+> {
   courseId?: string;
   courseName?: string;
 }
@@ -74,7 +73,9 @@ export async function getStudentAttendanceHistory(businessId: string, studentId:
     query(academyCollection(businessId, 'attendance'), where('studentId', '==', studentId))
   );
   return sortByCreatedAtDesc(
-    snapshot.docs.map((docSnapshot) => mapSnapshot<AcademyAttendance>(docSnapshot, normalizeAttendance))
+    snapshot.docs.map((docSnapshot) =>
+      mapSnapshot<AcademyAttendance>(docSnapshot, normalizeAttendance)
+    )
   );
 }
 
@@ -109,9 +110,10 @@ export async function markTodayAttendance(
   const attendanceRef = academyDoc(businessId, 'attendance', attendanceId);
   const existingSnap = await getDoc(attendanceRef);
 
-  const existingData = existingSnap.exists() ? (existingSnap.data() as Record<string, unknown>) : null;
-  const courseId =
-    options?.courseId ?? student.courseId ?? String(existingData?.courseId ?? '');
+  const existingData = existingSnap.exists()
+    ? (existingSnap.data() as Record<string, unknown>)
+    : null;
+  const courseId = options?.courseId ?? student.courseId ?? String(existingData?.courseId ?? '');
   const courseName =
     options?.courseName ?? student.courseName ?? String(existingData?.courseName ?? '');
 
@@ -127,7 +129,9 @@ export async function markTodayAttendance(
       status,
       remarks: options?.remarks?.trim() ?? String(existingData?.remarks ?? ''),
       markedBy: options?.markedBy ?? String(existingData?.markedBy ?? ''),
-      createdAt: existingSnap.exists() ? existingData?.createdAt ?? firestoreTimestamp() : firestoreTimestamp(),
+      createdAt: existingSnap.exists()
+        ? (existingData?.createdAt ?? firestoreTimestamp())
+        : firestoreTimestamp(),
       updatedAt: firestoreTimestamp(),
     },
     { merge: true }

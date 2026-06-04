@@ -58,8 +58,7 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
   }, [recordLimit]);
 
   const recordLabel = getRecordLabelByBusinessType(business?.businessType ?? 'custom');
-  const businessTypeLabel =
-    BUSINESS_TYPE_LABELS[business?.businessType ?? 'custom'] ?? 'Business';
+  const businessTypeLabel = BUSINESS_TYPE_LABELS[business?.businessType ?? 'custom'] ?? 'Business';
   const usagePercent = useMemo(() => {
     if (!recordLimit || recordLimit <= 0) return 0;
     return Math.min(100, Math.round((currentUsage / recordLimit) * 100));
@@ -89,7 +88,11 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
   };
 
   if (businessLoading) {
-    return <div className="rounded-[28px] border border-border bg-white p-8 shadow-sm">Loading subscription...</div>;
+    return (
+      <div className="rounded-[28px] border border-border bg-white p-8 shadow-sm">
+        Loading subscription...
+      </div>
+    );
   }
 
   if (!business) {
@@ -127,7 +130,9 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Record capacity</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Record capacity
+              </p>
               <p className="mt-2 text-lg font-700 text-foreground">
                 {recordLimit} {recordLabel}
               </p>
@@ -183,19 +188,25 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Current period start</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Current period start
+              </p>
               <p className="mt-2 text-base font-700 text-foreground">
                 {formatSubscriptionDate(business.currentPeriodStart)}
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Next payment date</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Next payment date
+              </p>
               <p className="mt-2 text-base font-700 text-foreground">
                 {formatSubscriptionDate(business.nextBillingDate)}
               </p>
             </div>
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Days remaining</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Days remaining
+              </p>
               <p className="mt-2 text-base font-700 text-foreground">
                 {daysRemaining === null ? 'Not available' : `${daysRemaining} days`}
               </p>
@@ -205,7 +216,9 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
         </section>
 
         <section className="rounded-[28px] border border-border bg-white p-6 shadow-sm">
-          <p className="text-xs font-700 uppercase tracking-[0.18em] text-primary">Upgrade capacity</p>
+          <p className="text-xs font-700 uppercase tracking-[0.18em] text-primary">
+            Upgrade capacity
+          </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {upgradeOptions.map((option) => (
               <button
@@ -253,7 +266,8 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
-            Your monthly price is based on selected record capacity. You can upgrade anytime when your business grows.
+            Your monthly price is based on selected record capacity. You can upgrade anytime when
+            your business grows.
           </p>
         </section>
       </div>
@@ -273,10 +287,19 @@ export default function SubscriptionPanel({ onUpgradeComplete }: SubscriptionPan
                 updated monthly price will apply from your next billing cycle.
               </p>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={() => setConfirmOpen(false)} className="btn-outline rounded-xl px-4 py-2.5 text-sm">
+                <button
+                  type="button"
+                  onClick={() => setConfirmOpen(false)}
+                  className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+                >
                   Cancel
                 </button>
-                <button type="button" onClick={handleUpgrade} disabled={saving} className="btn-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-60">
+                <button
+                  type="button"
+                  onClick={handleUpgrade}
+                  disabled={saving}
+                  className="btn-primary rounded-xl px-4 py-2.5 text-sm disabled:opacity-60"
+                >
                   {saving ? 'Updating...' : 'Confirm Upgrade'}
                 </button>
               </div>

@@ -22,7 +22,10 @@ export default function GymReceiptPrint({
   const displayMemberCode = payment.memberCode || member?.memberCode || payment.memberId;
 
   return (
-    <div className="receipt-print-area" style={{ fontFamily: 'Arial, sans-serif', color: '#0f172a' }}>
+    <div
+      className="receipt-print-area"
+      style={{ fontFamily: 'Arial, sans-serif', color: '#0f172a' }}
+    >
       <div
         style={{
           width: '100%',
@@ -35,18 +38,26 @@ export default function GymReceiptPrint({
           boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 28 }}>
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 28 }}
+        >
           <div>
             <div style={{ fontSize: 28, fontWeight: 700, color: '#7c3aed' }}>{businessName}</div>
-            {businessPhone ? <div style={{ marginTop: 6, color: '#475569' }}>{businessPhone}</div> : null}
-            {businessAddress ? <div style={{ marginTop: 4, color: '#475569' }}>{businessAddress}</div> : null}
+            {businessPhone ? (
+              <div style={{ marginTop: 6, color: '#475569' }}>{businessPhone}</div>
+            ) : null}
+            {businessAddress ? (
+              <div style={{ marginTop: 4, color: '#475569' }}>{businessAddress}</div>
+            ) : null}
           </div>
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 22, fontWeight: 700 }}>Payment Receipt</div>
             <div style={{ marginTop: 8, color: '#475569' }}>
               Receipt No: {receipt?.receiptNumber ?? payment.receiptNumber ?? payment.invoiceId}
             </div>
-            <div style={{ marginTop: 4, color: '#475569' }}>Date: {receipt?.paymentDate ?? payment.paymentDate}</div>
+            <div style={{ marginTop: 4, color: '#475569' }}>
+              Date: {receipt?.paymentDate ?? payment.paymentDate}
+            </div>
           </div>
         </div>
 
@@ -55,12 +66,27 @@ export default function GymReceiptPrint({
             ['Member Name', payment.memberName],
             ['Member ID', displayMemberCode],
             ['Billing Period', receipt?.billingPeriod ?? payment.billingPeriod],
-            ['Amount Paid', new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(payment.amount)],
+            [
+              'Amount Paid',
+              new Intl.NumberFormat('en-IN', {
+                style: 'currency',
+                currency: 'INR',
+                maximumFractionDigits: 0,
+              }).format(payment.amount),
+            ],
             ['Payment Method', String(payment.paymentMethod).toUpperCase()],
             ['Transaction ID', payment.transactionId || receipt?.transactionId || '-'],
           ].map(([label, value]) => (
             <div key={label} style={{ border: '1px solid #e2e8f0', borderRadius: 18, padding: 16 }}>
-              <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '.08em', color: '#64748b', marginBottom: 6 }}>
+              <div
+                style={{
+                  fontSize: 11,
+                  textTransform: 'uppercase',
+                  letterSpacing: '.08em',
+                  color: '#64748b',
+                  marginBottom: 6,
+                }}
+              >
                 {label}
               </div>
               <div style={{ fontSize: 15, fontWeight: 600 }}>{value}</div>

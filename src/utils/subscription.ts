@@ -1,5 +1,8 @@
 import { BusinessProfile, BusinessType, SubscriptionStatus } from '@/types';
-import { MIN_RECORDS, calculateMonthlyPrice as calculateInternalMonthlyPrice } from '@/utils/pricing';
+import {
+  MIN_RECORDS,
+  calculateMonthlyPrice as calculateInternalMonthlyPrice,
+} from '@/utils/pricing';
 
 const RECORD_LABELS: Record<BusinessType, string> = {
   academy: 'students',
@@ -47,7 +50,10 @@ export function getRecordLabelByBusinessType(businessType?: string | null) {
   return RECORD_LABELS[businessType as BusinessType] ?? 'records';
 }
 
-export function calculateRemainingRecords(recordLimit?: number | null, currentUsage?: number | null) {
+export function calculateRemainingRecords(
+  recordLimit?: number | null,
+  currentUsage?: number | null
+) {
   const safeLimit = clampToPositiveInteger(recordLimit, 0);
   const safeUsage = clampToPositiveInteger(currentUsage, 0);
   return Math.max(0, safeLimit - safeUsage);
@@ -115,10 +121,7 @@ export function normalizeSubscriptionBusinessData(
     typeof business.monthlyPrice === 'number' && business.monthlyPrice > 0
       ? business.monthlyPrice
       : calculateMonthlyPrice(billableRecords);
-  const currentPeriodStart = normalizeDateInput(
-    business.currentPeriodStart,
-    subscriptionStartDate
-  );
+  const currentPeriodStart = normalizeDateInput(business.currentPeriodStart, subscriptionStartDate);
   const nextBillingDate = normalizeDateInput(
     business.nextBillingDate,
     calculateNextBillingDate(subscriptionStartDate)
@@ -132,7 +135,10 @@ export function normalizeSubscriptionBusinessData(
     recordLimit: safeRecordLimit,
     currentUsage,
     remainingRecords: calculateRemainingRecords(safeRecordLimit, currentUsage),
-    minimumRecords: Math.max(clampToPositiveInteger(business.minimumRecords, MIN_RECORDS), MIN_RECORDS),
+    minimumRecords: Math.max(
+      clampToPositiveInteger(business.minimumRecords, MIN_RECORDS),
+      MIN_RECORDS
+    ),
     estimatedRecords,
     billableRecords,
     monthlyPrice,

@@ -4,7 +4,10 @@ import { BusinessType, KPICard } from '@/types';
 
 const DASHBOARD_CACHE_TTL_MS = 60_000;
 const DASHBOARD_COLLECTION_LIMIT = 50;
-const collectionCache = new Map<string, { expiresAt: number; value: Array<Record<string, unknown>> }>();
+const collectionCache = new Map<
+  string,
+  { expiresAt: number; value: Array<Record<string, unknown>> }
+>();
 const statsCache = new Map<string, { expiresAt: number; value: DashboardStats }>();
 
 function ensureFirebaseConfigured() {
@@ -263,14 +266,12 @@ export async function getDashboardStats(
       buildKpiCard(
         'kpi-gym-2',
         'Active Members',
-        members.filter((member) => String(safeField(member, 'status') ?? '').toLowerCase() === 'active').length
+        members.filter(
+          (member) => String(safeField(member, 'status') ?? '').toLowerCase() === 'active'
+        ).length
       ),
       {
-        ...buildKpiCard(
-          'kpi-gym-3',
-          'Fees Collected',
-          formatCurrency(sumRevenueFrom(payments))
-        ),
+        ...buildKpiCard('kpi-gym-3', 'Fees Collected', formatCurrency(sumRevenueFrom(payments))),
         icon: 'IndianRupee',
         color: '#10B981',
       },

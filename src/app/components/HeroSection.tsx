@@ -63,7 +63,10 @@ export default function HeroSection() {
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="mr-2 text-xs text-muted-foreground">Trusted by:</span>
             {trustedBy.map((type) => (
-              <span key={`trusted-${type}`} className="badge-neutral rounded-full px-2.5 py-1 text-xs">
+              <span
+                key={`trusted-${type}`}
+                className="badge-neutral rounded-full px-2.5 py-1 text-xs"
+              >
                 {type}
               </span>
             ))}

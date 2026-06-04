@@ -11,6 +11,8 @@ import {
   query,
   setDoc,
   updateDoc,
+  runTransaction,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import {
@@ -22,6 +24,7 @@ import {
 import { canAddRecord } from '@/utils/planLimits';
 import { removeUndefinedFields } from '@/utils/removeUndefinedFields';
 import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
+import { incrementUsageInTransaction, decrementUsageInTransaction } from '@/services/subscriptionUsageService';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -177,7 +180,9 @@ export async function updateHotelRoom(
 ) {
   const roomRef = hotelDocument(businessId, 'rooms', roomId);
   const existing = await getDoc(roomRef);
-  const createdAt = existing.exists() ? String(existing.data().createdAt ?? new Date().toISOString()) : new Date().toISOString();
+  const createdAt = existing.exists()
+    ? String(existing.data().createdAt ?? new Date().toISOString())
+    : new Date().toISOString();
   await updateDoc(roomRef, normalizeRoom(room, roomId, createdAt, new Date().toISOString()));
 }
 
@@ -187,16 +192,21 @@ export async function deleteHotelRoom(businessId: string, roomId: string) {
 
 export async function addHotelGuest(businessId: string, guest: Omit<HotelGuestRecord, 'id'>) {
   const shouldCount = shouldCountGuestStatus(guest.status ?? 'reserved');
-  if (shouldCount) {
-    await canAddRecord(businessId, 'guests');
-  }
-
   const now = new Date().toISOString();
   const guestRef = doc(hotelCollection(businessId, 'guests'));
-  await setDoc(guestRef, normalizeGuest(guest, guestRef.id, guest.createdAt ?? now, now));
 
   if (shouldCount) {
-    await safeIncrementBusinessUsage(businessId);
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await incrementUsageInTransaction(transaction, businessId, 1);
+      transaction.set(guestRef, {
+        ...normalizeGuest(guest, guestRef.id, guest.createdAt ?? now, now),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+  } else {
+    await setDoc(guestRef, normalizeGuest(guest, guestRef.id, guest.createdAt ?? now, now));
   }
 
   return guestRef.id;
@@ -209,45 +219,74 @@ export async function updateHotelGuest(
 ) {
   const guestRef = hotelDocument(businessId, 'guests', guestId);
   const existing = await getDoc(guestRef);
-  const previousStatus = existing.exists() ? String(existing.data().status ?? 'checked-out') : 'checked-out';
+  const previousStatus = existing.exists()
+    ? String(existing.data().status ?? 'checked-out')
+    : 'checked-out';
   const nextStatus = guest.status ?? 'reserved';
   const previouslyCounted = shouldCountGuestStatus(previousStatus);
   const nextCounted = shouldCountGuestStatus(nextStatus);
 
   if (!previouslyCounted && nextCounted) {
-    await canAddRecord(businessId, 'guests');
-    await safeIncrementBusinessUsage(businessId);
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await incrementUsageInTransaction(transaction, businessId, 1);
+      transaction.update(guestRef, {
+        ...normalizeGuest(guest, guestId, createdAt, new Date().toISOString()),
+        updatedAt: serverTimestamp(),
+      });
+    });
+    return;
   }
 
   if (previouslyCounted && !nextCounted) {
-    await decrementBusinessUsage(businessId);
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await decrementUsageInTransaction(transaction, businessId, 1);
+      transaction.update(guestRef, {
+        ...normalizeGuest(guest, guestId, createdAt, new Date().toISOString()),
+        updatedAt: serverTimestamp(),
+      });
+    });
+    return;
   }
 
-  const createdAt = existing.exists() ? String(existing.data().createdAt ?? new Date().toISOString()) : new Date().toISOString();
+  const createdAt = existing.exists()
+    ? String(existing.data().createdAt ?? new Date().toISOString())
+    : new Date().toISOString();
   await updateDoc(guestRef, normalizeGuest(guest, guestId, createdAt, new Date().toISOString()));
 }
 
 export async function deleteHotelGuest(businessId: string, guestId: string) {
   const guestRef = hotelDocument(businessId, 'guests', guestId);
-  const existing = await getDoc(guestRef);
-  if (existing.exists() && shouldCountGuestStatus(String(existing.data().status ?? 'checked-out'))) {
-    await decrementBusinessUsage(businessId);
-  }
-  await deleteDoc(guestRef);
+  const firestore = getFirestoreDb();
+  await runTransaction(firestore, async (transaction) => {
+    const snapshot = await transaction.get(guestRef);
+    if (!snapshot.exists()) return;
+    const status = String(snapshot.data().status ?? 'checked-out');
+    if (shouldCountGuestStatus(status)) {
+      await decrementUsageInTransaction(transaction, businessId, 1);
+    }
+    transaction.delete(guestRef);
+  });
 }
 
 export async function addHotelBooking(businessId: string, booking: Omit<HotelBookingRecord, 'id'>) {
   const shouldCount = shouldCountBookingStatus(booking.status ?? 'confirmed');
-  if (shouldCount) {
-    await canAddRecord(businessId, 'bookings');
-  }
-
   const now = new Date().toISOString();
   const bookingRef = doc(hotelCollection(businessId, 'bookings'));
-  await setDoc(bookingRef, normalizeBooking(booking, bookingRef.id, booking.createdAt ?? now, now));
 
   if (shouldCount) {
-    await safeIncrementBusinessUsage(businessId);
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await incrementUsageInTransaction(transaction, businessId, 1);
+      transaction.set(bookingRef, {
+        ...normalizeBooking(booking, bookingRef.id, booking.createdAt ?? now, now),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    });
+  } else {
+    await setDoc(bookingRef, normalizeBooking(booking, bookingRef.id, booking.createdAt ?? now, now));
   }
 
   return bookingRef.id;
@@ -260,31 +299,58 @@ export async function updateHotelBooking(
 ) {
   const bookingRef = hotelDocument(businessId, 'bookings', bookingId);
   const existing = await getDoc(bookingRef);
-  const previousStatus = existing.exists() ? String(existing.data().status ?? 'cancelled') : 'cancelled';
+  const previousStatus = existing.exists()
+    ? String(existing.data().status ?? 'cancelled')
+    : 'cancelled';
   const nextStatus = booking.status ?? 'confirmed';
   const previouslyCounted = shouldCountBookingStatus(previousStatus);
   const nextCounted = shouldCountBookingStatus(nextStatus);
 
   if (!previouslyCounted && nextCounted) {
-    await canAddRecord(businessId, 'bookings');
-    await safeIncrementBusinessUsage(businessId);
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await incrementUsageInTransaction(transaction, businessId, 1);
+      transaction.update(bookingRef, {
+        ...normalizeBooking(booking, bookingId, createdAt, new Date().toISOString()),
+        updatedAt: serverTimestamp(),
+      });
+    });
+    return;
   }
 
   if (previouslyCounted && !nextCounted) {
-    await decrementBusinessUsage(businessId);
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await decrementUsageInTransaction(transaction, businessId, 1);
+      transaction.update(bookingRef, {
+        ...normalizeBooking(booking, bookingId, createdAt, new Date().toISOString()),
+        updatedAt: serverTimestamp(),
+      });
+    });
+    return;
   }
 
-  const createdAt = existing.exists() ? String(existing.data().createdAt ?? new Date().toISOString()) : new Date().toISOString();
-  await updateDoc(bookingRef, normalizeBooking(booking, bookingId, createdAt, new Date().toISOString()));
+  const createdAt = existing.exists()
+    ? String(existing.data().createdAt ?? new Date().toISOString())
+    : new Date().toISOString();
+  await updateDoc(
+    bookingRef,
+    normalizeBooking(booking, bookingId, createdAt, new Date().toISOString())
+  );
 }
 
 export async function deleteHotelBooking(businessId: string, bookingId: string) {
   const bookingRef = hotelDocument(businessId, 'bookings', bookingId);
-  const existing = await getDoc(bookingRef);
-  if (existing.exists() && shouldCountBookingStatus(String(existing.data().status ?? 'cancelled'))) {
-    await decrementBusinessUsage(businessId);
-  }
-  await deleteDoc(bookingRef);
+  const firestore = getFirestoreDb();
+  await runTransaction(firestore, async (transaction) => {
+    const snapshot = await transaction.get(bookingRef);
+    if (!snapshot.exists()) return;
+    const status = String(snapshot.data().status ?? 'cancelled');
+    if (shouldCountBookingStatus(status)) {
+      await decrementUsageInTransaction(transaction, businessId, 1);
+    }
+    transaction.delete(bookingRef);
+  });
 }
 
 export async function addHotelHousekeepingTask(
@@ -304,8 +370,13 @@ export async function updateHotelHousekeepingTask(
 ) {
   const taskRef = hotelDocument(businessId, 'housekeeping', taskId);
   const existing = await getDoc(taskRef);
-  const createdAt = existing.exists() ? String(existing.data().createdAt ?? new Date().toISOString()) : new Date().toISOString();
-  await updateDoc(taskRef, normalizeHousekeeping(task, taskId, createdAt, new Date().toISOString()));
+  const createdAt = existing.exists()
+    ? String(existing.data().createdAt ?? new Date().toISOString())
+    : new Date().toISOString();
+  await updateDoc(
+    taskRef,
+    normalizeHousekeeping(task, taskId, createdAt, new Date().toISOString())
+  );
 }
 
 export async function deleteHotelHousekeepingTask(businessId: string, taskId: string) {

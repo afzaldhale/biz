@@ -1,14 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import {
-  ArrowRight,
-  BookOpen,
-  CalendarDays,
-  IndianRupee,
-  Receipt,
-  Users,
-} from 'lucide-react';
+import { ArrowRight, BookOpen, CalendarDays, IndianRupee, Receipt, Users } from 'lucide-react';
 import { AuthUser } from '@/types';
 import { getAcademyOverviewData } from '@/services/academyDashboardService';
 import RetryState from '@/components/ui/RetryState';
@@ -30,9 +23,9 @@ function formatCurrency(amount: number) {
 
 export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOverviewPanelProps) {
   const [loading, setLoading] = useState(true);
-  const [overview, setOverview] = useState<Awaited<ReturnType<typeof getAcademyOverviewData>> | null>(
-    null
-  );
+  const [overview, setOverview] = useState<Awaited<
+    ReturnType<typeof getAcademyOverviewData>
+  > | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [retryKey, setRetryKey] = useState(0);
   const { showSlowMessage, showRetry } = useSlowLoading(loading);
@@ -178,7 +171,9 @@ export default function AcademyOverviewPanel({ user, onNavigate }: AcademyOvervi
                   </p>
                   <p className="mt-2 text-2xl font-700 text-foreground">{card.value}</p>
                 </div>
-                <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${card.accent}`}>
+                <div
+                  className={`flex h-11 w-11 items-center justify-center rounded-2xl ${card.accent}`}
+                >
                   <Icon size={20} />
                 </div>
               </div>

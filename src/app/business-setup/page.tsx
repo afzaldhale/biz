@@ -32,6 +32,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { useBusiness } from '@/context/BusinessContext';
 import { setupBusinessForUser } from '@/services/businessService';
+import { getAppErrorMessage } from '@/utils/appErrorHandler';
 
 const RECORD_STEP = 10;
 

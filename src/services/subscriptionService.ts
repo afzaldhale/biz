@@ -163,12 +163,18 @@ export async function syncBusinessUsage(businessId: string, businessType: Busine
 
   if (businessType === 'academy') {
     const activeStudents = await getCountFromServer(
-      query(collection(firestore, 'businesses', businessId, 'students'), where('status', '==', 'active'))
+      query(
+        collection(firestore, 'businesses', businessId, 'students'),
+        where('status', '==', 'active')
+      )
     );
     currentUsage = activeStudents.data().count;
   } else if (businessType === 'gym') {
     const activeMembers = await getCountFromServer(
-      query(collection(firestore, 'businesses', businessId, 'gymMembers'), where('status', '==', 'active'))
+      query(
+        collection(firestore, 'businesses', businessId, 'gymMembers'),
+        where('status', '==', 'active')
+      )
     );
     currentUsage = activeMembers.data().count;
   } else if (collectionName) {

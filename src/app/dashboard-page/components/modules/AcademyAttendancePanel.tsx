@@ -11,10 +11,7 @@ import {
   AcademyEnrollment,
   AuthUser,
 } from '@/types';
-import {
-  getAcademyAttendance,
-  markAcademyAttendance,
-} from '@/services/academyAttendanceService';
+import { getAcademyAttendance, markAcademyAttendance } from '@/services/academyAttendanceService';
 import { getAcademyCourses } from '@/services/academyCourseService';
 import { getCourseEnrollments } from '@/services/academyEnrollmentService';
 import RetryState from '@/components/ui/RetryState';
@@ -39,7 +36,11 @@ const statusOptions: Array<{
   label: string;
   className: string;
 }> = [
-  { value: 'present', label: 'Present', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  {
+    value: 'present',
+    label: 'Present',
+    className: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+  },
   { value: 'absent', label: 'Absent', className: 'bg-rose-50 text-rose-700 border-rose-200' },
   { value: 'late', label: 'Late', className: 'bg-amber-50 text-amber-700 border-amber-200' },
 ];
@@ -114,13 +115,12 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
         setDrafts((current) => {
           const nextDrafts: Record<string, AttendanceDraft> = {};
           activeEnrollments.forEach((enrollment) => {
-            nextDrafts[enrollment.studentId] =
-              current[enrollment.studentId] ?? {
-                studentId: enrollment.studentId,
-                studentName: enrollment.studentName,
-                status: 'present',
-                remarks: '',
-              };
+            nextDrafts[enrollment.studentId] = current[enrollment.studentId] ?? {
+              studentId: enrollment.studentId,
+              studentName: enrollment.studentName,
+              status: 'present',
+              remarks: '',
+            };
           });
           return nextDrafts;
         });
@@ -151,18 +151,15 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
     [courses, selectedCourseId]
   );
 
-  const handleDraftStatus = useCallback(
-    (studentId: string, status: AcademyAttendanceStatus) => {
-      setDrafts((current) => ({
-        ...current,
-        [studentId]: {
-          ...current[studentId],
-          status,
-        },
-      }));
-    },
-    []
-  );
+  const handleDraftStatus = useCallback((studentId: string, status: AcademyAttendanceStatus) => {
+    setDrafts((current) => ({
+      ...current,
+      [studentId]: {
+        ...current[studentId],
+        status,
+      },
+    }));
+  }, []);
 
   const handleDraftRemarks = useCallback((studentId: string, remarks: string) => {
     setDrafts((current) => ({
@@ -291,9 +288,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
                     <div
                       key={enrollment.id}
                       className={`rounded-2xl border p-4 transition ${
-                        isHighlighted
-                          ? 'border-primary bg-indigo-50/60'
-                          : 'border-border bg-white'
+                        isHighlighted ? 'border-primary bg-indigo-50/60' : 'border-border bg-white'
                       }`}
                     >
                       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -312,7 +307,9 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
                               <button
                                 key={option.value}
                                 type="button"
-                                onClick={() => handleDraftStatus(enrollment.studentId, option.value)}
+                                onClick={() =>
+                                  handleDraftStatus(enrollment.studentId, option.value)
+                                }
                                 className={`rounded-full border px-4 py-2 text-xs font-600 transition ${
                                   active
                                     ? option.className
@@ -397,7 +394,9 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
               </div>
             ) : (
               <div className="p-16 text-center text-muted-foreground">
-                {showSlowMessage ? 'Network is slow. Trying to load your workspace.' : 'Loading attendance...'}
+                {showSlowMessage
+                  ? 'Network is slow. Trying to load your workspace.'
+                  : 'Loading attendance...'}
               </div>
             )
           ) : filteredAttendance.length === 0 ? (
@@ -421,12 +420,8 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
                 <tbody className="divide-y divide-border bg-white">
                   {filteredAttendance.map((record) => (
                     <tr key={record.id}>
-                      <td className="px-5 py-4 text-muted-foreground">
-                        {record.attendanceDate}
-                      </td>
-                      <td className="px-5 py-4 font-600 text-foreground">
-                        {record.studentName}
-                      </td>
+                      <td className="px-5 py-4 text-muted-foreground">{record.attendanceDate}</td>
+                      <td className="px-5 py-4 font-600 text-foreground">{record.studentName}</td>
                       <td className="px-5 py-4 text-muted-foreground">{record.courseName}</td>
                       <td className="px-5 py-4">
                         <span
@@ -460,9 +455,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
               <CalendarCheck2 size={18} />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Present
-              </p>
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Present</p>
               <p className="mt-1 text-xl font-700 text-foreground">
                 {filteredAttendance.filter((item) => item.status === 'present').length}
               </p>
@@ -488,9 +481,7 @@ export default function AcademyAttendancePanel({ user }: AcademyAttendancePanelP
               <Check size={18} />
             </div>
             <div>
-              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                Absent
-              </p>
+              <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Absent</p>
               <p className="mt-1 text-xl font-700 text-foreground">
                 {filteredAttendance.filter((item) => item.status === 'absent').length}
               </p>

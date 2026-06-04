@@ -133,11 +133,15 @@ export async function saveGymMemberPayment({
   if (!(payment.amount > 0)) {
     throw new Error('Payment amount must be greater than zero.');
   }
-  const knownPending = typeof member.pendingFees === 'number'
-    ? member.pendingFees
-    : typeof member.pendingAmount === 'number'
-      ? member.pendingAmount
-      : Math.max((member.monthlyFee ?? member.feeAmount) - (member.paidFees ?? member.paidAmount), 0);
+  const knownPending =
+    typeof member.pendingFees === 'number'
+      ? member.pendingFees
+      : typeof member.pendingAmount === 'number'
+        ? member.pendingAmount
+        : Math.max(
+            (member.monthlyFee ?? member.feeAmount) - (member.paidFees ?? member.paidAmount),
+            0
+          );
   if (knownPending > 0 && payment.amount > knownPending) {
     throw new Error('Payment amount cannot exceed pending fees.');
   }
@@ -198,19 +202,22 @@ export async function saveGymMemberPayment({
 
   batch.set(paymentRef, paymentData);
   batch.set(receiptRef, receiptData);
-  batch.update(memberRef, removeUndefinedFields({
-    memberId: resolvedMemberId,
-    memberCode: resolvedMemberCode,
-    displayId: resolvedMemberCode,
-    paidAmount: nextPaidAmount,
-    paidFees: nextPaidAmount,
-    pendingAmount: nextPendingAmount,
-    pendingFees: nextPendingAmount,
-    monthlyFee,
-    feeAmount: monthlyFee,
-    status: existingMember.status === 'expired' ? 'active' : existingMember.status,
-    updatedAt: now,
-  }));
+  batch.update(
+    memberRef,
+    removeUndefinedFields({
+      memberId: resolvedMemberId,
+      memberCode: resolvedMemberCode,
+      displayId: resolvedMemberCode,
+      paidAmount: nextPaidAmount,
+      paidFees: nextPaidAmount,
+      pendingAmount: nextPendingAmount,
+      pendingFees: nextPendingAmount,
+      monthlyFee,
+      feeAmount: monthlyFee,
+      status: existingMember.status === 'expired' ? 'active' : existingMember.status,
+      updatedAt: now,
+    })
+  );
 
   await batch.commit();
 
@@ -272,7 +279,10 @@ export async function getGymPayments(
     const paymentsQuery = getGymPaymentQuery(businessId, pageSize, options.lastDoc ?? undefined);
     const snapshot = await getDocs(paymentsQuery);
     const data = snapshot.docs.map((paymentDoc) =>
-      normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+      normalizeGymPayment(
+        paymentDoc.data() as GymPaymentRecord & Record<string, unknown>,
+        paymentDoc.id
+      )
     );
     return {
       data,
@@ -288,7 +298,10 @@ export async function getGymPayments(
   );
   const snapshot = await getDocs(paymentsQuery);
   return snapshot.docs.map((paymentDoc) =>
-    normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+    normalizeGymPayment(
+      paymentDoc.data() as GymPaymentRecord & Record<string, unknown>,
+      paymentDoc.id
+    )
   );
 }
 
@@ -346,7 +359,10 @@ export async function getGymPaymentsForMember(
     );
     const snapshot = await getDocs(paymentsQuery);
     const data = snapshot.docs.map((paymentDoc) =>
-      normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+      normalizeGymPayment(
+        paymentDoc.data() as GymPaymentRecord & Record<string, unknown>,
+        paymentDoc.id
+      )
     );
     return {
       data,
@@ -364,7 +380,10 @@ export async function getGymPaymentsForMember(
   const snapshot = await getDocs(paymentsQuery);
 
   return snapshot.docs.map((paymentDoc) =>
-    normalizeGymPayment(paymentDoc.data() as GymPaymentRecord & Record<string, unknown>, paymentDoc.id)
+    normalizeGymPayment(
+      paymentDoc.data() as GymPaymentRecord & Record<string, unknown>,
+      paymentDoc.id
+    )
   );
 }
 

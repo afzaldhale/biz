@@ -236,12 +236,9 @@ export async function getAcademyOverviewData(businessId: string): Promise<Academ
   const courses = coursesResult.value;
   const fees = feesResult.value;
   const attendance = attendanceResult.value;
-  const hasIndexError = [
-    studentsResult,
-    coursesResult,
-    feesResult,
-    attendanceResult,
-  ].some((result) => result.indexError);
+  const hasIndexError = [studentsResult, coursesResult, feesResult, attendanceResult].some(
+    (result) => result.indexError
+  );
   const hasAnyFailure = [studentsResult, coursesResult, feesResult, attendanceResult].some(
     (result) => result.failed
   );
@@ -289,7 +286,9 @@ export async function getAcademySidebarCounts(businessId: string): Promise<Acade
       query(academyCollection(businessId, 'fees'), where('status', 'in', ['pending', 'partial']))
     ),
     getDocs(academyCollection(businessId, 'receipts')),
-    getDocs(query(academyCollection(businessId, 'attendance'), where('attendanceDate', '==', today))),
+    getDocs(
+      query(academyCollection(businessId, 'attendance'), where('attendanceDate', '==', today))
+    ),
   ]);
 
   const nextValue = {
@@ -313,11 +312,21 @@ export async function getStudentHistory(
   studentId: string
 ): Promise<AcademyStudentHistory> {
   const [studentSnap, enrollmentsSnap, feesSnap, receiptsSnap, attendanceSnap] = await Promise.all([
-    getDocs(query(academyCollection(businessId, 'students'), where('studentId', '==', studentId), limit(1))),
-    getDocs(query(academyCollection(businessId, 'enrollments'), where('studentId', '==', studentId))),
+    getDocs(
+      query(
+        academyCollection(businessId, 'students'),
+        where('studentId', '==', studentId),
+        limit(1)
+      )
+    ),
+    getDocs(
+      query(academyCollection(businessId, 'enrollments'), where('studentId', '==', studentId))
+    ),
     getDocs(query(academyCollection(businessId, 'fees'), where('studentId', '==', studentId))),
     getDocs(query(academyCollection(businessId, 'receipts'), where('studentId', '==', studentId))),
-    getDocs(query(academyCollection(businessId, 'attendance'), where('studentId', '==', studentId))),
+    getDocs(
+      query(academyCollection(businessId, 'attendance'), where('studentId', '==', studentId))
+    ),
   ]);
 
   const student = studentSnap.docs[0]

@@ -19,6 +19,8 @@ import { GymMemberRecord } from '@/types';
 import { canAddRecord } from '@/utils/planLimits';
 import { removeUndefinedFields } from '@/utils/removeUndefinedFields';
 import { decrementBusinessUsage, safeIncrementBusinessUsage } from '@/services/businessService';
+import { runTransaction, serverTimestamp, doc as firestoreDoc } from 'firebase/firestore';
+import { incrementUsageInTransaction, decrementUsageInTransaction } from '@/services/subscriptionUsageService';
 
 function ensureFirebaseConfigured() {
   if (!isFirebaseConfigured) {
@@ -151,19 +153,29 @@ function buildGymMemberDocument(
 }
 
 export async function addGymMember(businessId: string, member: GymMemberRecord) {
-  await canAddRecord(businessId, 'gymMembers');
-
   const now = new Date().toISOString();
   const memberRef = doc(gymMembersCollection(businessId));
-  const normalized = normalizeGymMember(member as GymMemberRecord & Record<string, unknown>, memberRef.id);
+  const normalized = normalizeGymMember(
+    member as GymMemberRecord & Record<string, unknown>,
+    memberRef.id
+  );
   const payload = buildGymMemberDocument(normalized, memberRef.id, member.createdAt ?? now, now);
   console.log('Saving member:', payload);
 
-  await setDoc(memberRef, payload);
+  const firestore = getFirestoreDb();
+  await runTransaction(firestore, async (transaction) => {
+    // validate and increment usage
+    if (member.status === 'active') {
+      await incrementUsageInTransaction(transaction, businessId, 1);
+    }
 
-  if (member.status === 'active') {
-    await safeIncrementBusinessUsage(businessId);
-  }
+    transaction.set(memberRef, {
+      ...payload,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  });
+
   return memberRef.id;
 }
 
@@ -178,33 +190,56 @@ export async function updateGymMember(
     ? (existing.data().status as GymMemberRecord['status'] | undefined)
     : undefined;
   const nextStatus = member.status;
-
-  if (previousStatus !== 'active' && nextStatus === 'active') {
-    await canAddRecord(businessId, 'gymMembers');
-    await safeIncrementBusinessUsage(businessId);
-  }
-
-  if (previousStatus === 'active' && nextStatus !== 'active') {
-    await decrementBusinessUsage(businessId);
-  }
-
   const now = new Date().toISOString();
   const existingData = existing.data();
   const createdAt = existingData?.createdAt ? String(existingData.createdAt) : now;
   const payload = buildGymMemberDocument(member, memberId, createdAt, now);
   console.log('Updating member:', payload);
 
+  // If activating a previously inactive member, do it inside a transaction to reserve usage atomically
+  if (previousStatus !== 'active' && nextStatus === 'active') {
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await incrementUsageInTransaction(transaction, businessId, 1);
+      transaction.update(memberRef, {
+        ...payload,
+        updatedAt: serverTimestamp(),
+      });
+    });
+    return;
+  }
+
+  // If deactivating an active member, decrement usage atomically with update
+  if (previousStatus === 'active' && nextStatus !== 'active') {
+    const firestore = getFirestoreDb();
+    await runTransaction(firestore, async (transaction) => {
+      await decrementUsageInTransaction(transaction, businessId, 1);
+      transaction.update(memberRef, {
+        ...payload,
+        updatedAt: serverTimestamp(),
+      });
+    });
+    return;
+  }
+
   await updateDoc(memberRef, payload);
 }
 
 export async function deleteGymMember(businessId: string, memberId: string) {
+  const firestore = getFirestoreDb();
   const memberRef = gymMemberDoc(businessId, memberId);
-  const existing = await getDoc(memberRef);
-  await deleteDoc(memberRef);
 
-  if (existing.exists() && existing.data().status === 'active') {
-    await decrementBusinessUsage(businessId);
-  }
+  await runTransaction(firestore, async (transaction) => {
+    const memberSnapshot = await transaction.get(memberRef);
+    if (!memberSnapshot.exists()) return;
+
+    const status = memberSnapshot.data().status as GymMemberRecord['status'];
+    if (status === 'active') {
+      await decrementUsageInTransaction(transaction, businessId, 1);
+    }
+
+    transaction.delete(memberRef);
+  });
 }
 
 export interface PaginationOptions {
@@ -233,10 +268,7 @@ function getGymMemberQuery(
     queryConstraints.push(startAfter(lastDoc));
   }
 
-  return query(
-    gymMembersCollection(businessId),
-    ...queryConstraints
-  );
+  return query(gymMembersCollection(businessId), ...queryConstraints);
 }
 
 export async function getGymMembers(businessId: string): Promise<GymMemberRecord[]>;
@@ -253,7 +285,10 @@ export async function getGymMembers(
     const membersQuery = getGymMemberQuery(businessId, pageSize, options.lastDoc ?? undefined);
     const snapshot = await getDocs(membersQuery);
     const data = snapshot.docs.map((memberDoc) =>
-      normalizeGymMember(memberDoc.data() as GymMemberRecord & Record<string, unknown>, memberDoc.id)
+      normalizeGymMember(
+        memberDoc.data() as GymMemberRecord & Record<string, unknown>,
+        memberDoc.id
+      )
     );
     return {
       data,
@@ -275,9 +310,7 @@ export async function getGymMembers(
 }
 
 export async function getGymMemberById(businessId: string, memberId: string) {
-  const memberDoc = await getDoc(
-    gymMemberDoc(businessId, memberId)
-  );
+  const memberDoc = await getDoc(gymMemberDoc(businessId, memberId));
   return memberDoc.exists()
     ? normalizeGymMember(
         memberDoc.data() as GymMemberRecord & Record<string, unknown>,

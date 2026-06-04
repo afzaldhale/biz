@@ -150,7 +150,9 @@ export default function HotelBookingsPanel({ user }: { user: AuthUser }) {
         if (editingId) {
           await updateHotelBooking(user.id, editingId, formValues);
           setBookings((current) =>
-            current.map((booking) => (booking.id === editingId ? { ...booking, ...formValues } : booking))
+            current.map((booking) =>
+              booking.id === editingId ? { ...booking, ...formValues } : booking
+            )
           );
           toast.success('Booking updated successfully.');
         } else {
@@ -217,19 +219,27 @@ export default function HotelBookingsPanel({ user }: { user: AuthUser }) {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Total Bookings</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Total Bookings
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.total}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Confirmed</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Confirmed
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.confirmed}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Checked In</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Checked In
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.checkedIn}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Cancelled</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
+            Cancelled
+          </p>
           <p className="text-2xl font-700 text-foreground mt-2">{stats.cancelled}</p>
         </div>
       </div>
@@ -237,7 +247,10 @@ export default function HotelBookingsPanel({ user }: { user: AuthUser }) {
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
         <div className="p-5 border-b border-border flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="relative flex-1">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               type="text"
               value={searchInput}
@@ -288,10 +301,18 @@ export default function HotelBookingsPanel({ user }: { user: AuthUser }) {
                   <tr key={booking.id} className="group hover:bg-primary/5">
                     <td className="px-5 py-4 font-600 text-foreground">{booking.guestName}</td>
                     <td className="px-5 py-4 text-muted-foreground">{booking.roomNumber || '—'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{formatDate(booking.checkInDate)}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{formatDate(booking.checkOutDate)}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(booking.amount)}</td>
-                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">{booking.status}</td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatDate(booking.checkInDate)}
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatDate(booking.checkOutDate)}
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatCurrency(booking.amount)}
+                    </td>
+                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">
+                      {booking.status}
+                    </td>
                     <td className="px-5 py-4 space-x-2">
                       <button
                         type="button"
@@ -319,7 +340,8 @@ export default function HotelBookingsPanel({ user }: { user: AuthUser }) {
           <div className="px-5 py-4 border-t border-border bg-white/80 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <p className="text-xs text-muted-foreground">
               Showing {(currentPage - 1) * rowsPerPage + 1}-
-              {Math.min(currentPage * rowsPerPage, filteredBookings.length)} of {filteredBookings.length}
+              {Math.min(currentPage * rowsPerPage, filteredBookings.length)} of{' '}
+              {filteredBookings.length}
             </p>
             <div className="flex items-center gap-2 self-end md:self-auto">
               <button
@@ -351,7 +373,9 @@ export default function HotelBookingsPanel({ user }: { user: AuthUser }) {
           <div className="mx-auto max-w-3xl rounded-3xl bg-white p-6 md:p-8 shadow-xl">
             <div className="flex items-center justify-between gap-4 mb-6">
               <div>
-                <p className="text-sm text-muted-foreground">{editingId ? 'Edit' : 'New'} booking</p>
+                <p className="text-sm text-muted-foreground">
+                  {editingId ? 'Edit' : 'New'} booking
+                </p>
                 <h2 className="text-2xl font-700 text-foreground mt-1">
                   {editingId ? 'Update' : 'Create'} booking
                 </h2>

@@ -116,7 +116,9 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
         if (editingCourse) {
           await updateAcademyCourse(user.id, editingCourse.id, form);
           setCourses((current) =>
-            current.map((course) => (course.id === editingCourse.id ? { ...course, ...form } : course))
+            current.map((course) =>
+              course.id === editingCourse.id ? { ...course, ...form } : course
+            )
           );
           toast.success('Course updated successfully.');
         } else {
@@ -203,7 +205,9 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
           </div>
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as 'all' | AcademyCourse['status'])}
+            onChange={(event) =>
+              setStatusFilter(event.target.value as 'all' | AcademyCourse['status'])
+            }
             className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All statuses</option>
@@ -243,15 +247,23 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
                         </div>
                         <div>
                           <p className="font-600 text-foreground">{course.courseName}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{course.description || 'No description added'}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {course.description || 'No description added'}
+                          </p>
                         </div>
                       </div>
                     </td>
                     <td className="px-5 py-4 text-muted-foreground">{course.duration}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{formatCurrency(course.fees)}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{enrollmentCounts.get(course.courseId) ?? 0}</td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {formatCurrency(course.fees)}
+                    </td>
+                    <td className="px-5 py-4 text-muted-foreground">
+                      {enrollmentCounts.get(course.courseId) ?? 0}
+                    </td>
                     <td className="px-5 py-4">
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${course.status === 'active' ? 'badge-success' : 'badge-neutral'}`}>
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-600 ${course.status === 'active' ? 'badge-success' : 'badge-neutral'}`}
+                      >
                         {course.status}
                       </span>
                     </td>
@@ -298,7 +310,9 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
                 <input
                   required
                   value={form.courseName}
-                  onChange={(event) => setForm((current) => ({ ...current, courseName: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, courseName: event.target.value }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -307,7 +321,9 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
                 <input
                   required
                   value={form.duration}
-                  onChange={(event) => setForm((current) => ({ ...current, duration: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, duration: event.target.value }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -318,7 +334,9 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
                   min="0"
                   type="number"
                   value={form.fees}
-                  onChange={(event) => setForm((current) => ({ ...current, fees: Number(event.target.value) }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, fees: Number(event.target.value) }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -327,7 +345,9 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
                 <textarea
                   rows={4}
                   value={form.description}
-                  onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, description: event.target.value }))
+                  }
                   className="w-full resize-none rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -335,7 +355,12 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
                 <label className="mb-1.5 block text-sm font-600 text-foreground">Status</label>
                 <select
                   value={form.status}
-                  onChange={(event) => setForm((current) => ({ ...current, status: event.target.value as AcademyCourse['status'] }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      status: event.target.value as AcademyCourse['status'],
+                    }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="active">Active</option>
@@ -343,10 +368,18 @@ export default function AcademyCoursesPanel({ user }: AcademyCoursesPanelProps) 
                 </select>
               </div>
               <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={closeModal} className="btn-outline rounded-xl px-5 py-3 text-sm">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="btn-outline rounded-xl px-5 py-3 text-sm"
+                >
                   Cancel
                 </button>
-                <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60">
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+                >
                   {saving ? 'Saving...' : editingCourse ? 'Update Course' : 'Add Course'}
                 </button>
               </div>

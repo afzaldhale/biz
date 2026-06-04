@@ -65,7 +65,9 @@ export default function MRRTrendChart() {
         <p className="text-3xl font-800 text-foreground text-tabular">
           Rs {latestMRR.toLocaleString('en-IN')}
         </p>
-        <p className="mt-0.5 text-xs text-muted-foreground">May 2026 - Expected Subscription Value</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">
+          May 2026 - Expected Subscription Value
+        </p>
       </div>
 
       <ResponsiveContainer width="100%" height={180}>

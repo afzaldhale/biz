@@ -30,10 +30,29 @@ import {
   GymTrainerRecord,
 } from '@/types';
 import { useBusiness } from '@/context/BusinessContext';
-import { addGymMember, deleteGymMember, getGymMembers, updateGymMember } from '@/services/gymMemberService';
-import { deleteGymPayment, getGymPayments, saveGymPaymentWithReceipt } from '@/services/gymPaymentService';
-import { addGymTrainer, deleteGymTrainer, getGymTrainers, updateGymTrainer } from '@/services/gymTrainerService';
-import { deleteGymAttendance, getGymAttendance, upsertGymAttendance } from '@/services/gymAttendanceService';
+import { handleAppError } from '@/utils/appErrorHandler';
+import {
+  addGymMember,
+  deleteGymMember,
+  getGymMembers,
+  updateGymMember,
+} from '@/services/gymMemberService';
+import {
+  deleteGymPayment,
+  getGymPayments,
+  saveGymPaymentWithReceipt,
+} from '@/services/gymPaymentService';
+import {
+  addGymTrainer,
+  deleteGymTrainer,
+  getGymTrainers,
+  updateGymTrainer,
+} from '@/services/gymTrainerService';
+import {
+  deleteGymAttendance,
+  getGymAttendance,
+  upsertGymAttendance,
+} from '@/services/gymAttendanceService';
 import { deleteGymReceipt, getGymReceipts } from '@/services/gymReceiptService';
 import { SubscriptionLimitError } from '@/services/subscriptionService';
 import { renderGymReceiptPrintDocument } from './GymReceiptPrint';
@@ -240,7 +259,9 @@ const MemberRow = React.memo(function MemberRow({
         </p>
         {dueSoon && <p className="mt-1 text-xs font-600 text-amber-600">Renewal Due Soon</p>}
       </td>
-      <td className="px-4 py-3 text-sm font-700 text-emerald-600">{formatCurrency(member.paidAmount)}</td>
+      <td className="px-4 py-3 text-sm font-700 text-emerald-600">
+        {formatCurrency(member.paidAmount)}
+      </td>
       <td className="px-4 py-3 text-sm font-700 text-orange-600">{formatCurrency(pending)}</td>
       <td className="px-4 py-3">
         <div className="hidden items-center justify-end gap-2 lg:flex">
@@ -286,11 +307,41 @@ const MemberRow = React.memo(function MemberRow({
               <MoreVertical size={16} />
             </summary>
             <div className="absolute right-0 z-10 mt-2 w-44 rounded-xl border border-border bg-white p-2 shadow-card">
-              <button type="button" onClick={() => onView(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">View</button>
-              <button type="button" onClick={() => onEdit(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Edit</button>
-              <button type="button" onClick={() => onPayment(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Payment</button>
-              <button type="button" onClick={() => onReceipts(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Receipt History</button>
-              <button type="button" onClick={() => onDelete(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/5">Delete</button>
+              <button
+                type="button"
+                onClick={() => onView(member)}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+              >
+                View
+              </button>
+              <button
+                type="button"
+                onClick={() => onEdit(member)}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+              >
+                Edit
+              </button>
+              <button
+                type="button"
+                onClick={() => onPayment(member)}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+              >
+                Payment
+              </button>
+              <button
+                type="button"
+                onClick={() => onReceipts(member)}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+              >
+                Receipt History
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(member)}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/5"
+              >
+                Delete
+              </button>
             </div>
           </details>
         </div>
@@ -353,7 +404,9 @@ function ModalShell({
         <div className="flex max-h-[85vh] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-border bg-white shadow-card">
           <div className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-white px-6 py-5">
             <div>
-              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">{subtitle}</p>
+              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
+                {subtitle}
+              </p>
               <h2 className="mt-1 text-xl font-700 text-foreground">{title}</h2>
             </div>
             <button
@@ -365,7 +418,11 @@ function ModalShell({
             </button>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto p-6">{children}</div>
-          {footer ? <div className="sticky bottom-0 border-t border-border bg-white px-6 py-4">{footer}</div> : null}
+          {footer ? (
+            <div className="sticky bottom-0 border-t border-border bg-white px-6 py-4">
+              {footer}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -519,13 +576,7 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         (statusFilter === 'renewal-due-soon' && isRenewalDueSoon(member.renewalDate));
       const matchesSearch =
         !query ||
-        [
-          member.memberId,
-          member.memberCode,
-          member.fullName,
-          member.phone,
-          member.membershipPlan,
-        ]
+        [member.memberId, member.memberCode, member.fullName, member.phone, member.membershipPlan]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query));
 
@@ -618,10 +669,13 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
     setMemberModalOpen(true);
   }, []);
 
-  const openMemberProfile = useCallback((member: GymMemberRecord, tab: MemberProfileTab = 'overview') => {
-    setSelectedMember(member);
-    setProfileTab(tab);
-  }, []);
+  const openMemberProfile = useCallback(
+    (member: GymMemberRecord, tab: MemberProfileTab = 'overview') => {
+      setSelectedMember(member);
+      setProfileTab(tab);
+    },
+    []
+  );
 
   const openPaymentModal = useCallback((member: GymMemberRecord) => {
     setSelectedMember(member);
@@ -671,7 +725,8 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         id: existingMember?.id ?? '',
         memberId: existingMember?.memberId ?? existingMember?.id ?? '',
         memberCode: existingMember?.memberCode ?? buildMemberId(members.length),
-        displayId: existingMember?.displayId ?? existingMember?.memberCode ?? buildMemberId(members.length),
+        displayId:
+          existingMember?.displayId ?? existingMember?.memberCode ?? buildMemberId(members.length),
         fullName: memberFormValues.fullName.trim(),
         phone: memberFormValues.phone.trim(),
         email: memberFormValues.email.trim(),
@@ -752,11 +807,15 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         if (editingTrainerId) {
           await updateGymTrainer(user.id, editingTrainerId, nextTrainer);
           setTrainers((current) =>
-            current.map((trainer) => (trainer.id === editingTrainerId ? { ...nextTrainer, id: editingTrainerId } : trainer))
+            current.map((trainer) =>
+              trainer.id === editingTrainerId ? { ...nextTrainer, id: editingTrainerId } : trainer
+            )
           );
           setMembers((current) =>
             current.map((member) =>
-              member.trainerId === editingTrainerId ? { ...member, trainerName: nextTrainer.name } : member
+              member.trainerId === editingTrainerId
+                ? { ...member, trainerName: nextTrainer.name }
+                : member
             )
           );
           toast.success('Trainer updated successfully.');
@@ -904,7 +963,9 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
 
   const handleDeleteMember = useCallback(
     async (member: GymMemberRecord) => {
-      const confirmed = window.confirm(`Delete ${member.fullName} and all linked payments, attendance, and receipts?`);
+      const confirmed = window.confirm(
+        `Delete ${member.fullName} and all linked payments, attendance, and receipts?`
+      );
       if (!confirmed) return;
 
       try {
@@ -1014,10 +1075,13 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
     <div className="mx-auto max-w-screen-2xl space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <p className="text-xs font-700 uppercase tracking-[0.24em] text-primary">Gym Operations</p>
+          <p className="text-xs font-700 uppercase tracking-[0.24em] text-primary">
+            Gym Operations
+          </p>
           <h1 className="mt-1 text-2xl font-700 text-foreground">Member-centered management</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Manage members, trainer assignment, attendance, billing, and receipt history from one premium workspace.
+            Manage members, trainer assignment, attendance, billing, and receipt history from one
+            premium workspace.
           </p>
         </div>
 
@@ -1025,10 +1089,18 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           <span className="rounded-full border border-primary/20 bg-primary/5 px-3 py-2 text-xs font-600 text-primary">
             Capacity {currentUsage} / {recordLimit ?? business?.planLimit ?? 0} members
           </span>
-          <button type="button" onClick={openCreateTrainerModal} className="btn-outline rounded-xl px-4 py-2.5 text-sm">
+          <button
+            type="button"
+            onClick={openCreateTrainerModal}
+            className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+          >
             Add Trainer
           </button>
-          <button type="button" onClick={openCreateMemberModal} className="btn-primary rounded-xl px-4 py-2.5 text-sm">
+          <button
+            type="button"
+            onClick={openCreateMemberModal}
+            className="btn-primary rounded-xl px-4 py-2.5 text-sm"
+          >
             Add Member
           </button>
         </div>
@@ -1037,18 +1109,22 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       <div className="glass-card rounded-2xl border border-border p-4">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="inline-flex rounded-2xl bg-muted/60 p-1">
-            {([
-              ['members', 'Members'],
-              ['trainers', 'Trainers'],
-              ['billing', 'Billing'],
-              ['reports', 'Reports'],
-            ] as Array<[GymView, string]>).map(([view, label]) => (
+            {(
+              [
+                ['members', 'Members'],
+                ['trainers', 'Trainers'],
+                ['billing', 'Billing'],
+                ['reports', 'Reports'],
+              ] as Array<[GymView, string]>
+            ).map(([view, label]) => (
               <button
                 key={view}
                 type="button"
                 onClick={() => setActiveView(view)}
                 className={`rounded-xl px-4 py-2 text-sm font-600 transition-colors ${
-                  activeView === view ? 'bg-white text-foreground shadow-sm' : 'text-muted-foreground'
+                  activeView === view
+                    ? 'bg-white text-foreground shadow-sm'
+                    : 'text-muted-foreground'
                 }`}
               >
                 {label}
@@ -1058,7 +1134,10 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
 
           <div className="flex flex-1 flex-col gap-3 lg:max-w-xl lg:flex-row">
             <div className="relative flex-1">
-              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <Search
+                size={16}
+                className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
               <input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -1095,7 +1174,8 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           <div className="border-b border-border px-5 py-4">
             <p className="text-sm font-700 text-foreground">Members</p>
             <p className="mt-1 text-sm text-muted-foreground">
-              The primary gym hub for member info, attendance, payments, trainer assignment, and receipt history.
+              The primary gym hub for member info, attendance, payments, trainer assignment, and
+              receipt history.
             </p>
           </div>
           <div className="hidden md:block overflow-x-auto">
@@ -1113,7 +1193,10 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                     'Pending',
                     'Actions',
                   ].map((label) => (
-                    <th key={label} className="px-4 py-3 text-left text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground">
+                    <th
+                      key={label}
+                      className="px-4 py-3 text-left text-[11px] font-700 uppercase tracking-[0.18em] text-muted-foreground"
+                    >
                       {label}
                     </th>
                   ))}
@@ -1127,11 +1210,17 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                         <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/8 text-primary">
                           <Users size={24} />
                         </div>
-                        <p className="mt-4 text-lg font-700 text-foreground">No Members Added Yet</p>
+                        <p className="mt-4 text-lg font-700 text-foreground">
+                          No Members Added Yet
+                        </p>
                         <p className="mt-2 max-w-md text-sm text-muted-foreground">
                           Start building your gym database by adding your first member.
                         </p>
-                        <button type="button" onClick={openCreateMemberModal} className="btn-primary mt-5 rounded-xl px-4 py-2.5 text-sm">
+                        <button
+                          type="button"
+                          onClick={openCreateMemberModal}
+                          className="btn-primary mt-5 rounded-xl px-4 py-2.5 text-sm"
+                        >
                           Add Member
                         </button>
                       </div>
@@ -1162,7 +1251,11 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 <p className="mt-2 max-w-sm text-sm text-muted-foreground">
                   Start building your gym database by adding your first member.
                 </p>
-                <button type="button" onClick={openCreateMemberModal} className="btn-primary mt-5 rounded-xl px-4 py-2.5 text-sm">
+                <button
+                  type="button"
+                  onClick={openCreateMemberModal}
+                  className="btn-primary mt-5 rounded-xl px-4 py-2.5 text-sm"
+                >
                   Add Member
                 </button>
               </div>
@@ -1171,32 +1264,99 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               const pending = Math.max(member.feeAmount - member.paidAmount, 0);
               const dueSoon = isRenewalDueSoon(member.renewalDate);
               return (
-                <div key={member.id} className="rounded-2xl border border-border bg-white p-4 shadow-sm">
+                <div
+                  key={member.id}
+                  className="rounded-2xl border border-border bg-white p-4 shadow-sm"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-base font-700 text-foreground">{member.fullName}</p>
-                      <p className="mt-1 text-xs font-600 uppercase tracking-[0.18em] text-muted-foreground">{getMemberDisplayCode(member)}</p>
+                      <p className="mt-1 text-xs font-600 uppercase tracking-[0.18em] text-muted-foreground">
+                        {getMemberDisplayCode(member)}
+                      </p>
                     </div>
                     <details className="relative">
                       <summary className="flex list-none cursor-pointer items-center justify-center rounded-lg border border-border bg-white p-2 text-muted-foreground">
                         <MoreVertical size={16} />
                       </summary>
                       <div className="absolute right-0 z-10 mt-2 w-44 rounded-xl border border-border bg-white p-2 shadow-card">
-                        <button type="button" onClick={() => openMemberProfile(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">View</button>
-                        <button type="button" onClick={() => openEditMemberModal(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Edit</button>
-                        <button type="button" onClick={() => openPaymentModal(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Payment</button>
-                        <button type="button" onClick={() => openMemberProfile(member, 'receipts')} className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">Receipt History</button>
-                        <button type="button" onClick={() => handleDeleteMember(member)} className="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/5">Delete</button>
+                        <button
+                          type="button"
+                          onClick={() => openMemberProfile(member)}
+                          className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                        >
+                          View
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openEditMemberModal(member)}
+                          className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openPaymentModal(member)}
+                          className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                        >
+                          Payment
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openMemberProfile(member, 'receipts')}
+                          className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"
+                        >
+                          Receipt History
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteMember(member)}
+                          className="block w-full rounded-lg px-3 py-2 text-left text-sm text-danger hover:bg-danger/5"
+                        >
+                          Delete
+                        </button>
                       </div>
                     </details>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Phone</p><p className="mt-1 font-600 text-foreground">{member.phone}</p></div>
-                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Plan</p><p className="mt-1 font-600 text-foreground">{member.membershipPlan}</p></div>
-                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Renewal Date</p><p className={`mt-1 font-600 ${dueSoon ? 'text-amber-600' : 'text-foreground'}`}>{member.renewalDate}</p></div>
-                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Fees Paid</p><p className="mt-1 font-700 text-emerald-600">{formatCurrency(member.paidAmount)}</p></div>
-                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Pending</p><p className="mt-1 font-700 text-orange-600">{formatCurrency(pending)}</p></div>
-                    <div><p className="text-xs uppercase tracking-wide text-muted-foreground">Joining Date</p><p className="mt-1 font-600 text-foreground">{member.joiningDate}</p></div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Phone</p>
+                      <p className="mt-1 font-600 text-foreground">{member.phone}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">Plan</p>
+                      <p className="mt-1 font-600 text-foreground">{member.membershipPlan}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Renewal Date
+                      </p>
+                      <p
+                        className={`mt-1 font-600 ${dueSoon ? 'text-amber-600' : 'text-foreground'}`}
+                      >
+                        {member.renewalDate}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Fees Paid
+                      </p>
+                      <p className="mt-1 font-700 text-emerald-600">
+                        {formatCurrency(member.paidAmount)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Pending
+                      </p>
+                      <p className="mt-1 font-700 text-orange-600">{formatCurrency(pending)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                        Joining Date
+                      </p>
+                      <p className="mt-1 font-600 text-foreground">{member.joiningDate}</p>
+                    </div>
                   </div>
                   {dueSoon && (
                     <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1.5 text-xs font-700 text-amber-700">
@@ -1212,7 +1372,8 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
             <div className="flex flex-col gap-3 border-t border-border bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
               <p className="text-xs text-muted-foreground">
                 Showing {(currentMemberPage - 1) * MEMBER_PAGE_SIZE + 1}-
-                {Math.min(currentMemberPage * MEMBER_PAGE_SIZE, filteredMembers.length)} of {filteredMembers.length} members
+                {Math.min(currentMemberPage * MEMBER_PAGE_SIZE, filteredMembers.length)} of{' '}
+                {filteredMembers.length} members
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -1228,7 +1389,9 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 </span>
                 <button
                   type="button"
-                  onClick={() => setCurrentMemberPage((page) => Math.min(totalMemberPages, page + 1))}
+                  onClick={() =>
+                    setCurrentMemberPage((page) => Math.min(totalMemberPages, page + 1))
+                  }
                   disabled={currentMemberPage === totalMemberPages}
                   className="btn-outline rounded-lg px-3 py-2 text-xs disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -1248,11 +1411,15 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               <div key={trainer.id} className="glass-card rounded-2xl border border-border p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-700 uppercase tracking-[0.18em] text-primary">{trainer.trainerId}</p>
+                    <p className="text-xs font-700 uppercase tracking-[0.18em] text-primary">
+                      {trainer.trainerId}
+                    </p>
                     <h3 className="mt-1 text-lg font-700 text-foreground">{trainer.name}</h3>
                     <p className="mt-1 text-sm text-muted-foreground">{trainer.specialization}</p>
                   </div>
-                  <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 capitalize ${getStatusBadge(trainer.status)}`}>
+                  <span
+                    className={`inline-flex rounded-full px-3 py-1 text-xs font-600 capitalize ${getStatusBadge(trainer.status)}`}
+                  >
                     {trainer.status}
                   </span>
                 </div>
@@ -1264,19 +1431,29 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                   </div>
                   <div className="rounded-2xl border border-border bg-muted/25 p-4">
                     <p className="text-xs uppercase tracking-wide text-muted-foreground">Salary</p>
-                    <p className="mt-2 text-sm font-700 text-foreground">{formatCurrency(trainer.salary)}</p>
+                    <p className="mt-2 text-sm font-700 text-foreground">
+                      {formatCurrency(trainer.salary)}
+                    </p>
                   </div>
                   <div className="rounded-2xl border border-border bg-muted/25 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Assigned Members</p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Assigned Members
+                    </p>
                     <p className="mt-2 text-2xl font-700 text-foreground">{stats.totalAssigned}</p>
                   </div>
                   <div className="rounded-2xl border border-border bg-muted/25 p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Active Members</p>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Active Members
+                    </p>
                     <p className="mt-2 text-2xl font-700 text-foreground">{stats.activeAssigned}</p>
                   </div>
                 </div>
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <button type="button" onClick={() => openEditTrainerModal(trainer)} className="btn-outline rounded-xl px-4 py-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => openEditTrainerModal(trainer)}
+                    className="btn-outline rounded-xl px-4 py-2 text-sm"
+                  >
                     Edit
                   </button>
                   <button
@@ -1310,8 +1487,19 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
             <table className="w-full min-w-[1100px]">
               <thead className="bg-muted/40">
                 <tr>
-                  {['Receipt Number', 'Member Name', 'Amount', 'Date', 'Payment Method', 'Transaction ID', 'Actions'].map((label) => (
-                    <th key={label} className="px-4 py-3 text-left text-[11px] font-700 uppercase tracking-wider text-muted-foreground">
+                  {[
+                    'Receipt Number',
+                    'Member Name',
+                    'Amount',
+                    'Date',
+                    'Payment Method',
+                    'Transaction ID',
+                    'Actions',
+                  ].map((label) => (
+                    <th
+                      key={label}
+                      className="px-4 py-3 text-left text-[11px] font-700 uppercase tracking-wider text-muted-foreground"
+                    >
                       {label}
                     </th>
                   ))}
@@ -1320,7 +1508,10 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               <tbody className="divide-y divide-border/70">
                 {!loading && filteredPayments.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-14 text-center text-sm text-muted-foreground">
+                    <td
+                      colSpan={7}
+                      className="px-5 py-14 text-center text-sm text-muted-foreground"
+                    >
                       No payment records found.
                     </td>
                   </tr>
@@ -1331,23 +1522,64 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
 
                   return (
                     <tr key={payment.id} className="hover:bg-muted/20">
-                      <td className="px-4 py-4 text-sm font-600 text-foreground">{receipt?.receiptNumber ?? payment.receiptNumber ?? payment.invoiceId}</td>
+                      <td className="px-4 py-4 text-sm font-600 text-foreground">
+                        {receipt?.receiptNumber ?? payment.receiptNumber ?? payment.invoiceId}
+                      </td>
                       <td className="px-4 py-4 text-sm text-foreground">{payment.memberName}</td>
-                      <td className="px-4 py-4 text-sm font-600 text-foreground">{formatCurrency(payment.amount)}</td>
+                      <td className="px-4 py-4 text-sm font-600 text-foreground">
+                        {formatCurrency(payment.amount)}
+                      </td>
                       <td className="px-4 py-4 text-sm text-foreground">{payment.paymentDate}</td>
-                      <td className="px-4 py-4 text-sm text-foreground">{formatPaymentMethod(payment.paymentMethod)}</td>
-                      <td className="px-4 py-4 text-sm text-foreground">{payment.transactionId || '-'}</td>
+                      <td className="px-4 py-4 text-sm text-foreground">
+                        {formatPaymentMethod(payment.paymentMethod)}
+                      </td>
+                      <td className="px-4 py-4 text-sm text-foreground">
+                        {payment.transactionId || '-'}
+                      </td>
                       <td className="px-4 py-4">
                         <div className="flex flex-wrap gap-2">
-                          <button type="button" onClick={() => openReceiptWindow(user.businessName, payment, receipt, member, business?.phone, business?.address, 'download')} className="btn-outline rounded-lg px-3 py-2 text-xs">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openReceiptWindow(
+                                user.businessName,
+                                payment,
+                                receipt,
+                                member,
+                                business?.phone,
+                                business?.address,
+                                'download'
+                              )
+                            }
+                            className="btn-outline rounded-lg px-3 py-2 text-xs"
+                          >
                             <Download size={14} className="inline-block mr-1" />
                             Download / Save PDF
                           </button>
-                          <button type="button" onClick={() => openReceiptWindow(user.businessName, payment, receipt, member, business?.phone, business?.address, 'print')} className="btn-outline rounded-lg px-3 py-2 text-xs">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              openReceiptWindow(
+                                user.businessName,
+                                payment,
+                                receipt,
+                                member,
+                                business?.phone,
+                                business?.address,
+                                'print'
+                              )
+                            }
+                            className="btn-outline rounded-lg px-3 py-2 text-xs"
+                          >
                             <Printer size={14} className="inline-block mr-1" />
                             Print Receipt
                           </button>
-                          <button type="button" onClick={() => openMemberProfile(member ?? members[0], 'payments')} className="btn-outline rounded-lg px-3 py-2 text-xs" disabled={!member}>
+                          <button
+                            type="button"
+                            onClick={() => openMemberProfile(member ?? members[0], 'payments')}
+                            className="btn-outline rounded-lg px-3 py-2 text-xs"
+                            disabled={!member}
+                          >
                             View Member
                           </button>
                         </div>
@@ -1366,54 +1598,106 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           <div className="glass-card rounded-2xl border border-border p-5">
             <p className="text-sm font-700 text-foreground">Dashboard-aligned summary</p>
             <div className="mt-4 space-y-3 text-sm">
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Total Members</span><span className="font-700 text-foreground">{dashboardStats.totalMembers}</span></div>
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Active Members</span><span className="font-700 text-foreground">{dashboardStats.activeMembers}</span></div>
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Fees Collected</span><span className="font-700 text-foreground">{formatCurrency(dashboardStats.feesCollected)}</span></div>
-              <div className="flex items-center justify-between"><span className="text-muted-foreground">Pending Payments</span><span className="font-700 text-foreground">{formatCurrency(dashboardStats.pendingPayments)}</span></div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Total Members</span>
+                <span className="font-700 text-foreground">{dashboardStats.totalMembers}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Active Members</span>
+                <span className="font-700 text-foreground">{dashboardStats.activeMembers}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Fees Collected</span>
+                <span className="font-700 text-foreground">
+                  {formatCurrency(dashboardStats.feesCollected)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Pending Payments</span>
+                <span className="font-700 text-foreground">
+                  {formatCurrency(dashboardStats.pendingPayments)}
+                </span>
+              </div>
             </div>
           </div>
           <div className="glass-card rounded-2xl border border-border p-5 xl:col-span-2">
             <p className="text-sm font-700 text-foreground">Upcoming renewals</p>
             <div className="mt-4 space-y-3">
-              {upcomingRenewals.length ? upcomingRenewals.map((member) => (
-                <button key={member.id} type="button" onClick={() => openMemberProfile(member)} className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3 text-left">
-                  <div>
-                    <p className="text-sm font-600 text-foreground">{member.fullName}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{member.membershipPlan} | {member.trainerName || 'Unassigned trainer'}</p>
-                  </div>
-                  <span className="text-sm font-700 text-foreground">{member.renewalDate}</span>
-                </button>
-              )) : <p className="text-sm text-muted-foreground">No upcoming renewals.</p>}
+              {upcomingRenewals.length ? (
+                upcomingRenewals.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => openMemberProfile(member)}
+                    className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3 text-left"
+                  >
+                    <div>
+                      <p className="text-sm font-600 text-foreground">{member.fullName}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {member.membershipPlan} | {member.trainerName || 'Unassigned trainer'}
+                      </p>
+                    </div>
+                    <span className="text-sm font-700 text-foreground">{member.renewalDate}</span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No upcoming renewals.</p>
+              )}
             </div>
           </div>
           <div className="glass-card rounded-2xl border border-border p-5 xl:col-span-2">
             <p className="text-sm font-700 text-foreground">Pending payments watchlist</p>
             <div className="mt-4 space-y-3">
-              {pendingMembers.length ? pendingMembers.map((member) => (
-                <button key={member.id} type="button" onClick={() => openMemberProfile(member, 'payments')} className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3 text-left">
-                  <div>
-                    <p className="text-sm font-600 text-foreground">{member.fullName}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{getMemberDisplayCode(member)} | Paid {formatCurrency(member.paidAmount)}</p>
-                  </div>
-                  <span className="text-sm font-700 text-danger">{formatCurrency(Math.max(member.feeAmount - member.paidAmount, 0))}</span>
-                </button>
-              )) : <p className="text-sm text-muted-foreground">No pending balances right now.</p>}
+              {pendingMembers.length ? (
+                pendingMembers.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => openMemberProfile(member, 'payments')}
+                    className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3 text-left"
+                  >
+                    <div>
+                      <p className="text-sm font-600 text-foreground">{member.fullName}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {getMemberDisplayCode(member)} | Paid {formatCurrency(member.paidAmount)}
+                      </p>
+                    </div>
+                    <span className="text-sm font-700 text-danger">
+                      {formatCurrency(Math.max(member.feeAmount - member.paidAmount, 0))}
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">No pending balances right now.</p>
+              )}
             </div>
           </div>
           <div className="glass-card rounded-2xl border border-border p-5">
             <p className="text-sm font-700 text-foreground">Attendance watchlist</p>
             <div className="mt-4 space-y-3">
-              {lowAttendanceMembers.length ? lowAttendanceMembers.map((member) => (
-                <button key={member.id} type="button" onClick={() => openMemberProfile(member, 'attendance')} className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3 text-left">
-                  <div>
-                    <p className="text-sm font-600 text-foreground">{member.fullName}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      {(attendanceMap.get(member.id)?.present ?? 0)} Present | {(attendanceMap.get(member.id)?.absent ?? 0)} Absent
-                    </p>
-                  </div>
-                  <span className="text-sm font-700 text-foreground">{attendanceMap.get(member.id)?.percentage ?? 0}%</span>
-                </button>
-              )) : <p className="text-sm text-muted-foreground">Attendance is healthy this month.</p>}
+              {lowAttendanceMembers.length ? (
+                lowAttendanceMembers.map((member) => (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => openMemberProfile(member, 'attendance')}
+                    className="flex w-full items-center justify-between rounded-2xl border border-border bg-muted/20 px-4 py-3 text-left"
+                  >
+                    <div>
+                      <p className="text-sm font-600 text-foreground">{member.fullName}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {attendanceMap.get(member.id)?.present ?? 0} Present |{' '}
+                        {attendanceMap.get(member.id)?.absent ?? 0} Absent
+                      </p>
+                    </div>
+                    <span className="text-sm font-700 text-foreground">
+                      {attendanceMap.get(member.id)?.percentage ?? 0}%
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">Attendance is healthy this month.</p>
+              )}
             </div>
           </div>
         </div>
@@ -1424,23 +1708,34 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
           <div className="sticky top-0 z-10 border-b border-border bg-white/95 px-6 py-5 backdrop-blur">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">{getMemberDisplayCode(selectedMember)}</p>
-                <h2 className="mt-1 text-2xl font-700 text-foreground">{selectedMember.fullName}</h2>
+                <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
+                  {getMemberDisplayCode(selectedMember)}
+                </p>
+                <h2 className="mt-1 text-2xl font-700 text-foreground">
+                  {selectedMember.fullName}
+                </h2>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {selectedMember.membershipPlan} | Trainer {selectedMember.trainerName || 'Unassigned'}
+                  {selectedMember.membershipPlan} | Trainer{' '}
+                  {selectedMember.trainerName || 'Unassigned'}
                 </p>
               </div>
-              <button type="button" onClick={() => setSelectedMember(null)} className="rounded-full bg-muted p-2 text-muted-foreground">
+              <button
+                type="button"
+                onClick={() => setSelectedMember(null)}
+                className="rounded-full bg-muted p-2 text-muted-foreground"
+              >
                 <X size={18} />
               </button>
             </div>
             <div className="mt-4 inline-flex rounded-2xl bg-muted/60 p-1">
-              {([
-                ['overview', 'Overview'],
-                ['payments', 'Payments'],
-                ['attendance', 'Attendance'],
-                ['receipts', 'Receipts'],
-              ] as Array<[MemberProfileTab, string]>).map(([tab, label]) => (
+              {(
+                [
+                  ['overview', 'Overview'],
+                  ['payments', 'Payments'],
+                  ['attendance', 'Attendance'],
+                  ['receipts', 'Receipts'],
+                ] as Array<[MemberProfileTab, string]>
+              ).map(([tab, label]) => (
                 <button
                   key={tab}
                   type="button"
@@ -1460,35 +1755,78 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                   <div className="glass-card rounded-2xl border border-border p-5">
                     <p className="text-sm font-700 text-foreground">Member Information</p>
                     <div className="mt-4 space-y-2 text-sm">
-                      <p><span className="font-600 text-foreground">Phone:</span> {selectedMember.phone}</p>
-                      <p><span className="font-600 text-foreground">Email:</span> {selectedMember.email || '-'}</p>
-                      <p><span className="font-600 text-foreground">Address:</span> {selectedMember.address || '-'}</p>
-                      <p><span className="font-600 text-foreground">Emergency Contact:</span> {selectedMember.emergencyContact || '-'}</p>
+                      <p>
+                        <span className="font-600 text-foreground">Phone:</span>{' '}
+                        {selectedMember.phone}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Email:</span>{' '}
+                        {selectedMember.email || '-'}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Address:</span>{' '}
+                        {selectedMember.address || '-'}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Emergency Contact:</span>{' '}
+                        {selectedMember.emergencyContact || '-'}
+                      </p>
                     </div>
                   </div>
                   <div className="glass-card rounded-2xl border border-border p-5">
                     <p className="text-sm font-700 text-foreground">Membership Details</p>
                     <div className="mt-4 space-y-2 text-sm">
-                      <p><span className="font-600 text-foreground">Plan Name:</span> {selectedMember.membershipPlan}</p>
-                      <p><span className="font-600 text-foreground">Monthly Fee:</span> {formatCurrency(selectedMember.feeAmount)}</p>
-                      <p><span className="font-600 text-foreground">Joining Date:</span> {selectedMember.joiningDate}</p>
-                      <p><span className="font-600 text-foreground">Renewal Date:</span> {selectedMember.renewalDate}</p>
-                      <p><span className="font-600 text-foreground">Membership Status:</span> {selectedMember.status}</p>
+                      <p>
+                        <span className="font-600 text-foreground">Plan Name:</span>{' '}
+                        {selectedMember.membershipPlan}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Monthly Fee:</span>{' '}
+                        {formatCurrency(selectedMember.feeAmount)}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Joining Date:</span>{' '}
+                        {selectedMember.joiningDate}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Renewal Date:</span>{' '}
+                        {selectedMember.renewalDate}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Membership Status:</span>{' '}
+                        {selectedMember.status}
+                      </p>
                     </div>
                   </div>
                   <div className="glass-card rounded-2xl border border-border p-5">
                     <p className="text-sm font-700 text-foreground">Trainer Assignment</p>
                     <div className="mt-4 space-y-2 text-sm">
-                      <p><span className="font-600 text-foreground">Assigned Trainer:</span> {selectedMember.trainerName || 'Unassigned'}</p>
-                      <p><span className="font-600 text-foreground">Trainer Status:</span> {selectedMember.trainerName ? 'Assigned' : 'Not assigned yet'}</p>
+                      <p>
+                        <span className="font-600 text-foreground">Assigned Trainer:</span>{' '}
+                        {selectedMember.trainerName || 'Unassigned'}
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Trainer Status:</span>{' '}
+                        {selectedMember.trainerName ? 'Assigned' : 'Not assigned yet'}
+                      </p>
                     </div>
                   </div>
                   <div className="glass-card rounded-2xl border border-border p-5">
                     <p className="text-sm font-700 text-foreground">Attendance Snapshot</p>
                     <div className="mt-4 space-y-2 text-sm">
-                      <p><span className="font-600 text-foreground">Attendance:</span> {(attendanceMap.get(selectedMember.id)?.present ?? 0)} Present | {(attendanceMap.get(selectedMember.id)?.absent ?? 0)} Absent</p>
-                      <p><span className="font-600 text-foreground">Attendance Percentage:</span> {attendanceMap.get(selectedMember.id)?.percentage ?? 0}%</p>
-                      <p><span className="font-600 text-foreground">Receipts:</span> {selectedMemberReceipts.length}</p>
+                      <p>
+                        <span className="font-600 text-foreground">Attendance:</span>{' '}
+                        {attendanceMap.get(selectedMember.id)?.present ?? 0} Present |{' '}
+                        {attendanceMap.get(selectedMember.id)?.absent ?? 0} Absent
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Attendance Percentage:</span>{' '}
+                        {attendanceMap.get(selectedMember.id)?.percentage ?? 0}%
+                      </p>
+                      <p>
+                        <span className="font-600 text-foreground">Receipts:</span>{' '}
+                        {selectedMemberReceipts.length}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -1499,22 +1837,40 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               <div className="glass-card rounded-2xl border border-border p-5">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-700 text-foreground">Payment History</p>
-                  <button type="button" onClick={() => openPaymentModal(selectedMember)} className="btn-primary rounded-xl px-4 py-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => openPaymentModal(selectedMember)}
+                    className="btn-primary rounded-xl px-4 py-2 text-sm"
+                  >
                     Record Payment
                   </button>
                 </div>
                 <div className="mt-4 space-y-3">
-                  {selectedMemberPayments.length ? selectedMemberPayments.map((payment) => (
-                    <div key={payment.id} className="rounded-2xl border border-border bg-muted/20 p-4">
-                      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                        <div>
-                          <p className="text-sm font-600 text-foreground">{payment.receiptNumber ?? payment.invoiceId}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">{payment.paymentDate} | {payment.billingPeriod}</p>
+                  {selectedMemberPayments.length ? (
+                    selectedMemberPayments.map((payment) => (
+                      <div
+                        key={payment.id}
+                        className="rounded-2xl border border-border bg-muted/20 p-4"
+                      >
+                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                          <div>
+                            <p className="text-sm font-600 text-foreground">
+                              {payment.receiptNumber ?? payment.invoiceId}
+                            </p>
+                            <p className="mt-1 text-xs text-muted-foreground">
+                              {payment.paymentDate} | {payment.billingPeriod}
+                            </p>
+                          </div>
+                          <div className="text-sm text-foreground">
+                            {formatCurrency(payment.amount)} |{' '}
+                            {formatPaymentMethod(payment.paymentMethod)}
+                          </div>
                         </div>
-                        <div className="text-sm text-foreground">{formatCurrency(payment.amount)} | {formatPaymentMethod(payment.paymentMethod)}</div>
                       </div>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground">No payment history found.</p>}
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No payment history found.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -1523,22 +1879,37 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               <div className="glass-card rounded-2xl border border-border p-5">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-sm font-700 text-foreground">Attendance History</p>
-                  <button type="button" onClick={() => openAttendanceModal(selectedMember)} className="btn-primary rounded-xl px-4 py-2 text-sm">
+                  <button
+                    type="button"
+                    onClick={() => openAttendanceModal(selectedMember)}
+                    className="btn-primary rounded-xl px-4 py-2 text-sm"
+                  >
                     Mark Attendance
                   </button>
                 </div>
                 <div className="mt-4 space-y-3">
-                  {selectedMemberAttendance.length ? selectedMemberAttendance.map((record) => (
-                    <div key={record.id} className="flex items-center justify-between rounded-2xl border border-border bg-muted/20 p-4">
-                      <div>
-                        <p className="text-sm font-600 text-foreground">{record.attendanceDate}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">Member attendance</p>
+                  {selectedMemberAttendance.length ? (
+                    selectedMemberAttendance.map((record) => (
+                      <div
+                        key={record.id}
+                        className="flex items-center justify-between rounded-2xl border border-border bg-muted/20 p-4"
+                      >
+                        <div>
+                          <p className="text-sm font-600 text-foreground">
+                            {record.attendanceDate}
+                          </p>
+                          <p className="mt-1 text-xs text-muted-foreground">Member attendance</p>
+                        </div>
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-600 capitalize ${record.status === 'present' ? 'badge-success' : 'badge-danger'}`}
+                        >
+                          {record.status}
+                        </span>
                       </div>
-                      <span className={`inline-flex rounded-full px-3 py-1 text-xs font-600 capitalize ${record.status === 'present' ? 'badge-success' : 'badge-danger'}`}>
-                        {record.status}
-                      </span>
-                    </div>
-                  )) : <p className="text-sm text-muted-foreground">No attendance history found.</p>}
+                    ))
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No attendance history found.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -1547,27 +1918,70 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
               <div className="glass-card rounded-2xl border border-border p-5">
                 <p className="text-sm font-700 text-foreground">Receipt History</p>
                 <div className="mt-4 space-y-3">
-                  {selectedMemberReceipts.length ? selectedMemberReceipts.map((receipt) => {
-                    const payment = payments.find((item) => item.id === receipt.paymentId);
-                    return (
-                      <div key={receipt.id} className="rounded-2xl border border-border bg-muted/20 p-4">
-                        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                          <div>
-                            <p className="text-sm font-600 text-foreground">{receipt.receiptNumber}</p>
-                            <p className="mt-1 text-xs text-muted-foreground">{receipt.paymentDate} | {formatPaymentMethod(receipt.paymentMethod)}</p>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            <button type="button" onClick={() => payment && openReceiptWindow(user.businessName, payment, receipt, selectedMember, business?.phone, business?.address, 'download')} className="btn-outline rounded-lg px-3 py-2 text-xs" disabled={!payment}>
-                              Download / Save PDF
-                            </button>
-                            <button type="button" onClick={() => payment && openReceiptWindow(user.businessName, payment, receipt, selectedMember, business?.phone, business?.address, 'print')} className="btn-outline rounded-lg px-3 py-2 text-xs" disabled={!payment}>
-                              Print Receipt
-                            </button>
+                  {selectedMemberReceipts.length ? (
+                    selectedMemberReceipts.map((receipt) => {
+                      const payment = payments.find((item) => item.id === receipt.paymentId);
+                      return (
+                        <div
+                          key={receipt.id}
+                          className="rounded-2xl border border-border bg-muted/20 p-4"
+                        >
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                            <div>
+                              <p className="text-sm font-600 text-foreground">
+                                {receipt.receiptNumber}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {receipt.paymentDate} | {formatPaymentMethod(receipt.paymentMethod)}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  payment &&
+                                  openReceiptWindow(
+                                    user.businessName,
+                                    payment,
+                                    receipt,
+                                    selectedMember,
+                                    business?.phone,
+                                    business?.address,
+                                    'download'
+                                  )
+                                }
+                                className="btn-outline rounded-lg px-3 py-2 text-xs"
+                                disabled={!payment}
+                              >
+                                Download / Save PDF
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  payment &&
+                                  openReceiptWindow(
+                                    user.businessName,
+                                    payment,
+                                    receipt,
+                                    selectedMember,
+                                    business?.phone,
+                                    business?.address,
+                                    'print'
+                                  )
+                                }
+                                className="btn-outline rounded-lg px-3 py-2 text-xs"
+                                disabled={!payment}
+                              >
+                                Print Receipt
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  }) : <p className="text-sm text-muted-foreground">No receipts found.</p>}
+                      );
+                    })
+                  ) : (
+                    <p className="text-sm text-muted-foreground">No receipts found.</p>
+                  )}
                 </div>
               </div>
             )}
@@ -1604,52 +2018,160 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Full Name</span>
-                <input required value={memberFormValues.fullName} onChange={(event) => setMemberFormValues((current) => ({ ...current, fullName: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  required
+                  value={memberFormValues.fullName}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({ ...current, fullName: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Phone</span>
-                <input required value={memberFormValues.phone} onChange={(event) => setMemberFormValues((current) => ({ ...current, phone: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  required
+                  value={memberFormValues.phone}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({ ...current, phone: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Email</span>
-                <input type="email" value={memberFormValues.email} onChange={(event) => setMemberFormValues((current) => ({ ...current, email: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  type="email"
+                  value={memberFormValues.email}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({ ...current, email: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Address</span>
-                <input value={memberFormValues.address} onChange={(event) => setMemberFormValues((current) => ({ ...current, address: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  value={memberFormValues.address}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({ ...current, address: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Emergency Contact</span>
-                <input value={memberFormValues.emergencyContact} onChange={(event) => setMemberFormValues((current) => ({ ...current, emergencyContact: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  value={memberFormValues.emergencyContact}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({
+                      ...current,
+                      emergencyContact: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Plan Name</span>
-                <select required value={memberFormValues.membershipPlan} onChange={(event) => setMemberFormValues((current) => ({ ...current, membershipPlan: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
-                  {memberPlanOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+                <select
+                  required
+                  value={memberFormValues.membershipPlan}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({
+                      ...current,
+                      membershipPlan: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  {memberPlanOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Monthly Fee</span>
-                <input required type="number" inputMode="numeric" min="0" value={memberFormValues.feeAmount} onChange={(event) => setMemberFormValues((current) => ({ ...current, feeAmount: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  required
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
+                  value={memberFormValues.feeAmount}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({
+                      ...current,
+                      feeAmount: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Assigned Trainer</span>
-                <select value={memberFormValues.trainerId} onChange={(event) => setMemberFormValues((current) => ({ ...current, trainerId: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
+                <select
+                  value={memberFormValues.trainerId}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({
+                      ...current,
+                      trainerId: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
                   <option value="">Unassigned</option>
-                  {trainers.map((trainer) => <option key={trainer.id} value={trainer.id}>{trainer.name}</option>)}
+                  {trainers.map((trainer) => (
+                    <option key={trainer.id} value={trainer.id}>
+                      {trainer.name}
+                    </option>
+                  ))}
                 </select>
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Joining Date</span>
-                <input required type="date" value={memberFormValues.joiningDate} onChange={(event) => setMemberFormValues((current) => ({ ...current, joiningDate: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  required
+                  type="date"
+                  value={memberFormValues.joiningDate}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({
+                      ...current,
+                      joiningDate: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Renewal Date</span>
-                <input required type="date" value={memberFormValues.renewalDate} onChange={(event) => setMemberFormValues((current) => ({ ...current, renewalDate: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" />
+                <input
+                  required
+                  type="date"
+                  value={memberFormValues.renewalDate}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({
+                      ...current,
+                      renewalDate: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
               </label>
               <label className="space-y-1.5 text-sm">
                 <span className="font-600 text-foreground">Status</span>
-                <select required value={memberFormValues.status} onChange={(event) => setMemberFormValues((current) => ({ ...current, status: event.target.value as GymMemberRecord['status'] }))} className="h-[50px] w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring">
+                <select
+                  required
+                  value={memberFormValues.status}
+                  onChange={(event) =>
+                    setMemberFormValues((current) => ({
+                      ...current,
+                      status: event.target.value as GymMemberRecord['status'],
+                    }))
+                  }
+                  className="h-[50px] w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>
                   <option value="expired">Expired</option>
@@ -1662,19 +2184,104 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
       )}
 
       {trainerModalOpen && (
-        <ModalShell title={editingTrainerId ? 'Edit trainer' : 'Add trainer'} subtitle="Trainer Form" onClose={() => setTrainerModalOpen(false)}>
+        <ModalShell
+          title={editingTrainerId ? 'Edit trainer' : 'Add trainer'}
+          subtitle="Trainer Form"
+          onClose={() => setTrainerModalOpen(false)}
+        >
           <form onSubmit={handleTrainerSubmit} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Name</span><input required value={trainerFormValues.name} onChange={(event) => setTrainerFormValues((current) => ({ ...current, name: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Phone</span><input required value={trainerFormValues.phone} onChange={(event) => setTrainerFormValues((current) => ({ ...current, phone: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Email</span><input value={trainerFormValues.email} onChange={(event) => setTrainerFormValues((current) => ({ ...current, email: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Specialization</span><input required value={trainerFormValues.specialization} onChange={(event) => setTrainerFormValues((current) => ({ ...current, specialization: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Salary</span><input required type="number" min="0" value={trainerFormValues.salary} onChange={(event) => setTrainerFormValues((current) => ({ ...current, salary: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Status</span><select value={trainerFormValues.status} onChange={(event) => setTrainerFormValues((current) => ({ ...current, status: event.target.value as GymTrainerRecord['status'] }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Name</span>
+                <input
+                  required
+                  value={trainerFormValues.name}
+                  onChange={(event) =>
+                    setTrainerFormValues((current) => ({ ...current, name: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Phone</span>
+                <input
+                  required
+                  value={trainerFormValues.phone}
+                  onChange={(event) =>
+                    setTrainerFormValues((current) => ({ ...current, phone: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Email</span>
+                <input
+                  value={trainerFormValues.email}
+                  onChange={(event) =>
+                    setTrainerFormValues((current) => ({ ...current, email: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Specialization</span>
+                <input
+                  required
+                  value={trainerFormValues.specialization}
+                  onChange={(event) =>
+                    setTrainerFormValues((current) => ({
+                      ...current,
+                      specialization: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Salary</span>
+                <input
+                  required
+                  type="number"
+                  min="0"
+                  value={trainerFormValues.salary}
+                  onChange={(event) =>
+                    setTrainerFormValues((current) => ({ ...current, salary: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Status</span>
+                <select
+                  value={trainerFormValues.status}
+                  onChange={(event) =>
+                    setTrainerFormValues((current) => ({
+                      ...current,
+                      status: event.target.value as GymTrainerRecord['status'],
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </label>
             </div>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setTrainerModalOpen(false)} className="btn-outline rounded-xl px-4 py-2.5 text-sm">Cancel</button>
-              <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-2.5 text-sm disabled:opacity-60">{saving ? 'Saving...' : editingTrainerId ? 'Update Trainer' : 'Create Trainer'}</button>
+              <button
+                type="button"
+                onClick={() => setTrainerModalOpen(false)}
+                className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn-primary rounded-xl px-5 py-2.5 text-sm disabled:opacity-60"
+              >
+                {saving ? 'Saving...' : editingTrainerId ? 'Update Trainer' : 'Create Trainer'}
+              </button>
             </div>
           </form>
         </ModalShell>
@@ -1698,35 +2305,170 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 </div>
               )}
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={() => setPaymentModalOpen(false)} className="btn-outline w-full rounded-xl px-4 py-2.5 text-sm sm:w-auto">Cancel</button>
-                <button type="submit" form="payment-form" disabled={saving || !(selectedMember?.memberId || selectedMember?.id)} className="btn-primary w-full rounded-xl px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto">{saving ? 'Saving...' : 'Save Payment'}</button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentModalOpen(false)}
+                  className="btn-outline w-full rounded-xl px-4 py-2.5 text-sm sm:w-auto"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  form="payment-form"
+                  disabled={saving || !(selectedMember?.memberId || selectedMember?.id)}
+                  className="btn-primary w-full rounded-xl px-5 py-2.5 text-sm disabled:opacity-60 sm:w-auto"
+                >
+                  {saving ? 'Saving...' : 'Save Payment'}
+                </button>
               </div>
             </div>
           }
         >
           <form id="payment-form" onSubmit={handlePaymentSubmit} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Amount</span><input required type="number" min="1" value={paymentFormValues.amount} onChange={(event) => setPaymentFormValues((current) => ({ ...current, amount: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Date</span><input required type="date" value={paymentFormValues.paymentDate} onChange={(event) => setPaymentFormValues((current) => ({ ...current, paymentDate: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Payment Method</span><select value={paymentFormValues.paymentMethod} onChange={(event) => setPaymentFormValues((current) => ({ ...current, paymentMethod: event.target.value as GymPaymentRecord['paymentMethod'] }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"><option value="cash">Cash</option><option value="upi">UPI</option><option value="card">Card</option><option value="bank">Bank</option></select></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Transaction ID</span><input value={paymentFormValues.transactionId} onChange={(event) => setPaymentFormValues((current) => ({ ...current, transactionId: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Billing Period</span><input required value={paymentFormValues.billingPeriod} onChange={(event) => setPaymentFormValues((current) => ({ ...current, billingPeriod: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Notes</span><textarea value={paymentFormValues.notes} onChange={(event) => setPaymentFormValues((current) => ({ ...current, notes: event.target.value }))} className="min-h-[50px] w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Amount</span>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  value={paymentFormValues.amount}
+                  onChange={(event) =>
+                    setPaymentFormValues((current) => ({ ...current, amount: event.target.value }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Date</span>
+                <input
+                  required
+                  type="date"
+                  value={paymentFormValues.paymentDate}
+                  onChange={(event) =>
+                    setPaymentFormValues((current) => ({
+                      ...current,
+                      paymentDate: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Payment Method</span>
+                <select
+                  value={paymentFormValues.paymentMethod}
+                  onChange={(event) =>
+                    setPaymentFormValues((current) => ({
+                      ...current,
+                      paymentMethod: event.target.value as GymPaymentRecord['paymentMethod'],
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="cash">Cash</option>
+                  <option value="upi">UPI</option>
+                  <option value="card">Card</option>
+                  <option value="bank">Bank</option>
+                </select>
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Transaction ID</span>
+                <input
+                  value={paymentFormValues.transactionId}
+                  onChange={(event) =>
+                    setPaymentFormValues((current) => ({
+                      ...current,
+                      transactionId: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Billing Period</span>
+                <input
+                  required
+                  value={paymentFormValues.billingPeriod}
+                  onChange={(event) =>
+                    setPaymentFormValues((current) => ({
+                      ...current,
+                      billingPeriod: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Notes</span>
+                <textarea
+                  value={paymentFormValues.notes}
+                  onChange={(event) =>
+                    setPaymentFormValues((current) => ({ ...current, notes: event.target.value }))
+                  }
+                  className="min-h-[50px] w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
             </div>
           </form>
         </ModalShell>
       )}
 
       {attendanceModalOpen && selectedMember && (
-        <ModalShell title={`Mark attendance for ${selectedMember.fullName}`} subtitle="Attendance" onClose={() => setAttendanceModalOpen(false)}>
+        <ModalShell
+          title={`Mark attendance for ${selectedMember.fullName}`}
+          subtitle="Attendance"
+          onClose={() => setAttendanceModalOpen(false)}
+        >
           <form onSubmit={handleAttendanceSubmit} className="space-y-5">
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Date</span><input required type="date" value={attendanceFormValues.attendanceDate} onChange={(event) => setAttendanceFormValues((current) => ({ ...current, attendanceDate: event.target.value }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring" /></label>
-              <label className="space-y-1.5 text-sm"><span className="font-600 text-foreground">Status</span><select value={attendanceFormValues.status} onChange={(event) => setAttendanceFormValues((current) => ({ ...current, status: event.target.value as GymAttendanceRecord['status'] }))} className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"><option value="present">Present</option><option value="absent">Absent</option></select></label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Date</span>
+                <input
+                  required
+                  type="date"
+                  value={attendanceFormValues.attendanceDate}
+                  onChange={(event) =>
+                    setAttendanceFormValues((current) => ({
+                      ...current,
+                      attendanceDate: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              <label className="space-y-1.5 text-sm">
+                <span className="font-600 text-foreground">Status</span>
+                <select
+                  value={attendanceFormValues.status}
+                  onChange={(event) =>
+                    setAttendanceFormValues((current) => ({
+                      ...current,
+                      status: event.target.value as GymAttendanceRecord['status'],
+                    }))
+                  }
+                  className="w-full rounded-xl border border-border bg-input px-4 py-3 focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <option value="present">Present</option>
+                  <option value="absent">Absent</option>
+                </select>
+              </label>
             </div>
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-              <button type="button" onClick={() => setAttendanceModalOpen(false)} className="btn-outline rounded-xl px-4 py-2.5 text-sm">Cancel</button>
-              <button type="submit" disabled={saving} className="btn-primary rounded-xl px-5 py-2.5 text-sm disabled:opacity-60">{saving ? 'Saving...' : 'Save Attendance'}</button>
+              <button
+                type="button"
+                onClick={() => setAttendanceModalOpen(false)}
+                className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn-primary rounded-xl px-5 py-2.5 text-sm disabled:opacity-60"
+              >
+                {saving ? 'Saving...' : 'Save Attendance'}
+              </button>
             </div>
           </form>
         </ModalShell>
@@ -1736,15 +2478,23 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg rounded-[28px] border border-border bg-white shadow-card">
             <div className="border-b border-border px-6 py-5">
-              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">Member Limit Reached</p>
-              <h2 className="mt-1 text-xl font-700 text-foreground">You have reached your current subscription capacity.</h2>
+              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
+                Member Limit Reached
+              </p>
+              <h2 className="mt-1 text-xl font-700 text-foreground">
+                You have reached your current subscription capacity.
+              </h2>
             </div>
             <div className="space-y-5 px-6 py-6">
-              <p className="text-sm text-muted-foreground">Upgrade your plan to add more members.</p>
+              <p className="text-sm text-muted-foreground">
+                Upgrade your plan to add more members.
+              </p>
               <div className="grid gap-3 sm:grid-cols-3">
                 <div className="rounded-2xl border border-border bg-muted/30 p-4">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Capacity</p>
-                  <p className="mt-2 text-2xl font-700 text-foreground">{recordLimit ?? business?.recordLimit ?? 0}</p>
+                  <p className="mt-2 text-2xl font-700 text-foreground">
+                    {recordLimit ?? business?.recordLimit ?? 0}
+                  </p>
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/30 p-4">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Current</p>
@@ -1752,11 +2502,19 @@ export default function GymMembersPanel({ user, initialView = 'members' }: GymMe
                 </div>
                 <div className="rounded-2xl border border-border bg-muted/30 p-4">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Remaining</p>
-                  <p className="mt-2 text-2xl font-700 text-foreground">{Math.max((recordLimit ?? business?.recordLimit ?? 0) - currentUsage, 0)}</p>
+                  <p className="mt-2 text-2xl font-700 text-foreground">
+                    {Math.max((recordLimit ?? business?.recordLimit ?? 0) - currentUsage, 0)}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={() => setLimitModalOpen(false)} className="btn-outline rounded-xl px-4 py-2.5 text-sm">Cancel</button>
+                <button
+                  type="button"
+                  onClick={() => setLimitModalOpen(false)}
+                  className="btn-outline rounded-xl px-4 py-2.5 text-sm"
+                >
+                  Cancel
+                </button>
                 <button
                   type="button"
                   onClick={() => {

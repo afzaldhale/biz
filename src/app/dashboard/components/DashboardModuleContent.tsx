@@ -211,7 +211,10 @@ export default function DashboardModuleContent({ module, user }: DashboardModule
     }
   }
 
-  if (user.businessType === 'gym' && ['members', 'trainers', 'billing', 'reports'].includes(module)) {
+  if (
+    user.businessType === 'gym' &&
+    ['members', 'trainers', 'billing', 'reports'].includes(module)
+  ) {
     return (
       <GymMembersPanel
         user={user}

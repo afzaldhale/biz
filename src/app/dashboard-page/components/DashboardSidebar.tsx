@@ -181,9 +181,7 @@ function DashboardSidebar({
                 const IconComp = iconMap[item.icon];
                 const isActive = activeNav === item.id;
                 const badgeValue =
-                  user.businessType === 'academy'
-                    ? academyBadges[item.id]
-                    : item.badge;
+                  user.businessType === 'academy' ? academyBadges[item.id] : item.badge;
                 return (
                   <Link
                     key={item.id}
@@ -297,9 +295,7 @@ function DashboardSidebar({
                 const IconComp = iconMap[item.icon];
                 const isActive = activeNav === item.id;
                 const badgeValue =
-                  user.businessType === 'academy'
-                    ? academyBadges[item.id]
-                    : item.badge;
+                  user.businessType === 'academy' ? academyBadges[item.id] : item.badge;
                 return (
                   <Link
                     key={`mob-${item.id}`}

@@ -1,12 +1,4 @@
-import {
-  addDoc,
-  getDocs,
-  orderBy,
-  query,
-  setDoc,
-  updateDoc,
-  where,
-} from 'firebase/firestore';
+import { addDoc, getDocs, orderBy, query, setDoc, updateDoc, where } from 'firebase/firestore';
 import { AcademyEnrollment, AcademyStudent, AcademyCourse } from '@/types';
 import {
   academyCollection,

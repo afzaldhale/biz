@@ -120,7 +120,11 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
     let active = true;
     setLoading(true);
 
-    Promise.allSettled([getAcademyStudents(user.id), getAcademyFees(user.id), getAcademyReceipts(user.id)])
+    Promise.allSettled([
+      getAcademyStudents(user.id),
+      getAcademyFees(user.id),
+      getAcademyReceipts(user.id),
+    ])
       .then(([studentResult, feeResult, receiptResult]) => {
         if (!active) return;
 
@@ -139,7 +143,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         }
 
         if (receiptResult.status === 'fulfilled') {
-          setReceiptsMap(new Map(receiptResult.value.map((receipt) => [receipt.receiptId, receipt])));
+          setReceiptsMap(
+            new Map(receiptResult.value.map((receipt) => [receipt.receiptId, receipt]))
+          );
         } else {
           console.error('[academy-fees] unable to load receipts', receiptResult.reason);
           setReceiptsMap(new Map());
@@ -198,7 +204,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         }));
 
         if (activeOptions.length === 0) {
-          setEnrollmentError('This student is not enrolled in any course. Please enroll the student in a course first.');
+          setEnrollmentError(
+            'This student is not enrolled in any course. Please enroll the student in a course first.'
+          );
         }
       })
       .catch((error) => {
@@ -224,7 +232,8 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
     [form.studentId, students]
   );
   const selectedEnrollment = useMemo(
-    () => enrollmentOptions.find((enrollment) => enrollment.enrollmentId === form.enrollmentId) ?? null,
+    () =>
+      enrollmentOptions.find((enrollment) => enrollment.enrollmentId === form.enrollmentId) ?? null,
     [enrollmentOptions, form.enrollmentId]
   );
   const selectedEnrollmentPaid = useMemo(() => {
@@ -236,7 +245,10 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         if (selectedEnrollment.isVirtual) {
           return fee.courseId === selectedEnrollment.courseId;
         }
-        return fee.enrollmentId === selectedEnrollment.enrollmentId || fee.courseId === selectedEnrollment.courseId;
+        return (
+          fee.enrollmentId === selectedEnrollment.enrollmentId ||
+          fee.courseId === selectedEnrollment.courseId
+        );
       })
       .reduce((sum, fee) => sum + Number(fee.paidAmount || 0), 0);
   }, [fees, selectedEnrollment, selectedStudent]);
@@ -351,7 +363,19 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         setSaving(false);
       }
     },
-    [business, closeModal, form.amountPaid, form.notes, form.paymentDate, form.paymentMode, isOffline, selectedEnrollment, selectedEnrollmentPending, selectedStudent, user.id]
+    [
+      business,
+      closeModal,
+      form.amountPaid,
+      form.notes,
+      form.paymentDate,
+      form.paymentMode,
+      isOffline,
+      selectedEnrollment,
+      selectedEnrollmentPending,
+      selectedStudent,
+      user.id,
+    ]
   );
 
   return (
@@ -364,7 +388,11 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
             Student-linked fee payments with automatic receipt generation.
           </p>
         </div>
-        <button type="button" onClick={openModal} className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm">
+        <button
+          type="button"
+          onClick={openModal}
+          className="btn-primary inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
+        >
           <Plus size={16} />
           Add Fee Payment
         </button>
@@ -373,7 +401,10 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
       <div className="glass-card rounded-2xl border border-border overflow-hidden">
         <div className="grid gap-4 border-b border-border p-5 lg:grid-cols-[1fr_auto_auto]">
           <div className="relative">
-            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            <Search
+              size={16}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -383,7 +414,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
           </div>
           <select
             value={statusFilter}
-            onChange={(event) => setStatusFilter(event.target.value as 'all' | AcademyFee['status'])}
+            onChange={(event) =>
+              setStatusFilter(event.target.value as 'all' | AcademyFee['status'])
+            }
             className="rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="all">All statuses</option>
@@ -411,7 +444,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
             </div>
           ) : (
             <div className="p-16 text-center text-muted-foreground">
-              {showSlowMessage ? 'Network is slow. Trying to load your workspace.' : 'Loading fee records...'}
+              {showSlowMessage
+                ? 'Network is slow. Trying to load your workspace.'
+                : 'Loading fee records...'}
             </div>
           )
         ) : filteredFees.length === 0 ? (
@@ -440,11 +475,17 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                   const receipt = receiptsMap.get(fee.receiptId);
                   return (
                     <tr key={fee.id}>
-                      <td className="px-5 py-4 text-muted-foreground">{receipt?.receiptNumber ?? '—'}</td>
+                      <td className="px-5 py-4 text-muted-foreground">
+                        {receipt?.receiptNumber ?? '—'}
+                      </td>
                       <td className="px-5 py-4 font-600 text-foreground">{fee.studentName}</td>
                       <td className="px-5 py-4 text-muted-foreground">{fee.courseName}</td>
-                      <td className="px-5 py-4 text-muted-foreground">{formatCurrency(fee.paidAmount)}</td>
-                      <td className="px-5 py-4 text-muted-foreground">{formatCurrency(fee.pendingAmount)}</td>
+                      <td className="px-5 py-4 text-muted-foreground">
+                        {formatCurrency(fee.paidAmount)}
+                      </td>
+                      <td className="px-5 py-4 text-muted-foreground">
+                        {formatCurrency(fee.pendingAmount)}
+                      </td>
                       <td className="px-5 py-4 text-muted-foreground">{fee.paymentMode}</td>
                       <td className="px-5 py-4 text-muted-foreground">{fee.paymentDate}</td>
                       <td className="px-5 py-4">
@@ -482,12 +523,16 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
         <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950/45 p-4 backdrop-blur-sm">
           <div className="mx-auto mt-10 max-w-3xl overflow-hidden rounded-[28px] border border-border bg-white shadow-card">
             <div className="border-b border-border px-6 py-5">
-              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">Add Fee Payment</p>
+              <p className="text-xs font-700 uppercase tracking-[0.22em] text-primary">
+                Add Fee Payment
+              </p>
               <h2 className="mt-1 text-xl font-700 text-foreground">Record student payment</h2>
             </div>
             <form onSubmit={handleSubmit} className="grid gap-4 p-6 md:grid-cols-2">
               <div className="md:col-span-2">
-                <label className="mb-1.5 block text-sm font-600 text-foreground">Select Student</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">
+                  Select Student
+                </label>
                 <select
                   required
                   value={form.studentId}
@@ -510,15 +555,24 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="mb-1.5 block text-sm font-600 text-foreground">Select Course / Enrollment</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">
+                  Select Course / Enrollment
+                </label>
                 <select
                   required
                   value={form.enrollmentId}
                   onChange={(event) => {
                     const nextEnrollmentId = event.target.value;
-                    setForm((current) => ({ ...current, enrollmentId: nextEnrollmentId, amountPaid: '' }));
+                    setForm((current) => ({
+                      ...current,
+                      enrollmentId: nextEnrollmentId,
+                      amountPaid: '',
+                    }));
                     if (process.env.NODE_ENV === 'development') {
-                      const chosen = enrollmentOptions.find((option) => option.enrollmentId === nextEnrollmentId) ?? null;
+                      const chosen =
+                        enrollmentOptions.find(
+                          (option) => option.enrollmentId === nextEnrollmentId
+                        ) ?? null;
                       console.log('[academy-fees] selected enrollment', chosen);
                     }
                   }}
@@ -528,7 +582,8 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                   <option value="">Choose enrollment</option>
                   {enrollmentOptions.map((enrollment) => (
                     <option key={enrollment.enrollmentId} value={enrollment.enrollmentId}>
-                      {enrollment.courseName} — {formatCurrency(enrollment.courseFees)} — {enrollment.status}
+                      {enrollment.courseName} — {formatCurrency(enrollment.courseFees)} —{' '}
+                      {enrollment.status}
                     </option>
                   ))}
                 </select>
@@ -540,28 +595,39 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                     {enrollmentError}
                   </div>
                 )}
-                {!loadingEnrollments && !enrollmentError && form.studentId && enrollmentOptions.length === 0 && (
-                  <div className="mt-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
-                    No course enrollment found for this student. Enroll the student in a course first.
-                  </div>
-                )}
-                {!loadingEnrollments && !enrollmentError && form.studentId && enrollmentOptions.length === 0 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      closeModal();
-                      onNavigate('nav-students');
-                    }}
-                    className="mt-2 text-xs font-600 text-primary"
-                  >
-                    Go to Students or Courses to enroll this student
-                  </button>
-                )}
+                {!loadingEnrollments &&
+                  !enrollmentError &&
+                  form.studentId &&
+                  enrollmentOptions.length === 0 && (
+                    <div className="mt-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                      No course enrollment found for this student. Enroll the student in a course
+                      first.
+                    </div>
+                  )}
+                {!loadingEnrollments &&
+                  !enrollmentError &&
+                  form.studentId &&
+                  enrollmentOptions.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        closeModal();
+                        onNavigate('nav-students');
+                      }}
+                      className="mt-2 text-xs font-600 text-primary"
+                    >
+                      Go to Students or Courses to enroll this student
+                    </button>
+                  )}
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-600 text-foreground">Pending Amount</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">
+                  Pending Amount
+                </label>
                 <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
-                  {selectedEnrollment ? formatCurrency(selectedEnrollmentPending) : 'Select enrollment'}
+                  {selectedEnrollment
+                    ? formatCurrency(selectedEnrollmentPending)
+                    : 'Select enrollment'}
                 </div>
               </div>
               <div>
@@ -573,28 +639,43 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                   type="number"
                   disabled={!selectedEnrollment || selectedEnrollmentPending <= 0}
                   value={form.amountPaid}
-                  onChange={(event) => setForm((current) => ({ ...current, amountPaid: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, amountPaid: event.target.value }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                 />
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-600 text-foreground">Course Fee</label>
                 <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
-                  {selectedEnrollment ? formatCurrency(selectedEnrollment.courseFees) : 'Select enrollment'}
+                  {selectedEnrollment
+                    ? formatCurrency(selectedEnrollment.courseFees)
+                    : 'Select enrollment'}
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-600 text-foreground">Already Paid</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">
+                  Already Paid
+                </label>
                 <div className="rounded-xl border border-border bg-muted/40 px-4 py-3 text-sm text-foreground">
-                  {selectedEnrollment ? formatCurrency(selectedEnrollmentPaid) : 'Select enrollment'}
+                  {selectedEnrollment
+                    ? formatCurrency(selectedEnrollmentPaid)
+                    : 'Select enrollment'}
                 </div>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-600 text-foreground">Payment Mode</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">
+                  Payment Mode
+                </label>
                 <select
                   required
                   value={form.paymentMode}
-                  onChange={(event) => setForm((current) => ({ ...current, paymentMode: event.target.value as AcademyPaymentMode }))}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      paymentMode: event.target.value as AcademyPaymentMode,
+                    }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 >
                   <option value="cash">Cash</option>
@@ -604,12 +685,16 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                 </select>
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-600 text-foreground">Payment Date</label>
+                <label className="mb-1.5 block text-sm font-600 text-foreground">
+                  Payment Date
+                </label>
                 <input
                   required
                   type="date"
                   value={form.paymentDate}
-                  onChange={(event) => setForm((current) => ({ ...current, paymentDate: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, paymentDate: event.target.value }))
+                  }
                   className="w-full rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -618,7 +703,9 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                 <textarea
                   rows={4}
                   value={form.notes}
-                  onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, notes: event.target.value }))
+                  }
                   className="w-full resize-none rounded-xl border border-border bg-input px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
@@ -628,12 +715,18 @@ export default function AcademyFeesPanel({ user, onNavigate }: AcademyFeesPanelP
                 </div>
               )}
               <div className="md:col-span-2 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                <button type="button" onClick={closeModal} className="btn-outline rounded-xl px-5 py-3 text-sm">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="btn-outline rounded-xl px-5 py-3 text-sm"
+                >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={saving || isOffline || !selectedEnrollment || selectedEnrollmentPending <= 0}
+                  disabled={
+                    saving || isOffline || !selectedEnrollment || selectedEnrollmentPending <= 0
+                  }
                   className="btn-primary rounded-xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {saving ? 'Saving...' : isOffline ? 'Offline' : 'Save Payment & Print Receipt'}

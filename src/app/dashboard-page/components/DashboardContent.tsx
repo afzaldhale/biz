@@ -519,11 +519,7 @@ const DashboardOverview = memo(function DashboardOverview({
 
         <div className="space-y-5">
           <QuickActions actions={quickActions} />
-          <PlanUsageCard
-            recordsUsed={recordsUsed}
-            recordLimit={recordLimit}
-            usagePct={usagePct}
-          />
+          <PlanUsageCard recordsUsed={recordsUsed} recordLimit={recordLimit} usagePct={usagePct} />
         </div>
       </div>
     </div>
@@ -611,27 +607,32 @@ export default function DashboardContent({ user, activeNav, onNavChange }: Dashb
     setLoading(true);
     setError(null);
 
-    Promise.allSettled([getDashboardStats(user.id, user.businessType), getRecentActivities(user.id, 5)])
-      .then(([statsResult, activitiesResult]) => {
-        if (!cancelled) {
-          if (statsResult.status === 'fulfilled') {
-            setDashboardStats(statsResult.value);
-          } else {
-            console.error('[dashboard-content] unable to load dashboard stats', statsResult.reason);
-            setDashboardStats(null);
-            setError('Unable to load dashboard data right now.');
-          }
-
-          if (activitiesResult.status === 'fulfilled') {
-            setRecentActivities(activitiesResult.value);
-          } else {
-            console.error('[dashboard-content] unable to load recent activities', activitiesResult.reason);
-            setRecentActivities([]);
-          }
-
-          setLoading(false);
+    Promise.allSettled([
+      getDashboardStats(user.id, user.businessType),
+      getRecentActivities(user.id, 5),
+    ]).then(([statsResult, activitiesResult]) => {
+      if (!cancelled) {
+        if (statsResult.status === 'fulfilled') {
+          setDashboardStats(statsResult.value);
+        } else {
+          console.error('[dashboard-content] unable to load dashboard stats', statsResult.reason);
+          setDashboardStats(null);
+          setError('Unable to load dashboard data right now.');
         }
-      });
+
+        if (activitiesResult.status === 'fulfilled') {
+          setRecentActivities(activitiesResult.value);
+        } else {
+          console.error(
+            '[dashboard-content] unable to load recent activities',
+            activitiesResult.reason
+          );
+          setRecentActivities([]);
+        }
+
+        setLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;

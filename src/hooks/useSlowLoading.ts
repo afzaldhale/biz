@@ -7,10 +7,7 @@ interface UseSlowLoadingOptions {
   skeletonDelayMs?: number;
 }
 
-export function useSlowLoading(
-  isLoading: boolean,
-  options: UseSlowLoadingOptions = {}
-) {
+export function useSlowLoading(isLoading: boolean, options: UseSlowLoadingOptions = {}) {
   const { skeletonDelayMs = 1500, retryDelayMs = 8000 } = options;
   const [showSlowMessage, setShowSlowMessage] = useState(false);
   const [showRetry, setShowRetry] = useState(false);
