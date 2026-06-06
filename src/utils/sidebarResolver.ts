@@ -12,16 +12,7 @@ export function sidebarResolver(businessType: string) {
         'Settings',
       ];
     case 'hotel':
-      return [
-        'Dashboard',
-        'Rooms',
-        'Bookings',
-        'Guests',
-        'Billing',
-        'Reports',
-        'Subscription',
-        'Settings',
-      ];
+      return ['Dashboard', 'Rooms', 'Guests', 'Subscription', 'Settings'];
     case 'restaurant':
       return [
         'Dashboard',

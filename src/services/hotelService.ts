@@ -81,14 +81,12 @@ function normalizeGuest(
 ) {
   return removeUndefinedFields({
     guestId: documentId,
-    fullName: String(guest.fullName ?? ''),
-    phone: String(guest.phone ?? ''),
-    email: String(guest.email ?? ''),
-    roomNumber: String(guest.roomNumber ?? ''),
-    checkInDate: String(guest.checkInDate ?? ''),
-    checkOutDate: String(guest.checkOutDate ?? ''),
-    status: String(guest.status ?? 'reserved'),
-    notes: guest.notes?.trim() || undefined,
+    customerName: String(guest.customerName ?? ''),
+    age: Number(guest.age ?? 0),
+    aadhaarNumber: String(guest.aadhaarNumber ?? ''),
+    vehicleNumber: guest.vehicleNumber?.trim() || undefined,
+    address: String(guest.address ?? ''),
+    checkInDateTime: String(guest.checkInDateTime ?? ''),
     createdAt,
     updatedAt,
   });
@@ -132,8 +130,8 @@ function normalizeHousekeeping(
   });
 }
 
-function shouldCountGuestStatus(status: string) {
-  return status === 'reserved' || status === 'checked-in';
+function shouldCountGuestStatus() {
+  return true;
 }
 
 function shouldCountBookingStatus(status: string) {
@@ -191,23 +189,18 @@ export async function deleteHotelRoom(businessId: string, roomId: string) {
 }
 
 export async function addHotelGuest(businessId: string, guest: Omit<HotelGuestRecord, 'id'>) {
-  const shouldCount = shouldCountGuestStatus(guest.status ?? 'reserved');
   const now = new Date().toISOString();
   const guestRef = doc(hotelCollection(businessId, 'guests'));
+  const firestore = getFirestoreDb();
 
-  if (shouldCount) {
-    const firestore = getFirestoreDb();
-    await runTransaction(firestore, async (transaction) => {
-      await incrementUsageInTransaction(transaction, businessId, 1);
-      transaction.set(guestRef, {
-        ...normalizeGuest(guest, guestRef.id, guest.createdAt ?? now, now),
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
+  await runTransaction(firestore, async (transaction) => {
+    await incrementUsageInTransaction(transaction, businessId, 1);
+    transaction.set(guestRef, {
+      ...normalizeGuest(guest, guestRef.id, guest.createdAt ?? now, now),
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
     });
-  } else {
-    await setDoc(guestRef, normalizeGuest(guest, guestRef.id, guest.createdAt ?? now, now));
-  }
+  });
 
   return guestRef.id;
 }
@@ -219,37 +212,6 @@ export async function updateHotelGuest(
 ) {
   const guestRef = hotelDocument(businessId, 'guests', guestId);
   const existing = await getDoc(guestRef);
-  const previousStatus = existing.exists()
-    ? String(existing.data().status ?? 'checked-out')
-    : 'checked-out';
-  const nextStatus = guest.status ?? 'reserved';
-  const previouslyCounted = shouldCountGuestStatus(previousStatus);
-  const nextCounted = shouldCountGuestStatus(nextStatus);
-
-  if (!previouslyCounted && nextCounted) {
-    const firestore = getFirestoreDb();
-    await runTransaction(firestore, async (transaction) => {
-      await incrementUsageInTransaction(transaction, businessId, 1);
-      transaction.update(guestRef, {
-        ...normalizeGuest(guest, guestId, createdAt, new Date().toISOString()),
-        updatedAt: serverTimestamp(),
-      });
-    });
-    return;
-  }
-
-  if (previouslyCounted && !nextCounted) {
-    const firestore = getFirestoreDb();
-    await runTransaction(firestore, async (transaction) => {
-      await decrementUsageInTransaction(transaction, businessId, 1);
-      transaction.update(guestRef, {
-        ...normalizeGuest(guest, guestId, createdAt, new Date().toISOString()),
-        updatedAt: serverTimestamp(),
-      });
-    });
-    return;
-  }
-
   const createdAt = existing.exists()
     ? String(existing.data().createdAt ?? new Date().toISOString())
     : new Date().toISOString();
@@ -262,10 +224,7 @@ export async function deleteHotelGuest(businessId: string, guestId: string) {
   await runTransaction(firestore, async (transaction) => {
     const snapshot = await transaction.get(guestRef);
     if (!snapshot.exists()) return;
-    const status = String(snapshot.data().status ?? 'checked-out');
-    if (shouldCountGuestStatus(status)) {
-      await decrementUsageInTransaction(transaction, businessId, 1);
-    }
+    await decrementUsageInTransaction(transaction, businessId, 1);
     transaction.delete(guestRef);
   });
 }

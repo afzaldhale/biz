@@ -38,7 +38,10 @@ const sidebarNavMap: Record<BusinessType, NavGroup[]> = {
     ...baseNavGroups,
     {
       section: 'MANAGEMENT',
-      items: [{ id: 'nav-guests', label: 'Guests', icon: 'Users' }],
+      items: [
+        { id: 'nav-guests', label: 'Guests', icon: 'Users' },
+        { id: 'nav-rooms', label: 'Rooms', icon: 'LayoutGrid' },
+      ],
     },
     settingsGroup,
   ],
@@ -167,9 +170,9 @@ const quickActionMap: Record<
     { id: 'qa-ac-4', label: 'New Course', icon: 'BookPlus', color: '#F59E0B' },
   ],
   hotel: [
-    { id: 'qa-ht-1', label: 'Check-in Guest', icon: 'LogIn', color: '#0891B2' },
-    { id: 'qa-ht-2', label: 'New Booking', icon: 'CalendarPlus', color: '#2563EB' },
-    { id: 'qa-ht-3', label: 'Check-out', icon: 'LogOut', color: '#EF4444' },
+    { id: 'qa-ht-1', label: 'Register Guest', icon: 'UserPlus', color: '#0891B2' },
+    { id: 'qa-ht-2', label: 'Manage Rooms', icon: 'LayoutGrid', color: '#2563EB' },
+    { id: 'qa-ht-3', label: 'Guest List', icon: 'Users', color: '#7C3AED' },
     { id: 'qa-ht-4', label: 'Generate Bill', icon: 'Receipt', color: '#10B981' },
   ],
   restaurant: [

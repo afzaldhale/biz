@@ -9,26 +9,23 @@ import {
   deleteHotelGuest,
   getHotelGuests,
   updateHotelGuest,
-} from '@/services/hotelService';
+} from '@/services/hotelGuestsService';
 import { handleAppError } from '@/utils/appErrorHandler';
 
 const defaultGuestForm: Omit<HotelGuestRecord, 'id'> = {
   guestId: '',
-  fullName: '',
-  phone: '',
-  email: '',
-  roomNumber: '',
-  checkInDate: new Date().toISOString().slice(0, 10),
-  checkOutDate: new Date().toISOString().slice(0, 10),
-  status: 'reserved',
-  notes: '',
+  customerName: '',
+  age: 0,
+  aadhaarNumber: '',
+  vehicleNumber: '',
+  address: '',
+  checkInDateTime: new Date().toISOString().slice(0, 16),
   createdAt: undefined,
+  updatedAt: undefined,
 };
 
-const guestStatuses = ['reserved', 'checked-in', 'checked-out'];
-
-function formatDate(value: string) {
-  return value ? new Date(value).toLocaleDateString('en-IN') : '—';
+function formatDateTime(value: string) {
+  return value ? new Date(value).toLocaleString('en-IN', { hour12: false }) : '—';
 }
 
 export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
@@ -52,7 +49,7 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
       try {
         const data = await getHotelGuests(user.id);
         if (!active) return;
-        setGuests(data.sort((a, b) => a.fullName.localeCompare(b.fullName)));
+        setGuests(data.sort((a, b) => a.customerName.localeCompare(b.customerName)));
       } catch (error) {
         if (!active) return;
         handleAppError(error, 'Unable to load guests.');
@@ -72,7 +69,14 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
     if (!query) return guests;
 
     return guests.filter((guest) =>
-      [guest.fullName, guest.phone, guest.email, guest.roomNumber, guest.status, guest.notes]
+      [
+        guest.customerName,
+        String(guest.age),
+        guest.aadhaarNumber,
+        guest.vehicleNumber,
+        guest.address,
+        guest.checkInDateTime,
+      ]
         .filter(Boolean)
         .join(' ')
         .toLowerCase()
@@ -101,15 +105,14 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
       setEditingId(guest.id);
       setFormValues({
         guestId: guest.guestId,
-        fullName: guest.fullName,
-        phone: guest.phone,
-        email: guest.email,
-        roomNumber: guest.roomNumber,
-        checkInDate: guest.checkInDate,
-        checkOutDate: guest.checkOutDate,
-        status: guest.status,
-        notes: guest.notes ?? '',
+        customerName: guest.customerName,
+        age: guest.age,
+        aadhaarNumber: guest.aadhaarNumber,
+        vehicleNumber: guest.vehicleNumber ?? '',
+        address: guest.address,
+        checkInDateTime: guest.checkInDateTime,
         createdAt: guest.createdAt,
+        updatedAt: guest.updatedAt,
       });
     } else {
       setEditingId(null);
@@ -181,9 +184,11 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
   const stats = useMemo(
     () => ({
       total: guests.length,
-      reserved: guests.filter((guest) => guest.status === 'reserved').length,
-      checkedIn: guests.filter((guest) => guest.status === 'checked-in').length,
-      checkedOut: guests.filter((guest) => guest.status === 'checked-out').length,
+      today: guests.filter(
+        (guest) => guest.checkInDateTime.slice(0, 10) === new Date().toISOString().slice(0, 10)
+      ).length,
+      withVehicle: guests.filter((guest) => guest.vehicleNumber).length,
+      addressesOnFile: guests.filter((guest) => guest.address).length,
     }),
     [guests]
   );
@@ -195,7 +200,7 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
           <p className="text-xs font-700 tracking-[0.24em] text-primary uppercase">Guests</p>
           <h1 className="text-2xl font-700 text-foreground mt-1">Guests</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Manage guest profiles, check-in status, and room assignments.
+            Register guests with Aadhaar, vehicle, address, and check-in timestamp information.
           </p>
         </div>
 
@@ -217,20 +222,16 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
           <p className="text-2xl font-700 text-foreground mt-2">{stats.total}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Reserved</p>
-          <p className="text-2xl font-700 text-foreground mt-2">{stats.reserved}</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Today</p>
+          <p className="text-2xl font-700 text-foreground mt-2">{stats.today}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Checked In
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">{stats.checkedIn}</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">With Vehicle</p>
+          <p className="text-2xl font-700 text-foreground mt-2">{stats.withVehicle}</p>
         </div>
         <div className="glass-card rounded-2xl border border-border p-5">
-          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">
-            Checked Out
-          </p>
-          <p className="text-2xl font-700 text-foreground mt-2">{stats.checkedOut}</p>
+          <p className="text-xs font-700 tracking-wide text-muted-foreground uppercase">Addresses</p>
+          <p className="text-2xl font-700 text-foreground mt-2">{stats.addressesOnFile}</p>
         </div>
       </div>
 
@@ -245,7 +246,7 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
               type="text"
               value={searchInput}
               onChange={(event) => setSearchInput(event.target.value)}
-              placeholder="Search guests by name, room, or status"
+              placeholder="Search guests by name, Aadhaar, vehicle, or address"
               className="w-full bg-input border border-border rounded-xl pl-11 pr-4 py-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -277,29 +278,25 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
             <table className="min-w-full text-left text-sm">
               <thead className="bg-muted/80 text-xs uppercase tracking-wider text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-4">Guest</th>
-                  <th className="px-5 py-4">Room</th>
-                  <th className="px-5 py-4">Phone</th>
-                  <th className="px-5 py-4">Check-In</th>
-                  <th className="px-5 py-4">Check-Out</th>
-                  <th className="px-5 py-4">Status</th>
+                        <th className="px-5 py-4">Customer</th>
+                  <th className="px-5 py-4">Age</th>
+                  <th className="px-5 py-4">Aadhaar</th>
+                  <th className="px-5 py-4">Vehicle</th>
+                  <th className="px-5 py-4">Address</th>
+                  <th className="px-5 py-4">Date & Time</th>
                   <th className="px-5 py-4">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border bg-white">
                 {paginatedGuests.map((guest) => (
                   <tr key={guest.id} className="group hover:bg-primary/5">
-                    <td className="px-5 py-4 font-600 text-foreground">{guest.fullName}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{guest.roomNumber || '—'}</td>
-                    <td className="px-5 py-4 text-muted-foreground">{guest.phone || '—'}</td>
+                    <td className="px-5 py-4 font-600 text-foreground">{guest.customerName}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{guest.age}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{guest.aadhaarNumber}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{guest.vehicleNumber || '—'}</td>
+                    <td className="px-5 py-4 text-muted-foreground">{guest.address || '—'}</td>
                     <td className="px-5 py-4 text-muted-foreground">
-                      {formatDate(guest.checkInDate)}
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground">
-                      {formatDate(guest.checkOutDate)}
-                    </td>
-                    <td className="px-5 py-4 text-sm font-600 capitalize text-foreground">
-                      {guest.status}
+                      {formatDateTime(guest.checkInDateTime)}
                     </td>
                     <td className="px-5 py-4 space-x-2">
                       <button
@@ -376,95 +373,72 @@ export default function HotelGuestsPanel({ user }: { user: AuthUser }) {
             </div>
 
             <form onSubmit={handleSubmit} className="grid gap-5 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Full Name</label>
+                <div className="md:col-span-2">
+                <label className="block text-sm font-600 text-foreground mb-1.5">Customer Name *</label>
                 <input
                   required
-                  name="fullName"
-                  value={formValues.fullName}
+                  name="customerName"
+                  value={formValues.customerName}
                   onChange={handleChange}
                   className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Phone</label>
-                <input
-                  name="phone"
-                  value={formValues.phone}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Email</label>
-                <input
-                  name="email"
-                  value={formValues.email}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Room Number</label>
-                <input
-                  name="roomNumber"
-                  value={formValues.roomNumber}
-                  onChange={handleChange}
-                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Check-In</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">Age *</label>
                 <input
                   required
-                  type="date"
-                  name="checkInDate"
-                  value={formValues.checkInDate}
+                  type="number"
+                  name="age"
+                  min={0}
+                  value={formValues.age}
                   onChange={handleChange}
                   className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Check-Out</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">Aadhaar Number *</label>
                 <input
                   required
-                  type="date"
-                  name="checkOutDate"
-                  value={formValues.checkOutDate}
+                  name="aadhaarNumber"
+                  value={formValues.aadhaarNumber}
                   onChange={handleChange}
                   className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-600 text-foreground mb-1.5">Status</label>
-                <select
-                  name="status"
-                  value={formValues.status}
+                <label className="block text-sm font-600 text-foreground mb-1.5">Vehicle Number</label>
+                <input
+                  name="vehicleNumber"
+                  value={formValues.vehicleNumber}
                   onChange={handleChange}
                   className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                >
-                  {guestStatuses.map((status) => (
-                    <option key={status} value={status}>
-                      {status}
-                    </option>
-                  ))}
-                </select>
+                />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-600 text-foreground mb-1.5">Notes</label>
+                <label className="block text-sm font-600 text-foreground mb-1.5">Address *</label>
                 <textarea
-                  name="notes"
-                  rows={4}
-                  value={formValues.notes}
+                  required
+                  name="address"
+                  rows={3}
+                  value={formValues.address}
                   onChange={handleChange}
                   className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-600 text-foreground mb-1.5">Date & Time *</label>
+                <input
+                  required
+                  type="datetime-local"
+                  name="checkInDateTime"
+                  value={formValues.checkInDateTime}
+                  onChange={handleChange}
+                  className="w-full bg-input border border-border rounded-xl px-4 py-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                 />
               </div>
 

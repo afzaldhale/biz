@@ -14,11 +14,11 @@ export const industries: Industry[] = [
   {
     id: 'hotel',
     name: 'Hotel / Lodging',
-    description: 'Handle room bookings, guest check-ins, housekeeping, and billing from one place.',
+    description: 'Manage guest registrations and room inventory with a simple lodge workflow.',
     icon: 'Building2',
     color: '#0891B2',
     bgColor: 'rgba(8, 145, 178, 0.12)',
-    modules: ['Rooms', 'Bookings', 'Guests', 'Housekeeping', 'Billing', 'Reports'],
+    modules: ['Rooms', 'Guests', 'Subscription', 'Settings'],
   },
   {
     id: 'restaurant',

@@ -384,14 +384,12 @@ export interface HotelRoomRecord {
 export interface HotelGuestRecord {
   id: string;
   guestId?: string;
-  fullName: string;
-  phone: string;
-  email: string;
-  roomNumber: string;
-  checkInDate: string;
-  checkOutDate: string;
-  status: HotelGuestStatus;
-  notes?: string;
+  customerName: string;
+  age: number;
+  aadhaarNumber: string;
+  vehicleNumber?: string;
+  address: string;
+  checkInDateTime: string;
   createdAt?: string;
   updatedAt?: string;
 }
